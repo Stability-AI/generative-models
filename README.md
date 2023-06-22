@@ -7,10 +7,13 @@
 **June 22, 2023**
 
 
-- We are releasing two new diffusion models:
+- We are releasing two new diffusion models for research purposes:
   - `SD-XL 0.9-base`: The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
   - `SD-XL 0.9-refiner`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model.
-
+If you would like to access these models for your research, please apply using one of the following links: 
+[SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
+This means that you can apply for any of the two links - and if you are granted - you can access both. 
+Please log in to your HuggingFace Account with your organization email to request access.
 **We plan to do a full release soon (July).** 
 
 ## The codebase
