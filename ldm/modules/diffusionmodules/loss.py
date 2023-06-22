@@ -1,9 +1,11 @@
-from typing import Optional, List, Union
+from typing import List, Optional, Union
+
 import torch
 import torch.nn as nn
 from omegaconf import ListConfig
 from taming.modules.losses.lpips import LPIPS
-from ...util import instantiate_from_config, append_dims
+
+from ...util import append_dims, instantiate_from_config
 
 
 class StandardDiffusionLoss(nn.Module):

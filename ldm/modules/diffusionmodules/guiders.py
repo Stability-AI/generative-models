@@ -1,6 +1,8 @@
 from functools import partial
+
 import torch
-from ...util import instantiate_from_config, default
+
+from ...util import default, instantiate_from_config
 
 
 class VanillaCFG:

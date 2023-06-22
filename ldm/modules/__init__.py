@@ -1,4 +1,4 @@
-from ldm.modules.encoders.modules import GeneralConditioner
+from .encoders.modules import GeneralConditioner
 
 UNCONDITIONAL_CONFIG = {
     "target": "ldm.modules.GeneralConditioner",

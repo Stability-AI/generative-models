@@ -1,13 +1,13 @@
+from typing import Any, Union
+
 import torch
 import torch.nn as nn
-from typing import Any, Union
 from einops import rearrange
-
 from taming.modules.discriminator.model import NLayerDiscriminator, weights_init
 from taming.modules.losses.lpips import LPIPS
 from taming.modules.losses.vqperceptual import hinge_d_loss, vanilla_d_loss
 
-from ....util import instantiate_from_config, default
+from ....util import default, instantiate_from_config
 
 
 def adopt_weight(weight, global_step, threshold=0, value=0.0):
@@ -214,15 +214,17 @@ class GeneralLPIPSWithDiscriminator(nn.Module):
                     loss = loss + self.regularization_weights[k] * regularization_log[k]
                 log[f"{split}/{k}"] = regularization_log[k].detach().mean()
 
-            log.update({
-                "{}/total_loss".format(split): loss.clone().detach().mean(),
-                "{}/logvar".format(split): self.logvar.detach(),
-                "{}/nll_loss".format(split): nll_loss.detach().mean(),
-                "{}/rec_loss".format(split): rec_loss.detach().mean(),
-                "{}/d_weight".format(split): d_weight.detach(),
-                "{}/disc_factor".format(split): torch.tensor(disc_factor),
-                "{}/g_loss".format(split): g_loss.detach().mean(),
-            })
+            log.update(
+                {
+                    "{}/total_loss".format(split): loss.clone().detach().mean(),
+                    "{}/logvar".format(split): self.logvar.detach(),
+                    "{}/nll_loss".format(split): nll_loss.detach().mean(),
+                    "{}/rec_loss".format(split): rec_loss.detach().mean(),
+                    "{}/d_weight".format(split): d_weight.detach(),
+                    "{}/disc_factor".format(split): torch.tensor(disc_factor),
+                    "{}/g_loss".format(split): g_loss.detach().mean(),
+                }
+            )
 
             return loss, log
 

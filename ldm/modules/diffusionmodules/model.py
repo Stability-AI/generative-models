@@ -262,7 +262,6 @@ class MemoryEfficientAttnBlock(nn.Module):
         return x + h_
 
 
-
 class MemoryEfficientCrossAttentionWrapper(MemoryEfficientCrossAttention):
     def forward(self, x, context=None, mask=None, **unused_kwargs):
         b, c, h, w = x.shape

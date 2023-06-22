@@ -1,8 +1,9 @@
+from abc import abstractmethod
+from typing import Any, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from abc import abstractmethod
-from typing import Any, Tuple
 
 from ....modules.distributions.distributions import DiagonalGaussianDistribution
 

@@ -1,5 +1,6 @@
 import torch.nn as nn
-from ...util import instantiate_from_config, append_dims
+
+from ...util import append_dims, instantiate_from_config
 
 
 class Denoiser(nn.Module):

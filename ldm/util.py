@@ -1,11 +1,12 @@
 import functools
 import importlib
-import numpy as np
-import fsspec
 import os
-import torch
 from functools import partial
 from inspect import isfunction
+
+import fsspec
+import numpy as np
+import torch
 from PIL import Image, ImageDraw, ImageFont
 from safetensors.torch import load_file as load_safetensors
 

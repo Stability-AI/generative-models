@@ -2,9 +2,11 @@ from setuptools import find_packages, setup
 import os
 
 # get Pytorch version
-PT_VERSION = os.environ.get('PT_VERSION', None)
+PT_VERSION = os.environ.get("PT_VERSION", None)
 if PT_VERSION is None:
-    raise ValueError('Set the environment variable `PT_VERSION` to the version of PyTorch you are using: export PT_VERSION="pt2" or "pt13"')
+    raise ValueError(
+        'Set the environment variable `PT_VERSION` to the version of PyTorch you are using: export PT_VERSION="pt2" or "pt13"'
+    )
 else:
     # load corresponding requirements
     path_requirements = f"requirements_{PT_VERSION}.txt"
@@ -23,7 +25,5 @@ setup(
     url="https://github.com/Stability-AI/generative-models/tree/main",
     license="",
     install_requires=install_requires,
-    dependency_links=[
-        "https://download.pytorch.org/whl/cu117"
-    ]
+    dependency_links=["https://download.pytorch.org/whl/cu117"],
 )

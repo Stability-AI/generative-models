@@ -5,9 +5,8 @@ import webdataset as wds
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
 
-
 try:
-    from sdata import create_dataset, create_loader, create_dummy_dataset
+    from sdata import create_dataset, create_dummy_dataset, create_loader
 except ImportError as e:
     print("#" * 100)
     print("Datasets not yet available")

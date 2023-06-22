@@ -10,9 +10,15 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from ...modules.attention import SpatialTransformer
-from ...modules.diffusionmodules.util import (avg_pool_nd, checkpoint, conv_nd,
-                                              linear, normalization,
-                                              timestep_embedding, zero_module)
+from ...modules.diffusionmodules.util import (
+    avg_pool_nd,
+    checkpoint,
+    conv_nd,
+    linear,
+    normalization,
+    timestep_embedding,
+    zero_module,
+)
 from ...util import default, exists
 
 
