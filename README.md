@@ -6,9 +6,12 @@
 
 **June 22, 2023**
 
+
 - We are releasing two new diffusion models:
   - `SD-XL 0.9-base`: The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
   - `SD-XL 0.9-refiner`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model.
+
+**We plan to do a full release soon (July).** 
 
 ## The codebase
 
@@ -68,16 +71,53 @@ pip3 install -r requirements_pt2.txt
 
 ## Inference:
 
-We provide a streamlit demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
+We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
 - [SD-XL 0.9-base](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9)
 - [SD-XL 0.9-refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9)
 - [SD 2.1-512](https://huggingface.co/stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned.safetensors)
 - [SD 2.1-768](https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.safetensors)
 
-Please download the checkpoints from hugginface and place them into `checkpoints/`. Afterwards, you can start the demo using
+**Weights for SDXL**:
+If you would like to access these models for your research, please apply using one of the following links: 
+[SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
+This means that you can apply for any of the two links - and if you are granted - you can access both. 
+Please log in to your HuggingFace Account with your organization email to request access.
+
+After obtaining the weights, place them into `checkpoints/`. 
+Next, start the demo using
 
 ```
-streamlit run scripts/streamlit/sampling.py --server.port <your_port>
+streamlit run scripts/demo/sampling.py --server.port <your_port>
+```
+
+### Invisible Watermark Detection
+
+Images generated with our code use the
+[invisible-watermark](https://github.com/ShieldMnt/invisible-watermark/)
+library to embed an invisible watermark into the model output. We also provide
+a script to easily detect that watermark. Please note that this watermark is
+not the same as in previous Stable Diffusion 1.x/2.x versions.
+
+To run the script you need to either have a working installation as above or
+try an _experimental_ import using only a minimal amount of packages:
+```bash
+python -m venv .detect
+source .detect/bin/activate
+
+pip install "numpy>=1.17" "PyWavelets>=1.1.1" "opencv-python>=4.1.0.25"
+pip install --no-deps invisible-watermark
+```
+
+To run the script you need to have a working installation as above. The script
+is then useable in the following ways (don't forget to activate your
+virtual environment beforehand, e.g. `source .pt1/bin/activate`):
+```bash
+# test a single file
+python scripts/demo/detect.py <your filename here>
+# test multiple files at once
+python scripts/demo/detect.py <filename 1> <filename 2> ... <filename n>
+# test all files in a specific folder
+python scripts/demo/detect.py <your folder name here>/*
 ```
 
 ## Training:
@@ -97,9 +137,11 @@ run
 python main.py --base configs/example_training/toy/mnist_cond.yaml
 ```
 
-**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depdending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments conaining `USER:` in the respective config.
+**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depdending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments containing `USER:` in the respective config.  
 
 **NOTE 2:** This repository supports both `pytorch1.13` and `pytorch2`for training generative models. However for autoencoder training as e.g. in `configs/example_training/autoencoder/kl-f4/imagenet-attnfree-logvar.yaml`, only `pytorch1.13` is supported.
+
+**NOTE 3:** Training latent generative models (as e.g. in `configs/example_training/imagenet-f8_cond.yaml`) requires retrieving the checkpoint from [Hugging Face](https://huggingface.co/stabilityai/sdxl-vae/tree/main) and replacing the `CKPT_PATH` placeholder in [this line](configs/example_training/imagenet-f8_cond.yaml#81). The same is to be done for the provided text-to-image configs.
 
 ### Building New Diffusion Models
 
@@ -143,4 +185,3 @@ example = {"jpg": x,  # this is a tensor -1...1 chw
 ```
 
 where we expect images in -1...1, channel-first format.
-

@@ -2,7 +2,52 @@ import argparse
 
 import cv2
 import numpy as np
-from imwatermark import WatermarkDecoder
+
+try:
+    from imwatermark import WatermarkDecoder
+except ImportError as e:
+    try:
+        # Assume some of the other dependencies such as torch are not fulfilled
+        # import file without loading unnecessary libraries.
+        import importlib.util
+        import sys
+
+        spec = importlib.util.find_spec("imwatermark.maxDct")
+        assert spec is not None
+        maxDct = importlib.util.module_from_spec(spec)
+        sys.modules["maxDct"] = maxDct
+        spec.loader.exec_module(maxDct)
+
+        class WatermarkDecoder(object):
+            """A minimal version of
+            https://github.com/ShieldMnt/invisible-watermark/blob/main/imwatermark/watermark.py
+            to only reconstruct bits using dwtDct"""
+
+            def __init__(self, wm_type="bytes", length=0):
+                assert wm_type == "bits", "Only bits defined in minimal import"
+                self._wmType = wm_type
+                self._wmLen = length
+
+            def reconstruct(self, bits):
+                if len(bits) != self._wmLen:
+                    raise RuntimeError("bits are not matched with watermark length")
+
+                return bits
+
+            def decode(self, cv2Image, method="dwtDct", **configs):
+                (r, c, channels) = cv2Image.shape
+                if r * c < 256 * 256:
+                    raise RuntimeError("image too small, should be larger than 256x256")
+
+                bits = []
+                assert method == "dwtDct"
+                embed = maxDct.EmbedMaxDct(watermarks=[], wmLen=self._wmLen, **configs)
+                bits = embed.decode(cv2Image)
+                return self.reconstruct(bits)
+
+    except:
+        raise e
+
 
 # A fixed 48-bit message that was choosen at random
 # WATERMARK_MESSAGE = 0xB3EC907BB19E
@@ -10,17 +55,22 @@ WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
 # bin(x)[2:] gives bits of x as str, use int to convert them to 0/1
 WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
 MATCH_VALUES = [
-    [20, "Unmarked. In our tests no watermarked images matched this little"],
+    [27, "No watermark detected"],
+    [33, "Partial watermark match. Cannot determine with certainty."],
     [
-        27,
-        "Very likely unmarked. Roughly 1% of images in this category are watermarked",
+        35,
+        (
+            "Likely watermarked. In our test 0.02% of real images were "
+            'falsely detected as "Likely watermarked"'
+        ),
     ],
     [
-        33,
-        "Slightly more likely marked than unmarked. Chance to be watermarked is roughly 75%",
+        49,
+        (
+            "Very likely watermarked. In our test no real images were "
+            'falsely detected as "Very likely watermarked"'
+        ),
     ],
-    [35, "Very likely marked. In our test 2% of images in this category are unmarked"],
-    [49, "Marked. All images in this category were marked in our test"],
 ]
 
 
