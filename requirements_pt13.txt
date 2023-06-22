@@ -1,39 +1,40 @@
-wheel==0.40.0
-omegaconf==2.3.0
-einops==0.6.1
-fire==0.5.0
-tqdm==4.65.0
-pillow==9.5.0
-numpy==1.25.0
+omegaconf
+einops
+fire
+tqdm
+pillow
+numpy
 webdataset>=0.2.33
-torch==1.13.1
+--extra-index-url https://download.pytorch.org/whl/cu117
+torch==1.13.1+cu117
 xformers==0.0.16
 torchaudio==0.13.1
-torchvision==0.14.1
-torchmetrics==0.11.4
+torchvision==0.14.1+cu117
+torchmetrics
 opencv-python==4.6.0.66
-fairscale==0.4.13
+fairscale
 pytorch-lightning==1.8.5
-fsspec==2023.6.0
+fsspec
 kornia==0.6.9
-matplotlib==3.7.1
-natsort==8.4.0
+matplotlib
+natsort
 tensorboardx==2.5.1
-open-clip-torch==2.20.0
-chardet==5.1.0
-scipy==1.10.1
-pandas==2.0.2
-pudb==2022.1.3
-pyyaml==6.0
+open-clip-torch
+chardet
+scipy
+pandas
+pudb
+pyyaml
 urllib3<1.27,>=1.25.4
 streamlit>=0.73.1
-timm>=0.9.2
+timm
 tokenizers==0.12.1
 torchdata==0.5.1
 transformers==4.19.1
-triton==2.0.0
-wandb>=0.15.4
-invisible-watermark==0.1.5
-taming-transformers @ git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
-clip @ git+https://github.com/openai/CLIP.git@main#egg=clip
-sdata @ git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
+triton
+wandb
+invisible-watermark
+-e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+-e git+https://github.com/openai/CLIP.git@main#egg=clip
+-e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
+-e .

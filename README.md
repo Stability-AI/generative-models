@@ -40,28 +40,30 @@ cd generative-models
 
 #### 2. Setting up the virtualenv
 
-- This is assuming you have navigated to the `generative-models` root after cloning it.
-- Our codebase is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
-- We support `PyTorch 1.13` and `PyTorch 2.0`. Specify your version:
+This is assuming you have navigated to the `generative-models` root after cloning it. 
+
+**NOTE:** This is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
 
 
-**PyTorch 1.13**
+**PyTorch 1.13** 
 
 ```shell
-export PT_VERSION="pt13"
+# install required packages from pypi
+python3 -m venv .pt1
+source .pt1/bin/activate
+pip3 install wheel
+pip3 install -r requirements_pt13.txt
 ```
 
-**PyTorch 2.0**
+**PyTorch 2.0** 
+
 
 ```shell
-export PT_VERSION="pt2"
-```
-
-- Create a virtualenv:
-
-```shell
-python3 -m venv .$PT_VERSION
-source .$PT_VERSION/bin/activate
+# install required packages from pypi
+python3 -m venv .pt2
+source .pt2/bin/activate
+pip3 install wheel
+pip3 install -r requirements_pt2.txt
 ```
 
 #### 3. Installation of the required packages from pypi
