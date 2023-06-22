@@ -69,7 +69,7 @@ model:
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by one
-              
+
     first_stage_config:
       target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
       params:

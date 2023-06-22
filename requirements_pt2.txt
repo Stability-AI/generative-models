@@ -36,6 +36,6 @@ torchdata==0.6.1
 wandb>=0.15.4
 invisible-watermark>=0.1.5
 xformers==0.0.20
-taming-transformers @ git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+taming_transformers @ git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
 clip @ git+https://github.com/openai/CLIP.git@main#egg=clip
 sdata @ git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata

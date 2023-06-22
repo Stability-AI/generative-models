@@ -8,7 +8,7 @@
 
 - We are releasing two new diffusion models:
   - `SD-XL 0.9-base`: The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
-  - `SD-XL 0.9-refiner`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model. 
+  - `SD-XL 0.9-refiner`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model.
 
 ## The codebase
 
@@ -40,18 +40,18 @@ cd generative-models
 
 #### 2. Setting up the virtualenv
 
-- This is assuming you have navigated to the `generative-models` root after cloning it. 
+- This is assuming you have navigated to the `generative-models` root after cloning it.
 - Our codebase is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
 - We support `PyTorch 1.13` and `PyTorch 2.0`. Specify your version:
 
 
-**PyTorch 1.13** 
+**PyTorch 1.13**
 
 ```shell
 export PT_VERSION="pt13"
 ```
 
-**PyTorch 2.0** 
+**PyTorch 2.0**
 
 ```shell
 export PT_VERSION="pt2"
@@ -89,7 +89,7 @@ streamlit run scripts/streamlit/sampling.py --server.port <your_port>
 We are providing example training configs in `configs/example_training`. To launch a training, run
 
 ```
-python main.py --base configs/<config1.yaml> configs/<config2.yaml> 
+python main.py --base configs/<config1.yaml> configs/<config2.yaml>
 ```
 
 where configs are merged from left to right (later configs overwrite the same values).
@@ -101,7 +101,7 @@ run
 python main.py --base configs/example_training/toy/mnist_cond.yaml
 ```
 
-**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depdending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments conaining `USER:` in the respective config.  
+**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depdending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments conaining `USER:` in the respective config.
 
 **NOTE 2:** This repository supports both `pytorch1.13` and `pytorch2`for training generative models. However for autoencoder training as e.g. in `configs/example_training/autoencoder/kl-f4/imagenet-attnfree-logvar.yaml`, only `pytorch1.13` is supported.
 
@@ -145,6 +145,6 @@ e.g.,
 example = {"jpg": x,  # this is a tensor -1...1 chw
            "txt": "a beautiful image"}
 ```
-  
+
 where we expect images in -1...1, channel-first format.
 
