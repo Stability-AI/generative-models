@@ -66,12 +66,6 @@ pip3 install wheel
 pip3 install -r requirements_pt2.txt
 ```
 
-#### 3. Installation of the required packages from pypi
-
-```shell
-pip3 install .
-```
-
 ## Inference:
 
 We provide a streamlit demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
