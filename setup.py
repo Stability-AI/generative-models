@@ -14,11 +14,11 @@ else:
         install_requires = f.read().splitlines()
 
 setup(
-    name="ldm",
+    name="sgm",
     version="0.0.1",
     packages=find_packages(),
     python_requires=">=3.9",
-    py_modules=["ldm"],
+    py_modules=["sgm"],
     description="Stability Generative Models",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

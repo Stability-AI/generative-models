@@ -1,23 +1,23 @@
 model:
-  target: ldm.models.diffusion.DiffusionEngine
+  target: sgm.models.diffusion.DiffusionEngine
   params:
     scale_factor: 0.13025
     disable_first_stage_autocast: True
 
     denoiser_config:
-      target: ldm.modules.diffusionmodules.denoiser.DiscreteDenoiser
+      target: sgm.modules.diffusionmodules.denoiser.DiscreteDenoiser
       params:
         num_idx: 1000
 
         weighting_config:
-          target: ldm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
+          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
         scaling_config:
-          target: ldm.modules.diffusionmodules.denoiser_scaling.EpsScaling
+          target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
         discretization_config:
-          target: ldm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+          target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
 
     network_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         adm_in_channels: 2816
         num_classes: sequential
@@ -37,20 +37,20 @@ model:
         legacy: False
 
     conditioner_config:
-      target: ldm.modules.GeneralConditioner
+      target: sgm.modules.GeneralConditioner
       params:
         emb_models:
           # crossattn cond
           - is_trainable: False
             input_key: txt
-            target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
+            target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
             params:
               layer: hidden
               layer_idx: 11
           # crossattn and vector cond
           - is_trainable: False
             input_key: txt
-            target: ldm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
+            target: sgm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
             params:
               arch: ViT-bigG-14
               version: laion2b_s39b_b160k
@@ -61,24 +61,24 @@ model:
           # vector cond
           - is_trainable: False
             input_key: original_size_as_tuple
-            target: ldm.modules.encoders.modules.ConcatTimestepEmbedderND
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by two
           # vector cond
           - is_trainable: False
             input_key: crop_coords_top_left
-            target: ldm.modules.encoders.modules.ConcatTimestepEmbedderND
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by two
           # vector cond
           - is_trainable: False
             input_key: target_size_as_tuple
-            target: ldm.modules.encoders.modules.ConcatTimestepEmbedderND
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by two
               
     first_stage_config:
-      target: ldm.models.autoencoder.AutoencoderKLInferenceWrapper
+      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
       params:
         embed_dim: 4
         monitor: val/rec_loss

@@ -1,12 +1,12 @@
 model:
   base_learning_rate: 4.5e-6
-  target: ldm.models.autoencoder.AutoencodingEngine
+  target: sgm.models.autoencoder.AutoencodingEngine
   params:
     input_key: jpg
     monitor: val/rec_loss
 
     loss_config:
-      target: ldm.modules.autoencoding.losses.GeneralLPIPSWithDiscriminator
+      target: sgm.modules.autoencoding.losses.GeneralLPIPSWithDiscriminator
       params:
         perceptual_weight: 0.25
         disc_start: 20001
@@ -17,10 +17,10 @@ model:
           kl_loss: 1.0
 
     regularizer_config:
-      target: ldm.modules.autoencoding.regularizers.DiagonalGaussianRegularizer
+      target: sgm.modules.autoencoding.regularizers.DiagonalGaussianRegularizer
 
     encoder_config:
-      target: ldm.modules.diffusionmodules.model.Encoder
+      target: sgm.modules.diffusionmodules.model.Encoder
       params:
         attn_type: none
         double_z: True
@@ -35,7 +35,7 @@ model:
         dropout: 0.0
 
     decoder_config:
-      target: ldm.modules.diffusionmodules.model.Decoder
+      target: sgm.modules.diffusionmodules.model.Decoder
       params:
         attn_type: none
         double_z: False
@@ -50,7 +50,7 @@ model:
         dropout: 0.0
 
 data:
-  target: ldm.data.dataset.StableDataModuleFromConfig
+  target: sgm.data.dataset.StableDataModuleFromConfig
   params:
     train:
       datapipeline:

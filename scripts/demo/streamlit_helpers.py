@@ -14,7 +14,7 @@ from torchvision import transforms
 from torchvision.utils import make_grid
 from safetensors.torch import load_file as load_safetensors
 
-from ldm.modules.diffusionmodules.sampling import (
+from sgm.modules.diffusionmodules.sampling import (
     EulerEDMSampler,
     HeunEDMSampler,
     EulerAncestralSampler,
@@ -22,8 +22,8 @@ from ldm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from ldm.util import append_dims
-from ldm.util import instantiate_from_config
+from sgm.util import append_dims
+from sgm.util import instantiate_from_config
 
 
 class WatermarkEmbedder:
@@ -244,7 +244,7 @@ def get_guider(key):
 
     if guider == "IdentityGuider":
         guider_config = {
-            "target": "ldm.modules.diffusionmodules.guiders.IdentityGuider"
+            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
         }
     elif guider == "VanillaCFG":
         scale = st.number_input(
@@ -260,13 +260,13 @@ def get_guider(key):
 
         if thresholder == "None":
             dyn_thresh_config = {
-                "target": "ldm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
+                "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
             }
         else:
             raise NotImplementedError
 
         guider_config = {
-            "target": "ldm.modules.diffusionmodules.guiders.VanillaCFG",
+            "target": "sgm.modules.diffusionmodules.guiders.VanillaCFG",
             "params": {"scale": scale, "dyn_thresh_config": dyn_thresh_config},
         }
     else:
@@ -327,7 +327,7 @@ def get_discretization(discretization, key=1):
     if discretization == "LegacyDDPMDiscretization":
         use_new_range = st.checkbox(f"Start from highest noise level? #{key}", False)
         discretization_config = {
-            "target": "ldm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
+            "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
             "params": {"legacy_range": not use_new_range},
         }
     elif discretization == "EDMDiscretization":
@@ -335,7 +335,7 @@ def get_discretization(discretization, key=1):
         sigma_max = st.number_input(f"sigma_max #{key}", value=14.61)  # 14.6146
         rho = st.number_input(f"rho #{key}", value=3.0)
         discretization_config = {
-            "target": "ldm.modules.diffusionmodules.discretizer.EDMDiscretization",
+            "target": "sgm.modules.diffusionmodules.discretizer.EDMDiscretization",
             "params": {
                 "sigma_min": sigma_min,
                 "sigma_max": sigma_max,

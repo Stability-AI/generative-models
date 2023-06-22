@@ -20,12 +20,12 @@ Modularity is king. This repo implements a config-driven approach where we build
 
 For training, we use [pytorch-lightning](https://www.pytorchlightning.ai/index.html), but it should be easy to use other training wrappers around the base modules. The core diffusion model class (formerly `LatentDiffusion`, now `DiffusionEngine`) has been cleaned up:
 
-- No more extensive subclassing! We now handle all types of conditioning inputs (vectors, sequences and spatial conditionings, and all combinations thereof) in a single class: `GeneralConditioner`, see `ldm/modules/encoders/modules.py`.
-- We separate guiders (such as classifier-free guidance, see `ldm/modules/diffusionmodules/guiders.py`) from the
-  samplers (`ldm/modules/diffusionmodules/sampling.py`), and the samplers are independent of the model.
+- No more extensive subclassing! We now handle all types of conditioning inputs (vectors, sequences and spatial conditionings, and all combinations thereof) in a single class: `GeneralConditioner`, see `sgm/modules/encoders/modules.py`.
+- We separate guiders (such as classifier-free guidance, see `sgm/modules/diffusionmodules/guiders.py`) from the
+  samplers (`sgm/modules/diffusionmodules/sampling.py`), and the samplers are independent of the model.
 - We adopt the ["denoiser framework"](https://arxiv.org/abs/2206.00364) for both training and inference (most notable change is probably now the option to train continuous time models):
-    * Discrete times models (denoisers) are simply a special case of continuous time models (denoisers); see `ldm/modules/diffusionmodules/denoiser.py`.
-    * The following features are now independent: weighting of the diffusion loss function (`ldm/modules/diffusionmodules/denoiser_weighting.py`), preconditioning of the network (`ldm/modules/diffusionmodules/denoiser_scaling.py`), and sampling of noise levels during training (`ldm/modules/diffusionmodules/sigma_sampling.py`).
+    * Discrete times models (denoisers) are simply a special case of continuous time models (denoisers); see `sgm/modules/diffusionmodules/denoiser.py`.
+    * The following features are now independent: weighting of the diffusion loss function (`sgm/modules/diffusionmodules/denoiser_weighting.py`), preconditioning of the network (`sgm/modules/diffusionmodules/denoiser_scaling.py`), and sampling of noise levels during training (`sgm/modules/diffusionmodules/sigma_sampling.py`).
 - Autoencoding models have also been cleaned up.
 
 ## Installation:

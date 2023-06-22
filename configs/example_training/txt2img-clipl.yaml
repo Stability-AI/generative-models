@@ -1,6 +1,6 @@
 model:
   base_learning_rate: 1.0e-4
-  target: ldm.models.diffusion.DiffusionEngine
+  target: sgm.models.diffusion.DiffusionEngine
   params:
     scale_factor: 0.13025
     disable_first_stage_autocast: True
@@ -8,7 +8,7 @@ model:
       - txt
 
     scheduler_config:
-      target: ldm.lr_scheduler.LambdaLinearScheduler
+      target: sgm.lr_scheduler.LambdaLinearScheduler
       params:
         warm_up_steps: [ 10000 ]
         cycle_lengths: [ 10000000000000 ]
@@ -17,19 +17,19 @@ model:
         f_min: [ 1. ]
 
     denoiser_config:
-      target: ldm.modules.diffusionmodules.denoiser.DiscreteDenoiser
+      target: sgm.modules.diffusionmodules.denoiser.DiscreteDenoiser
       params:
         num_idx: 1000
 
         weighting_config:
-          target: ldm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
+          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
         scaling_config:
-          target: ldm.modules.diffusionmodules.denoiser_scaling.EpsScaling
+          target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
         discretization_config:
-          target: ldm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+          target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
 
     network_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         use_checkpoint: True
         use_fp16: True
@@ -49,33 +49,33 @@ model:
         spatial_transformer_attn_type: softmax-xformers
 
     conditioner_config:
-      target: ldm.modules.GeneralConditioner
+      target: sgm.modules.GeneralConditioner
       params:
         emb_models:
           # crossattn cond
           - is_trainable: True
             input_key: txt
             ucg_rate: 0.1
-            target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
+            target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
             params:
               always_return_pooled: True
           # vector cond
           - is_trainable: False
             ucg_rate: 0.1
             input_key: original_size_as_tuple
-            target: ldm.modules.encoders.modules.ConcatTimestepEmbedderND
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by two
           # vector cond
           - is_trainable: False
             input_key: crop_coords_top_left
             ucg_rate: 0.1
-            target: ldm.modules.encoders.modules.ConcatTimestepEmbedderND
+            target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
               outdim: 256  # multiplied by two
 
     first_stage_config:
-      target: ldm.models.autoencoder.AutoencoderKLInferenceWrapper
+      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
       params:
         ckpt_path: /fsx/robin/checkpoints/vae_models/f8z4-pruned.ckpt
         embed_dim: 4
@@ -96,31 +96,31 @@ model:
           target: torch.nn.Identity
 
     loss_fn_config:
-      target: ldm.modules.diffusionmodules.loss.StandardDiffusionLoss
+      target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
       params:
         sigma_sampler_config:
-          target: ldm.modules.diffusionmodules.sigma_sampling.DiscreteSampling
+          target: sgm.modules.diffusionmodules.sigma_sampling.DiscreteSampling
           params:
             num_idx: 1000
 
             discretization_config:
-              target: ldm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+              target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
 
     sampler_config:
-      target: ldm.modules.diffusionmodules.sampling.EulerEDMSampler
+      target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler
       params:
         num_steps: 50
 
         discretization_config:
-          target: ldm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
+          target: sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization
 
         guider_config:
-          target: ldm.modules.diffusionmodules.guiders.VanillaCFG
+          target: sgm.modules.diffusionmodules.guiders.VanillaCFG
           params:
             scale: 7.5
 
 data:
-  target: ldm.data.dataset.StableDataModuleFromConfig
+  target: sgm.data.dataset.StableDataModuleFromConfig
   params:
     train:
       datapipeline:

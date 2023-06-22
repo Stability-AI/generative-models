@@ -23,7 +23,7 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities import rank_zero_only
 
-from ldm.util import (
+from sgm.util import (
     exists,
     instantiate_from_config,
     isheatmap,
@@ -494,7 +494,7 @@ def init_wandb(save_dir, opt, config, group_name, name_str):
         wandb.init(
             project=opt.projectname,
             config=config,
-            settings=wandb.Settings(code_dir="./ldm"),
+            settings=wandb.Settings(code_dir="./sgm"),
             group=group_name,
             name=name_str,
         )

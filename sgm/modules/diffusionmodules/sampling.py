@@ -18,7 +18,7 @@ from ...modules.diffusionmodules.sampling_utils import (
 )
 from ...util import append_dims, default, instantiate_from_config
 
-DEFAULT_GUIDER = {"target": "ldm.modules.diffusionmodules.guiders.IdentityGuider"}
+DEFAULT_GUIDER = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
 
 
 class BaseDiffusionSampler:

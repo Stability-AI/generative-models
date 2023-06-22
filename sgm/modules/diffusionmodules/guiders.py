@@ -17,7 +17,7 @@ class VanillaCFG:
             default(
                 dyn_thresh_config,
                 {
-                    "target": "ldm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
+                    "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
                 },
             )
         )

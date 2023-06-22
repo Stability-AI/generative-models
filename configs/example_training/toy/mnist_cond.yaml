@@ -1,21 +1,21 @@
 model:
   base_learning_rate: 1.0e-4
-  target: ldm.models.diffusion.DiffusionEngine
+  target: sgm.models.diffusion.DiffusionEngine
   params:
     denoiser_config:
-      target: ldm.modules.diffusionmodules.denoiser.Denoiser
+      target: sgm.modules.diffusionmodules.denoiser.Denoiser
       params:
         weighting_config:
-          target: ldm.modules.diffusionmodules.denoiser_weighting.EDMWeighting
+          target: sgm.modules.diffusionmodules.denoiser_weighting.EDMWeighting
           params:
             sigma_data: 1.0
         scaling_config:
-          target: ldm.modules.diffusionmodules.denoiser_scaling.EDMScaling
+          target: sgm.modules.diffusionmodules.denoiser_scaling.EDMScaling
           params:
             sigma_data: 1.0
 
     network_config:
-      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         use_checkpoint: True
         in_channels: 1
@@ -29,41 +29,41 @@ model:
         adm_in_channels: 128
 
     conditioner_config:
-      target: ldm.modules.GeneralConditioner
+      target: sgm.modules.GeneralConditioner
       params:
         emb_models:
           - is_trainable: True
             input_key: "cls"
             ucg_rate: 0.2
-            target: ldm.modules.encoders.modules.ClassEmbedder
+            target: sgm.modules.encoders.modules.ClassEmbedder
             params:
               embed_dim: 128
               n_classes: 10
 
     first_stage_config:
-      target: ldm.models.autoencoder.IdentityFirstStage
+      target: sgm.models.autoencoder.IdentityFirstStage
 
     loss_fn_config:
-      target: ldm.modules.diffusionmodules.loss.StandardDiffusionLoss
+      target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
       params:
         sigma_sampler_config:
-          target: ldm.modules.diffusionmodules.sigma_sampling.EDMSampling
+          target: sgm.modules.diffusionmodules.sigma_sampling.EDMSampling
 
     sampler_config:
-      target: ldm.modules.diffusionmodules.sampling.EulerEDMSampler
+      target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler
       params:
         num_steps: 50
 
         discretization_config:
-          target: ldm.modules.diffusionmodules.discretizer.EDMDiscretization
+          target: sgm.modules.diffusionmodules.discretizer.EDMDiscretization
 
         guider_config:
-          target: ldm.modules.diffusionmodules.guiders.VanillaCFG
+          target: sgm.modules.diffusionmodules.guiders.VanillaCFG
           params:
             scale: 3.0
 
 data:
-  target: ldm.data.mnist.MNISTLoader
+  target: sgm.data.mnist.MNISTLoader
   params:
     batch_size: 512
     num_workers: 1
