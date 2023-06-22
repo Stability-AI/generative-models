@@ -1,17 +1,4 @@
 from setuptools import find_packages, setup
-import os
-
-# get Pytorch version
-PT_VERSION = os.environ.get("PT_VERSION", None)
-if PT_VERSION is None:
-    raise ValueError(
-        'Set the environment variable `PT_VERSION` to the version of PyTorch you are using: export PT_VERSION="pt2" or "pt13"'
-    )
-else:
-    # load corresponding requirements
-    path_requirements = f"requirements_{PT_VERSION}.txt"
-    with open(path_requirements) as f:
-        install_requires = f.read().splitlines()
 
 setup(
     name="sgm",
@@ -23,6 +10,4 @@ setup(
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/Stability-AI/generative-models",
-    license="",
-    install_requires=install_requires,
 )
