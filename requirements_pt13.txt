@@ -1,0 +1,41 @@
+omegaconf
+einops
+fire
+tqdm
+pillow
+numpy
+webdataset>=0.2.33
+--extra-index-url https://download.pytorch.org/whl/cu117
+torch==1.13.1+cu117
+xformers==0.0.16
+torchaudio==0.13.1
+torchvision==0.14.1+cu117
+torchmetrics
+opencv-python==4.6.0.66
+fairscale
+pytorch-lightning==1.8.5
+fsspec
+kornia==0.6.9
+matplotlib
+natsort
+tensorboardx==2.5.1
+open-clip-torch
+chardet
+scipy
+pandas
+pudb
+pyyaml
+urllib3<1.27,>=1.25.4
+streamlit>=0.73.1
+timm
+tokenizers==0.12.1
+torchdata==0.5.1
+transformers==4.19.1
+onnx<=1.12.0
+triton
+wandb
+invisible-watermark
+-e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+-e git+https://github.com/openai/CLIP.git@main#egg=clip
+-e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
+-e .
