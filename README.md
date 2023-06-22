@@ -6,7 +6,7 @@
 
 **June 22, 2023**
 
-- We are releasing two new diffusion models: SD-XL 0.9-base and SD-XL 0.9-refiner. The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model. The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
+- We are releasing two new diffusion models for research: SD-XL 0.9-base and SD-XL 0.9-refiner. The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model. The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model. **We plan to do a full release soon (July).** 
 
 ## The code base
 
@@ -66,13 +66,20 @@ pip3 install -r requirements_pt2.txt
 
 ## Inference:
 
-We provide a streamlit demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
+We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
 - [SD-XL 0.9-base](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9)
 - [SD-XL 0.9-refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9)
 - [SD 2.1-512](https://huggingface.co/stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned.safetensors)
 - [SD 2.1-768](https://huggingface.co/stabilityai/stable-diffusion-2-1/blob/main/v2-1_768-ema-pruned.safetensors)
 
-Please download the checkpoints from hugginface and place them into `checkpoints/`. Afterwards, you can start the demo using
+**Weights for SDXL**:
+If you would like to access these models for your research, please apply using one of the following links: 
+[SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
+This means that you can apply for any of the two links - and if you are granted - you can access both. 
+Please log in to your HuggingFace Account with your organization email to request access.
+
+After obtaining the weights, place them into `checkpoints/`. 
+Next, start the demo using
 
 ```
 streamlit run scripts/demo/sampling.py --server.port <your_port>
