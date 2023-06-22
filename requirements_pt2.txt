@@ -1,0 +1,41 @@
+omegaconf
+einops
+fire
+tqdm
+pillow
+numpy
+webdataset>=0.2.33
+ninja
+torch
+matplotlib
+torchaudio>=2.0.2
+torchmetrics
+torchvision>=0.15.2
+opencv-python==4.6.0.66
+fairscale
+pytorch-lightning==2.0.1
+fire
+fsspec
+kornia==0.6.9
+natsort
+open-clip-torch
+chardet==5.1.0
+tensorboardx==2.6
+pandas
+pudb
+pyyaml
+urllib3<1.27,>=1.25.4
+scipy
+streamlit>=0.73.1
+timm
+tokenizers==0.12.1
+transformers==4.19.1
+triton==2.0.0
+torchdata==0.6.1
+wandb
+invisible-watermark
+xformers
+-e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+-e git+https://github.com/openai/CLIP.git@main#egg=clip
+-e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
+-e .
