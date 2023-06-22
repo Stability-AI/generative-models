@@ -1,26 +1,19 @@
+import math
 from abc import abstractmethod
 from functools import partial
 from typing import Iterable
 
-import math
 import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-# from ldm.modules.diffusionmodules.util import mixed_checkpoint as checkpoint
-from ldm.modules.attention import SpatialTransformer
-from ldm.modules.diffusionmodules.util import (
-    checkpoint,
-    conv_nd,
-    linear,
-    avg_pool_nd,
-    zero_module,
-    normalization,
-    timestep_embedding,
-)
-from ldm.util import exists, default
+from ...modules.attention import SpatialTransformer
+from ...modules.diffusionmodules.util import (avg_pool_nd, checkpoint, conv_nd,
+                                              linear, normalization,
+                                              timestep_embedding, zero_module)
+from ...util import default, exists
 
 
 # dummy replace

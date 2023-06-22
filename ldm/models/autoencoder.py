@@ -1,18 +1,18 @@
 import re
-from packaging import version
+from abc import abstractmethod
+from contextlib import contextmanager
+from typing import Any, Dict, Tuple, Union
+
 import pytorch_lightning as pl
 import torch
 from omegaconf import ListConfig
-from abc import abstractmethod
-from contextlib import contextmanager
-from typing import Union, Any, Tuple, Dict
+from packaging import version
 from safetensors.torch import load_file as load_safetensors
 
-
-from ldm.modules.diffusionmodules.model import Encoder, Decoder
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
-from ldm.modules.ema import LitEma
-from ldm.util import instantiate_from_config, get_obj_from_str, default
+from ..modules.diffusionmodules.model import Decoder, Encoder
+from ..modules.distributions.distributions import DiagonalGaussianDistribution
+from ..modules.ema import LitEma
+from ..util import default, get_obj_from_str, instantiate_from_config
 
 
 class AbstractAutoencoder(pl.LightningModule):

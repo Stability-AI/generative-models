@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from omegaconf import ListConfig
 from taming.modules.losses.lpips import LPIPS
-from ldm.util import instantiate_from_config, append_dims
+from ...util import instantiate_from_config, append_dims
 
 
 class StandardDiffusionLoss(nn.Module):

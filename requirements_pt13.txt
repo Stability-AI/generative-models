@@ -1,3 +1,4 @@
+wheel==0.40.0
 omegaconf
 einops
 fire
@@ -5,11 +6,10 @@ tqdm
 pillow
 numpy
 webdataset>=0.2.33
---extra-index-url https://download.pytorch.org/whl/cu117
-torch==1.13.1+cu117
+torch==1.13.1
 xformers==0.0.16
 torchaudio==0.13.1
-torchvision==0.14.1+cu117
+torchvision==0.14.1
 torchmetrics
 opencv-python==4.6.0.66
 fairscale
@@ -34,7 +34,6 @@ transformers==4.19.1
 triton
 wandb
 invisible-watermark
--e git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
--e git+https://github.com/openai/CLIP.git@main#egg=clip
--e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
--e .
+taming-transformers @ git+https://github.com/CompVis/taming-transformers.git@master#egg=taming-transformers
+clip @ git+https://github.com/openai/CLIP.git@main#egg=clip
+sdata @ git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata

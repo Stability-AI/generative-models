@@ -1,7 +1,7 @@
 # pytorch_diffusion + derived encoder decoder
-from typing import Callable, Optional, Any
-
 import math
+from typing import Any, Callable, Optional
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +17,7 @@ except:
     XFORMERS_IS_AVAILABLE = False
     print("no module 'xformers'. Processing without...")
 
-from ldm.modules.attention import LinearAttention
+from ...modules.attention import LinearAttention, MemoryEfficientCrossAttention
 
 
 def get_timestep_embedding(timesteps, embedding_dim):
@@ -261,8 +261,6 @@ class MemoryEfficientAttnBlock(nn.Module):
         h_ = self.proj_out(h_)
         return x + h_
 
-
-from ldm.modules.attention import MemoryEfficientCrossAttention
 
 
 class MemoryEfficientCrossAttentionWrapper(MemoryEfficientCrossAttention):

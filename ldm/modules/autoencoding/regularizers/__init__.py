@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from abc import abstractmethod
 from typing import Any, Tuple
 
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
+from ....modules.distributions.distributions import DiagonalGaussianDistribution
 
 
 class AbstractRegularizer(nn.Module):

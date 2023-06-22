@@ -1,5 +1,6 @@
 import torch
-from ldm.util import default, instantiate_from_config
+
+from ...util import default, instantiate_from_config
 
 
 class EDMSampling:

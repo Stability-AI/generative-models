@@ -1,17 +1,26 @@
 from contextlib import nullcontext
 from functools import partial
-from typing import Union, Dict, Tuple, Optional, List
+from typing import Dict, List, Optional, Tuple, Union
 
 import kornia
 import numpy as np
+import open_clip
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 from omegaconf import ListConfig
 from torch.utils.checkpoint import checkpoint
+from transformers import (ByT5Tokenizer, CLIPTextModel, CLIPTokenizer,
+                          T5EncoderModel, T5Tokenizer)
 
-from ldm.modules.distributions.distributions import DiagonalGaussianDistribution
-from ldm.util import default, autocast, disabled_train, count_params
+from ...modules.autoencoding.regularizers import DiagonalGaussianRegularizer
+from ...modules.diffusionmodules.model import Encoder
+from ...modules.diffusionmodules.openaimodel import Timestep
+from ...modules.diffusionmodules.util import (extract_into_tensor,
+                                              make_beta_schedule)
+from ...modules.distributions.distributions import DiagonalGaussianDistribution
+from ...util import (autocast, count_params, default, disabled_train,
+                     expand_dims_like, instantiate_from_config)
 
 
 class AbstractEmbModel(nn.Module):
@@ -238,13 +247,6 @@ class ClassEmbedderForMultiCond(ClassEmbedder):
         return out
 
 
-from transformers import (
-    T5Tokenizer,
-    T5EncoderModel,
-    CLIPTokenizer,
-    CLIPTextModel,
-    ByT5Tokenizer,
-)
 
 
 class FrozenT5Embedder(AbstractEmbModel):
@@ -393,9 +395,6 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
 
     def encode(self, text):
         return self(text)
-
-
-import open_clip
 
 
 class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
@@ -820,12 +819,6 @@ class SpatialRescaler(nn.Module):
         return self(x)
 
 
-from ldm.util import instantiate_from_config
-from ldm.modules.diffusionmodules.util import (
-    make_beta_schedule,
-    extract_into_tensor,
-)
-
 
 class LowScaleEncoder(nn.Module):
     def __init__(
@@ -922,8 +915,6 @@ class LowScaleEncoder(nn.Module):
         return self.model.decode(z)
 
 
-from ldm.util import expand_dims_like
-
 
 class ConcatTimestepEmbedderND(AbstractEmbModel):
     """embeds each dimension independently and concatenates them"""
@@ -942,13 +933,6 @@ class ConcatTimestepEmbedderND(AbstractEmbModel):
         emb = self.timestep(x)
         emb = rearrange(emb, "(b d) d2 -> b (d d2)", b=b, d=dims, d2=self.outdim)
         return emb
-
-
-from ldm.modules.diffusionmodules.openaimodel import Timestep
-
-
-from ldm.modules.diffusionmodules.model import Encoder
-from ldm.modules.autoencoding.regularizers import DiagonalGaussianRegularizer
 
 
 class GaussianEncoder(Encoder, AbstractEmbModel):

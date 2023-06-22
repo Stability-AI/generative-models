@@ -1,7 +1,7 @@
-from inspect import isfunction
-from typing import Union, Any, Optional
-
 import math
+from inspect import isfunction
+from typing import Any, Optional, Union
+
 import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
@@ -10,7 +10,7 @@ from torch import nn
 
 if version.parse(torch.__version__) >= version.parse("2.0.0"):
     SDP_IS_AVAILABLE = True
-    from torch.backends.cuda import sdp_kernel, SDPBackend
+    from torch.backends.cuda import SDPBackend, sdp_kernel
 
     BACKEND_MAP = {
         SDPBackend.MATH: {
@@ -50,7 +50,7 @@ except:
     XFORMERS_IS_AVAILABLE = False
     print("no module 'xformers'. Processing without...")
 
-from ldm.modules.diffusionmodules.util import checkpoint
+from .diffusionmodules.util import checkpoint
 
 
 def exists(val):
@@ -637,8 +637,8 @@ def benchmark_attn():
     # Lets define a helpful benchmarking function:
     # https://pytorch.org/tutorials/intermediate/scaled_dot_product_attention_tutorial.html
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    import torch.utils.benchmark as benchmark
     import torch.nn.functional as F
+    import torch.utils.benchmark as benchmark
 
     def benchmark_torch_function_in_microseconds(f, *args, **kwargs):
         t0 = benchmark.Timer(
@@ -682,7 +682,7 @@ def benchmark_attn():
     print(f"q/k/v shape:", query.shape, key.shape, value.shape)
 
     # Lets explore the speed of each of the 3 implementations
-    from torch.backends.cuda import sdp_kernel, SDPBackend
+    from torch.backends.cuda import SDPBackend, sdp_kernel
 
     # Helpful arguments mapper
     backend_map = {
@@ -703,7 +703,7 @@ def benchmark_attn():
         },
     }
 
-    from torch.profiler import profile, record_function, ProfilerActivity
+    from torch.profiler import ProfilerActivity, profile, record_function
 
     activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA]
 
@@ -820,7 +820,7 @@ def benchmark_transformer_blocks():
     x = torch.rand(batch_size, embed_dimension, h, w, device=device, dtype=dtype)
     c = torch.rand(batch_size, context_len, context_dim, device=device, dtype=dtype)
 
-    from torch.profiler import profile, record_function, ProfilerActivity
+    from torch.profiler import ProfilerActivity, profile, record_function
 
     activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA]
 
@@ -861,7 +861,7 @@ def benchmark_transformer_blocks():
 
 def test01():
     # conv1x1 vs linear
-    from ldm.util import count_params
+    from ..util import count_params
 
     conv = nn.Conv2d(3, 32, kernel_size=1).cuda()
     print(count_params(conv))

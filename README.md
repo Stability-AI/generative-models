@@ -1,4 +1,4 @@
-# Generative Models at Stability AI
+# Generative Models by Stability AI
 
 ![sample1](assets/000.jpg)
 
@@ -6,9 +6,11 @@
 
 **June 22, 2023**
 
-- We are releasing two new diffusion models: SD-XL 0.9-base and SD-XL 0.9-refiner. The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model. The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
+- We are releasing two new diffusion models:
+  - `SD-XL 0.9-base`: The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
+  - `SD-XL 0.9-refiner`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model. 
 
-## The code base
+## The codebase
 
 ### General Philosophy
 
@@ -36,32 +38,36 @@ git clone git@github.com:Stability-AI/generative-models.git
 cd generative-models
 ```
 
-#### 2. setting up the virtualenv
+#### 2. Setting up the virtualenv
 
-This is assuming you have navigated to the `generative-models` root after cloning it. 
-
-**NOTE:** This is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
+- This is assuming you have navigated to the `generative-models` root after cloning it. 
+- Our codebase is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
+- We support `PyTorch 1.13` and `PyTorch 2.0`. Specify your version:
 
 
 **PyTorch 1.13** 
 
 ```shell
-# install required packages from pypi
-python3 -m venv .pt1
-source .pt1/bin/activate
-pip3 install wheel
-pip3 install -r requirements_pt13.txt
+export PT_VERSION="pt13"
 ```
 
 **PyTorch 2.0** 
 
+```shell
+export PT_VERSION="pt2"
+```
+
+- Create a virtualenv:
 
 ```shell
-# install required packages from pypi
-python3 -m venv .pt2
-source .pt2/bin/activate
-pip3 install wheel
-pip3 install -r requirements_pt2.txt
+python3 -m venv .$PT_VERSION
+source .$PT_VERSION/bin/activate
+```
+
+#### 3. Installation of the required packages from pypi
+
+```shell
+pip3 install .
 ```
 
 ## Inference:

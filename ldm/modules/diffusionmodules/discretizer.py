@@ -2,8 +2,8 @@ import torch
 import numpy as np
 from functools import partial
 
-from ldm.util import append_zero
-from ldm.modules.diffusionmodules.util import make_beta_schedule
+from ...util import append_zero
+from ...modules.diffusionmodules.util import make_beta_schedule
 
 
 class Discretization:
