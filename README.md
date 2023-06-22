@@ -78,6 +78,36 @@ Please download the checkpoints from hugginface and place them into `checkpoints
 streamlit run scripts/streamlit/sampling.py --server.port <your_port>
 ```
 
+### Invisible Watermark Detection
+
+Images generated with our code use the
+[invisible-watermark](https://github.com/ShieldMnt/invisible-watermark/)
+library to embed an invisible watermark into the model output. We also provide
+a script to easily detect that watermark. Please note that this watermark is
+not the same as in previous Stable Diffusion 1.x/2.x versions.
+
+To run the script you need to either have a working installation as above or
+try an _experimental_ import using only a minimal amount of packages:
+```bash
+python -m venv .detect
+source .detect/bin/activate
+
+pip install "numpy>=1.17" "PyWavelets>=1.1.1" "opencv-python>=4.1.0.25"
+pip install --no-deps invisible-watermark
+```
+
+To run the script you need to have a working installation as above. The script
+is then useable in the following ways (don't forget to activate your
+virtual environment beforehand, e.g. `source .pt1/bin/activate`):
+```bash
+# test a single file
+python scripts/demo/detect.py <your filename here>
+# test multiple files at once
+python scripts/demo/detect.py <filename 1> <filename 2> ... <filename n>
+# test all files in a specific folder
+python scripts/demo/detect.py <your folder name here>/*
+```
+
 ## Training:
 
 We are providing example training configs in `configs/example_training`. To launch a training, run
@@ -141,4 +171,3 @@ example = {"jpg": x,  # this is a tensor -1...1 chw
 ```
   
 where we expect images in -1...1, channel-first format.
-
