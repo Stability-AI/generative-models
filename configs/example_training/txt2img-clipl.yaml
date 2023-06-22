@@ -77,7 +77,7 @@ model:
     first_stage_config:
       target: ldm.models.autoencoder.AutoencoderKLInferenceWrapper
       params:
-        ckpt_path: /fsx/robin/checkpoints/vae_models/f8z4-pruned.ckpt
+        ckpt_path: CKPT_PATH
         embed_dim: 4
         monitor: val/rec_loss
         ddconfig:
