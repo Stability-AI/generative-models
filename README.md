@@ -14,7 +14,7 @@
 If you would like to access these models for your research, please apply using one of the following links: 
 [SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
 This means that you can apply for any of the two links - and if you are granted - you can access both. 
-Please log in to your HuggingFace Account with your organization email to request access.
+Please log in to your Hugging Face Account with your organization email to request access.
 **We plan to do a full release soon (July).** 
 
 ## The codebase
@@ -85,7 +85,7 @@ We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image
 If you would like to access these models for your research, please apply using one of the following links: 
 [SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
 This means that you can apply for any of the two links - and if you are granted - you can access both. 
-Please log in to your HuggingFace Account with your organization email to request access.
+Please log in to your Hugging Face Account with your organization email to request access.
 
 After obtaining the weights, place them into `checkpoints/`. 
 Next, start the demo using
