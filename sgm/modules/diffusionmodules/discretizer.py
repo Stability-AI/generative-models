@@ -7,7 +7,7 @@ from ...modules.diffusionmodules.util import make_beta_schedule
 
 
 class Discretization:
-    def __call__(self, n, do_append_zero=True, device="cuda", flip=False):
+    def __call__(self, n, do_append_zero=True, device="cpu", flip=False):
         sigmas = self.get_sigmas(n, device)
         sigmas = append_zero(sigmas) if do_append_zero else sigmas
         return sigmas if not flip else torch.flip(sigmas, (0,))
