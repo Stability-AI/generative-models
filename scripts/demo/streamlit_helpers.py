@@ -325,10 +325,8 @@ def init_sampling(
 
 def get_discretization(discretization, key=1):
     if discretization == "LegacyDDPMDiscretization":
-        use_new_range = st.checkbox(f"Start from highest noise level? #{key}", False)
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
-            "params": {"legacy_range": not use_new_range},
         }
     elif discretization == "EDMDiscretization":
         sigma_min = st.number_input(f"sigma_min #{key}", value=0.03)  # 0.0292
