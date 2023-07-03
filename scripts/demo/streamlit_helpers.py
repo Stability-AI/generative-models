@@ -13,6 +13,7 @@ from torch import autocast
 from torchvision import transforms
 from torchvision.utils import make_grid
 from safetensors.torch import load_file as load_safetensors
+from pytorch_lightning import seed_everything
 
 from sgm.modules.diffusionmodules.sampling import (
     EulerEDMSampler,
@@ -206,6 +207,7 @@ def init_save_locally(_dir, init_value: bool = False):
     else:
         save_path = None
 
+    return True, "/home/patrick/images/sgm_test"
     return save_locally, save_path
 
 
@@ -513,7 +515,8 @@ def do_sample(
                     additional_model_inputs[k] = batch[k]
 
                 shape = (math.prod(num_samples), C, H // F, W // F)
-                randn = torch.randn(shape).to("cuda")
+                seed_everything(0)
+                randn = torch.randn(shape, device="cuda")
 
                 def denoiser(input, sigma, c):
                     return model.denoiser(

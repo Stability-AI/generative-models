@@ -126,9 +126,10 @@ def run_txt2img(
         use_identity_guider=not version_dict["is_guided"]
     )
 
-    num_samples = num_rows * num_cols
+    # num_samples = num_rows * num_cols
+    num_samples = 1
 
-    if st.button("Sample"):
+    if True:
         st.write(f"**Model I:** {version}")
         out = do_sample(
             state["model"],
@@ -307,6 +308,7 @@ if __name__ == "__main__":
         )
     else:
         raise ValueError(f"unknown mode {mode}")
+
     if isinstance(out, (tuple, list)):
         samples, samples_z = out
     else:
