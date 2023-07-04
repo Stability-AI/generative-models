@@ -4,6 +4,9 @@
 
 ## News
 
+**July 4, 2023**
+- A technical report on SDXL is now available [here](assets/sdxl_report.pdf).
+
 **June 22, 2023**
 
 
