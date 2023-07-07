@@ -1,5 +1,4 @@
 import argparse
-
 import cv2
 import numpy as np
 
@@ -30,14 +29,14 @@ except ImportError as e:
 
             def reconstruct(self, bits):
                 if len(bits) != self._wmLen:
-                    raise RuntimeError("bits are not matched with watermark length")
+                    raise RuntimeError("Bits do not match watermark length")
 
                 return bits
 
             def decode(self, cv2Image, method="dwtDct", **configs):
                 (r, c, channels) = cv2Image.shape
                 if r * c < 256 * 256:
-                    raise RuntimeError("image too small, should be larger than 256x256")
+                    raise RuntimeError("Image too small. Should be larger than 256x256")
 
                 bits = []
                 assert method == "dwtDct"
@@ -46,14 +45,12 @@ except ImportError as e:
                 return self.reconstruct(bits)
 
     except:
-        raise e
+        raise ImportError("Failed to import watermark libraries.")
 
 
-# A fixed 48-bit message that was choosen at random
-# WATERMARK_MESSAGE = 0xB3EC907BB19E
-WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
-# bin(x)[2:] gives bits of x as str, use int to convert them to 0/1
-WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
+# Watermark configuration
+WATERMARK_BITS = [1, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1]
+WATERMARK_MESSAGE = int("".join(map(str, WATERMARK_BITS)), 2)
 MATCH_VALUES = [
     [27, "No watermark detected"],
     [33, "Partial watermark match. Cannot determine with certainty."],
@@ -82,14 +79,14 @@ class GetWatermarkMatch:
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """
-        Detects the number of matching bits the predefined watermark with one
-        or multiple images. Images should be in cv2 format, e.g. h x w x c.
+        Detects the number of matching bits of the predefined watermark with one
+        or multiple images. Images should be in cv2 format, e.g., h x w x c.
 
         Args:
-            x: ([B], h w, c) in range [0, 255]
+            x: ([B], h w, c) in the range [0, 255]
 
         Returns:
-           number of matched bits ([B],)
+           Number of matched bits ([B],)
         """
         squeeze = len(x.shape) == 3
         if squeeze:
@@ -118,22 +115,28 @@ if __name__ == "__main__":
         type=str,
         help="Image files to check for watermarks",
     )
+    parser.add_argument(
+        "--method",
+        type=str,
+        default="dwtDct",
+        help="Watermark detection method (default: dwtDct)",
+    )
     opts = parser.parse_args()
 
     print(
         """
         This script tries to detect watermarked images. Please be aware of
         the following:
-        - As the watermark is supposed to be invisible, there is the risk that
+        - As the watermark is supposed to be invisible, there is a risk that
           watermarked images may not be detected.
-        - To maximize the chance of detection make sure that the image has the same
+        - To maximize the chance of detection, make sure that the image has the same
           dimensions as when the watermark was applied (most likely 1024x1024
           or 512x512).
-        - Specific image manipulation may drastically decrease the chance that
+        - Specific image manipulations may drastically decrease the chance that
           watermarks can be detected.
-        - There is also the chance that an image has the characteristics of the
+        - There is also a chance that an image has the characteristics of the
           watermark by chance.
-        - The watermark script is public, anybody may watermark any images, and
+        - The watermark script is public. Anyone may watermark any images and
           could therefore claim it to be generated.
         - All numbers below are based on a test using 10,000 images without any
           modifications after applying the watermark.
@@ -152,6 +155,6 @@ if __name__ == "__main__":
             k += 1
         print(
             f"{fn}: {MATCH_VALUES[k][1]}",
-            f"Bits that matched the watermark {num_bits} from {len(WATERMARK_BITS)}\n",
+            f"Bits that matched the watermark: {num_bits} out of {len(WATERMARK_BITS)}\n",
             sep="\n\t",
         )
