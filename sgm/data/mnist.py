@@ -18,17 +18,26 @@ class MNISTDataDictWrapper(Dataset):
 
 
 class MNISTLoader(pl.LightningDataModule):
-    def __init__(self, batch_size, num_workers=0, prefetch_factor=2, shuffle=True):
+    def __init__(
+        self,
+        batch_size,
+        num_workers=0,
+        prefetch_factor=2,
+        shuffle=True,
+        pin_memory=True,
+    ):
         super().__init__()
 
         transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Lambda(lambda x: x * 2.0 - 1.0)]
+            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
         )
 
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.prefetch_factor = prefetch_factor if num_workers > 0 else 0
         self.shuffle = shuffle
+        self.pin_memory = pin_memory
+
         self.train_dataset = MNISTDataDictWrapper(
             torchvision.datasets.MNIST(
                 root=".data/", train=True, download=True, transform=transform
@@ -49,6 +58,7 @@ class MNISTLoader(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=self.shuffle,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             prefetch_factor=self.prefetch_factor,
         )
 
@@ -56,8 +66,9 @@ class MNISTLoader(pl.LightningDataModule):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
-            shuffle=self.shuffle,
+            shuffle=False,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             prefetch_factor=self.prefetch_factor,
         )
 
@@ -65,21 +76,30 @@ class MNISTLoader(pl.LightningDataModule):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
-            shuffle=self.shuffle,
+            shuffle=False,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             prefetch_factor=self.prefetch_factor,
         )
 
 
 if __name__ == "__main__":
-    dset = MNISTDataDictWrapper(
-        torchvision.datasets.MNIST(
-            root=".data/",
-            train=False,
-            download=True,
-            transform=transforms.Compose(
-                [transforms.ToTensor(), transforms.Lambda(lambda x: x * 2.0 - 1.0)]
-            ),
-        )
-    )
-    ex = dset[0]
+    mnist_loader = MNISTLoader(batch_size=64, num_workers=4, prefetch_factor=2)
+    mnist_loader.prepare_data()
+
+    train_dataloader = mnist_loader.train_dataloader()
+    test_dataloader = mnist_loader.test_dataloader()
+    val_dataloader = mnist_loader.val_dataloader()
+
+    # Example usage
+    for batch in train_dataloader:
+        # Training iteration
+        pass
+
+    for batch in val_dataloader:
+        # Validation iteration
+        pass
+
+    for batch in test_dataloader:
+        # Testing iteration
+        pass

@@ -4,17 +4,8 @@ import torchdata.datapipes.iter
 import webdataset as wds
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
-
-try:
-    from sdata import create_dataset, create_dummy_dataset, create_loader
-except ImportError as e:
-    print("#" * 100)
-    print("Datasets not yet available")
-    print("to enable, we need to add stable-datasets as a submodule")
-    print("please use ``git submodule update --init --recursive``")
-    print("and do ``pip install -e stable-datasets/`` from the root of this repo")
-    print("#" * 100)
-    exit(1)
+from torch.utils.data import random_split
+import torchvision.transforms as transforms
 
 
 class StableDataModuleFromConfig(LightningDataModule):
@@ -40,7 +31,7 @@ class StableDataModuleFromConfig(LightningDataModule):
                 ), "validation config requires the fields `datapipeline` and `loader`"
             else:
                 print(
-                    "Warning: No Validation datapipeline defined, using that one from training"
+                    "Warning: No Validation datapipeline defined, using the one from training"
                 )
                 self.val_config = train
 
@@ -78,3 +69,64 @@ class StableDataModuleFromConfig(LightningDataModule):
 
     def test_dataloader(self) -> wds.DataPipeline:
         return create_loader(self.test_datapipeline, **self.test_config.loader)
+
+
+def create_dataset(**kwargs):
+    # Implement your dataset creation logic here
+    pass
+
+
+def create_dummy_dataset(**kwargs):
+    # Implement your dummy dataset creation logic here
+    pass
+
+
+def create_loader(datapipeline, **loader_kwargs):
+    # Implement your loader creation logic here
+    pass
+
+
+# Usage example
+train_config = {
+    "datapipeline": {
+        # Specify the data pipeline configuration
+    },
+    "loader": {
+        # Specify the loader configuration
+    }
+}
+
+val_config = {
+    "datapipeline": {
+        # Specify the validation data pipeline configuration
+    },
+    "loader": {
+        # Specify the validation loader configuration
+    }
+}
+
+test_config = {
+    "datapipeline": {
+        # Specify the test data pipeline configuration
+    },
+    "loader": {
+        # Specify the test loader configuration
+    }
+}
+
+data_module = StableDataModuleFromConfig(
+    train=train_config,
+    validation=val_config,
+    test=test_config,
+    skip_val_loader=False,
+    dummy=False,
+)
+data_module.prepare_data()
+data_module.setup()
+
+train_dataloader = data_module.train_dataloader()
+val_dataloader = data_module.val_dataloader()
+test_dataloader = data_module.test_dataloader()
+
+# Use the dataloaders for training, validation, and testing
+# ...
