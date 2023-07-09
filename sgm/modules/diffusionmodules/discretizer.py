@@ -21,7 +21,7 @@ class Discretization:
 
     @abstractmethod
     def get_sigmas(self, n, device):
-        raise NotImplementedError("abstract class should not be called")
+        pass
 
 
 class EDMDiscretization(Discretization):
