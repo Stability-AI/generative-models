@@ -83,7 +83,7 @@ class GetWatermarkMatch:
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """
         Detects the number of matching bits the predefined watermark with one
-        or multiple images. Images should be in cv2 format, e.g. h x w x c.
+        or multiple images. Images should be in cv2 format, e.g. h x w x c BGR.
 
         Args:
             x: ([B], h w, c) in range [0, 255]
@@ -94,7 +94,6 @@ class GetWatermarkMatch:
         squeeze = len(x.shape) == 3
         if squeeze:
             x = x[None, ...]
-        x = np.flip(x, axis=-1)
 
         bs = x.shape[0]
         detected = np.empty((bs, self.num_bits), dtype=bool)

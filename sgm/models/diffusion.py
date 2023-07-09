@@ -258,13 +258,9 @@ class DiffusionEngine(pl.LightningModule):
                         xc = log_txt_as_img((image_h, image_w), x, size=image_h // 20)
                     else:
                         raise NotImplementedError()
-                elif isinstance(x, Union[List, ListConfig]):
+                elif isinstance(x, (List, ListConfig)):
                     if isinstance(x[0], str):
                         # strings
-                        xc = log_txt_as_img((image_h, image_w), x, size=image_h // 20)
-                    elif isinstance(x[0], Union[ListConfig, List]):
-                        # # case: videos processed
-                        x = [xx[0] for xx in x]
                         xc = log_txt_as_img((image_h, image_w), x, size=image_h // 20)
                     else:
                         raise NotImplementedError()

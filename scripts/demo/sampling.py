@@ -283,7 +283,7 @@ if __name__ == "__main__":
         sampler2 = init_sampling(
             key=2,
             img2img_strength=stage2strength,
-            use_identity_guider=not version_dict["is_guided"],
+            use_identity_guider=not version_dict2["is_guided"],
             get_num_samples=False,
         )
         st.write("__________________________")

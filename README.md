@@ -4,6 +4,9 @@
 
 ## News
 
+**July 4, 2023**
+- A technical report on SDXL is now available [here](assets/sdxl_report.pdf).
+
 **June 22, 2023**
 
 
@@ -14,7 +17,7 @@
 If you would like to access these models for your research, please apply using one of the following links: 
 [SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
 This means that you can apply for any of the two links - and if you are granted - you can access both. 
-Please log in to your HuggingFace Account with your organization email to request access.
+Please log in to your Hugging Face Account with your organization email to request access.
 **We plan to do a full release soon (July).** 
 
 ## The codebase
@@ -85,7 +88,7 @@ We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image
 If you would like to access these models for your research, please apply using one of the following links: 
 [SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
 This means that you can apply for any of the two links - and if you are granted - you can access both. 
-Please log in to your HuggingFace Account with your organization email to request access.
+Please log in to your Hugging Face Account with your organization email to request access.
 
 After obtaining the weights, place them into `checkpoints/`. 
 Next, start the demo using
@@ -141,7 +144,7 @@ run
 python main.py --base configs/example_training/toy/mnist_cond.yaml
 ```
 
-**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depdending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments containing `USER:` in the respective config.  
+**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments containing `USER:` in the respective config.  
 
 **NOTE 2:** This repository supports both `pytorch1.13` and `pytorch2`for training generative models. However for autoencoder training as e.g. in `configs/example_training/autoencoder/kl-f4/imagenet-attnfree-logvar.yaml`, only `pytorch1.13` is supported.
 
@@ -178,7 +181,7 @@ guidance.
 ### Dataset Handling
 
 
-For large scale training we recommend using the datapipelines from our [datapipelines](https://github.com/Stability-AI/datapipelines) project. The project is contained in the requirement and automatically included when following the steps from the [Installation section](#installation).
+For large scale training we recommend using the data pipelines from our [data pipelines](https://github.com/Stability-AI/datapipelines) project. The project is contained in the requirement and automatically included when following the steps from the [Installation section](#installation).
 Small map-style datasets should be defined here in the repository (e.g., MNIST, CIFAR-10, ...), and return a dict of
 data keys/values,
 e.g.,
