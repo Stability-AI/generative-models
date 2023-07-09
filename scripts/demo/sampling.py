@@ -311,8 +311,9 @@ if __name__ == "__main__":
         samples, samples_z = out
     else:
         samples = out
+        samples_z = None
 
-    if add_pipeline:
+    if add_pipeline and samples_z is not None:
         st.write("**Running Refinement Stage**")
         samples = apply_refiner(
             samples_z,
