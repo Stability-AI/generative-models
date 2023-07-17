@@ -212,7 +212,6 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
         raise NotImplementedError
 
     model = instantiate_from_config(config.model)
-    sd = pl_sd["state_dict"]
 
     m, u = model.load_state_dict(sd, strict=False)
 
