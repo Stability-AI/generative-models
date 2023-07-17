@@ -1,4 +1,8 @@
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class LambdaWarmUpCosineScheduler:
@@ -24,9 +28,8 @@ class LambdaWarmUpCosineScheduler:
         self.verbosity_interval = verbosity_interval
 
     def schedule(self, n, **kwargs):
-        if self.verbosity_interval > 0:
-            if n % self.verbosity_interval == 0:
-                print(f"current step: {n}, recent lr-multiplier: {self.last_lr}")
+        if self.verbosity_interval > 0 and n % self.verbosity_interval == 0:
+            logger.info(f"current step: {n}, recent lr-multiplier: {self.last_lr}")
         if n < self.lr_warm_up_steps:
             lr = (
                 self.lr_max - self.lr_start
@@ -83,12 +86,11 @@ class LambdaWarmUpCosineScheduler2:
     def schedule(self, n, **kwargs):
         cycle = self.find_in_interval(n)
         n = n - self.cum_cycles[cycle]
-        if self.verbosity_interval > 0:
-            if n % self.verbosity_interval == 0:
-                print(
-                    f"current step: {n}, recent lr-multiplier: {self.last_f}, "
-                    f"current cycle {cycle}"
-                )
+        if self.verbosity_interval > 0 and n % self.verbosity_interval == 0:
+            logger.info(
+                f"current step: {n}, recent lr-multiplier: {self.last_f}, "
+                f"current cycle {cycle}"
+            )
         if n < self.lr_warm_up_steps[cycle]:
             f = (self.f_max[cycle] - self.f_start[cycle]) / self.lr_warm_up_steps[
                 cycle
@@ -114,12 +116,11 @@ class LambdaLinearScheduler(LambdaWarmUpCosineScheduler2):
     def schedule(self, n, **kwargs):
         cycle = self.find_in_interval(n)
         n = n - self.cum_cycles[cycle]
-        if self.verbosity_interval > 0:
-            if n % self.verbosity_interval == 0:
-                print(
-                    f"current step: {n}, recent lr-multiplier: {self.last_f}, "
-                    f"current cycle {cycle}"
-                )
+        if self.verbosity_interval > 0 and n % self.verbosity_interval == 0:
+            logger.info(
+                f"current step: {n}, recent lr-multiplier: {self.last_f}, "
+                f"current cycle {cycle}"
+            )
 
         if n < self.lr_warm_up_steps[cycle]:
             f = (self.f_max[cycle] - self.f_start[cycle]) / self.lr_warm_up_steps[
