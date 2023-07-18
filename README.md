@@ -76,6 +76,23 @@ pip3 install wheel
 pip3 install -r requirements_pt2.txt
 ```
 
+## Packaging
+
+This repository uses PEP 517 compliant packaging using [Hatch](https://hatch.pypa.io/latest/).
+
+To build a distributable wheel, install `hatch` and run `hatch build`
+(specifying `-t wheel` will skip building a sdist, which is not necessary).
+
+```
+pip install hatch
+hatch build -t wheel
+```
+
+You will find the built package in `dist/`. You can install the wheel with `pip install dist/*.whl`.
+
+Note that the package does **not** currently specify dependencies; you will need to install the required packages,
+depending on your use case and PyTorch version, manually.
+
 ## Inference:
 
 We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. The following models are currently supported:
