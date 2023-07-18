@@ -29,7 +29,7 @@ scipy
 streamlit>=0.73.1
 timm
 tokenizers==0.12.1
-transformers==4.19.1
+transformers==4.30.0
 triton==2.0.0
 torchdata==0.6.1
 wandb
