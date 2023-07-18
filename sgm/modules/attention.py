@@ -1,5 +1,4 @@
 import math
-from inspect import isfunction
 from typing import Any, Optional
 
 import torch
@@ -7,6 +6,8 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from packaging import version
 from torch import nn
+from ..util import exists, default
+
 
 if version.parse(torch.__version__) >= version.parse("2.0.0"):
     SDP_IS_AVAILABLE = True
@@ -53,18 +54,8 @@ except:
 from .diffusionmodules.util import checkpoint
 
 
-def exists(val):
-    return val is not None
-
-
 def uniq(arr):  # TODO: this seems unused
     return {el: True for el in arr}.keys()
-
-
-def default(val, d):
-    if exists(val):
-        return val
-    return d() if isfunction(d) else d
 
 
 def init_(tensor):  # TODO: this seems unused
