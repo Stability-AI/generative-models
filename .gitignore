@@ -1,7 +1,9 @@
+*.egg-info
+*.py[cod]
+.pt13
 .pt2
 .pt2_2
-.pt13
-*.egg-info
-build
-/outputs
 /checkpoints
+/dist
+/outputs
+build
