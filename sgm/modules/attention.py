@@ -57,7 +57,7 @@ def exists(val):
     return val is not None
 
 
-def uniq(arr):
+def uniq(arr):  # TODO: this seems unused
     return {el: True for el in arr}.keys()
 
 
@@ -67,7 +67,7 @@ def default(val, d):
     return d() if isfunction(d) else d
 
 
-def init_(tensor):
+def init_(tensor):  # TODO: this seems unused
     dim = tensor.shape[-1]
     std = 1 / math.sqrt(dim)
     tensor.uniform_(-std, std)
