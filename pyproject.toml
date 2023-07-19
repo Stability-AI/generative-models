@@ -46,3 +46,14 @@ test-inference = [
     "pip install -r requirements/pt2.txt",    
     "pytest -v tests/inference/test_inference.py {args}",
 ]
+
+[tool.ruff]
+target-version = "py38"
+extend-select = ["I"]
+ignore = [
+    "E501",
+]
+[tool.ruff.per-file-ignores]
+"*/__init__.py" = [
+    "F401",  # unused imports (will be taken care of by PR #44)
+]
