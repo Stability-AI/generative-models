@@ -14,6 +14,10 @@ from safetensors.torch import load_file as load_safetensors
 logger = logging.getLogger(__name__)
 
 
+def get_default_device_name() -> str:
+    return os.environ.get("SGM_DEFAULT_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
+
+
 def disabled_train(self, mode=True):
     """Overwrite model.train with this function to make sure train/eval mode
     does not change anymore."""

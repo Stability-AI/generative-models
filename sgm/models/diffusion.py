@@ -1,5 +1,5 @@
 import logging
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Any, Dict, List, Tuple, Union
 
 import pytorch_lightning as pl
@@ -14,6 +14,7 @@ from ..modules.ema import LitEma
 from ..util import (
     default,
     disabled_train,
+    get_default_device_name,
     get_obj_from_str,
     instantiate_from_config,
     log_txt_as_img,
@@ -117,16 +118,22 @@ class DiffusionEngine(pl.LightningModule):
         # image tensors should be scaled to -1 ... 1 and in bchw format
         return batch[self.input_key]
 
+    def _first_stage_autocast_context(self):
+        device = get_default_device_name()
+        if device not in ("cpu", "cuda"):
+            return nullcontext()
+        return torch.autocast(device, enabled=not self.disable_first_stage_autocast)
+
     @torch.no_grad()
     def decode_first_stage(self, z):
         z = 1.0 / self.scale_factor * z
-        with torch.autocast("cuda", enabled=not self.disable_first_stage_autocast):
+        with self._first_stage_autocast_context():
             out = self.first_stage_model.decode(z)
         return out
 
     @torch.no_grad()
     def encode_first_stage(self, x):
-        with torch.autocast("cuda", enabled=not self.disable_first_stage_autocast):
+        with self._first_stage_autocast_context():
             z = self.first_stage_model.encode(x)
         z = self.scale_factor * z
         return z
