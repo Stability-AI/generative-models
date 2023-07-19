@@ -87,7 +87,7 @@ def benchmark_attn():
     ) as prof:
         with record_function("Default detailed stats"):
             for _ in range(25):
-                o = F.scaled_dot_product_attention(query, key, value)
+                _o = F.scaled_dot_product_attention(query, key, value)
     print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 
     print(
@@ -99,7 +99,7 @@ def benchmark_attn():
         ) as prof:
             with record_function("Math implmentation stats"):
                 for _ in range(25):
-                    o = F.scaled_dot_product_attention(query, key, value)
+                    _o = F.scaled_dot_product_attention(query, key, value)
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 
     with sdp_kernel(**backend_map[SDPBackend.FLASH_ATTENTION]):
@@ -114,7 +114,7 @@ def benchmark_attn():
         ) as prof:
             with record_function("FlashAttention stats"):
                 for _ in range(25):
-                    o = F.scaled_dot_product_attention(query, key, value)
+                    _o = F.scaled_dot_product_attention(query, key, value)
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 
     with sdp_kernel(**backend_map[SDPBackend.EFFICIENT_ATTENTION]):
@@ -129,7 +129,7 @@ def benchmark_attn():
         ) as prof:
             with record_function("EfficientAttention stats"):
                 for _ in range(25):
-                    o = F.scaled_dot_product_attention(query, key, value)
+                    _o = F.scaled_dot_product_attention(query, key, value)
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
 
 

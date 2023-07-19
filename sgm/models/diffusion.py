@@ -250,9 +250,9 @@ class DiffusionEngine(pl.LightningModule):
     ):
         randn = torch.randn(batch_size, *shape).to(self.device)
 
-        denoiser = lambda input, sigma, c: self.denoiser(
-            self.model, input, sigma, c, **kwargs
-        )
+        def denoiser(input, sigma, c):
+            return self.denoiser(self.model, input, sigma, c, **kwargs)
+
         samples = self.sampler(denoiser, randn, cond, uc=uc)
         return samples
 

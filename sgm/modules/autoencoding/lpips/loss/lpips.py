@@ -59,7 +59,7 @@ class LPIPS(nn.Module):
             for kk in range(len(self.chns))
         ]
         val = res[0]
-        for l in range(1, len(self.chns)):
+        for l in range(1, len(self.chns)):  # noqa: E741
             val += res[l]
         return val
 

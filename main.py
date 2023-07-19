@@ -402,7 +402,6 @@ class ImageLogger(Callback):
             # batch_idx > 5 and
             self.max_images > 0
         ):
-            logger = type(pl_module.logger)
             is_train = pl_module.training
             if is_train:
                 pl_module.eval()
@@ -691,7 +690,7 @@ if __name__ == "__main__":
             # TODO change once leaving "swiffer" config directory
             try:
                 group_name = nowname.split(now)[-1].split("-")[1]
-            except:
+            except Exception:
                 group_name = nowname
             default_logger_cfg["params"]["group"] = group_name
             init_wandb(
@@ -839,7 +838,7 @@ if __name__ == "__main__":
                 print(
                     f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}"
                 )
-        except:
+        except Exception:
             print("datasets not yet initialized.")
 
         # configure learning rate

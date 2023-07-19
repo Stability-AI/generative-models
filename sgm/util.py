@@ -28,7 +28,7 @@ def get_string_from_tuple(s):
                 return t[0]
             else:
                 pass
-    except:
+    except Exception:
         pass
     return s
 
