@@ -1,0 +1,8 @@
+einops
+kornia~=0.6.12
+omegaconf
+open-clip-torch
+pytorch-lightning~=2.0.5
+safetensors~=0.3.1
+torchvision~=0.15.2
+transformers~=4.31.0
