@@ -1,3 +1,4 @@
+import ast
 import functools
 import importlib
 import os
@@ -21,14 +22,10 @@ def get_string_from_tuple(s):
     try:
         # Check if the string starts and ends with parentheses
         if s[0] == "(" and s[-1] == ")":
-            # Convert the string to a tuple
-            t = eval(s)
-            # Check if the type of t is tuple
+            t = ast.literal_eval(s)
             if type(t) == tuple:
                 return t[0]
-            else:
-                pass
-    except:
+    except Exception:
         pass
     return s
 
