@@ -20,8 +20,17 @@ from ...modules.diffusionmodules.openaimodel import Timestep
 from ...modules.diffusionmodules.util import (extract_into_tensor,
                                               make_beta_schedule)
 from ...modules.distributions.distributions import DiagonalGaussianDistribution
-from ...util import (append_dims, autocast, count_params, default,
-                     disabled_train, expand_dims_like, instantiate_from_config)
+from ...util import (
+    append_dims,
+    autocast,
+    count_params,
+    default,
+    disabled_train,
+    expand_dims_like,
+    get_default_device_name,
+    instantiate_from_config,
+    safe_autocast,
+)
 
 
 class AbstractEmbModel(nn.Module):
@@ -229,7 +238,9 @@ class ClassEmbedder(AbstractEmbModel):
             c = c[:, None, :]
         return c
 
-    def get_unconditional_conditioning(self, bs, device="cuda"):
+    def get_unconditional_conditioning(self, bs, device=None):
+        if device is None:
+            device = get_default_device_name()
         uc_class = (
             self.n_classes - 1
         )  # 1000 classes --> 0 ... 999, one extra class for ucg (class 1000)
@@ -254,9 +265,10 @@ class FrozenT5Embedder(AbstractEmbModel):
     """Uses the T5 transformer encoder for text"""
 
     def __init__(
-        self, version="google/t5-v1_1-xxl", device="cuda", max_length=77, freeze=True
+        self, version="google/t5-v1_1-xxl", device=None, max_length=77, freeze=True
     ):  # others are google/t5-v1_1-xl and google/t5-v1_1-xxl
         super().__init__()
+        device = device or get_default_device_name()
         self.tokenizer = T5Tokenizer.from_pretrained(version)
         self.transformer = T5EncoderModel.from_pretrained(version)
         self.device = device
@@ -281,7 +293,7 @@ class FrozenT5Embedder(AbstractEmbModel):
             return_tensors="pt",
         )
         tokens = batch_encoding["input_ids"].to(self.device)
-        with torch.autocast("cuda", enabled=False):
+        with safe_autocast(get_default_device_name(), enabled=False):
             outputs = self.transformer(input_ids=tokens)
         z = outputs.last_hidden_state
         return z
@@ -296,9 +308,10 @@ class FrozenByT5Embedder(AbstractEmbModel):
     """
 
     def __init__(
-        self, version="google/byt5-base", device="cuda", max_length=77, freeze=True
+        self, version="google/byt5-base", device=None, max_length=77, freeze=True
     ):  # others are google/t5-v1_1-xl and google/t5-v1_1-xxl
         super().__init__()
+        device = device or get_default_device_name()
         self.tokenizer = ByT5Tokenizer.from_pretrained(version)
         self.transformer = T5EncoderModel.from_pretrained(version)
         self.device = device
@@ -323,7 +336,7 @@ class FrozenByT5Embedder(AbstractEmbModel):
             return_tensors="pt",
         )
         tokens = batch_encoding["input_ids"].to(self.device)
-        with torch.autocast("cuda", enabled=False):
+        with safe_autocast(get_default_device_name(), enabled=False):
             outputs = self.transformer(input_ids=tokens)
         z = outputs.last_hidden_state
         return z
@@ -340,7 +353,7 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
     def __init__(
         self,
         version="openai/clip-vit-large-patch14",
-        device="cuda",
+        device=None,
         max_length=77,
         freeze=True,
         layer="last",
@@ -348,6 +361,7 @@ class FrozenCLIPEmbedder(AbstractEmbModel):
         always_return_pooled=False,
     ):  # clip-vit-base-patch32
         super().__init__()
+        device = device or get_default_device_name()
         assert layer in self.LAYERS
         self.tokenizer = CLIPTokenizer.from_pretrained(version)
         self.transformer = CLIPTextModel.from_pretrained(version)
@@ -408,7 +422,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device=None,
         max_length=77,
         freeze=True,
         layer="last",
@@ -416,6 +430,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
         legacy=True,
     ):
         super().__init__()
+        device = device or get_default_device_name()
         assert layer in self.LAYERS
         model, _, _ = open_clip.create_model_and_transforms(
             arch,
@@ -510,12 +525,13 @@ class FrozenOpenCLIPEmbedder(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device=None,
         max_length=77,
         freeze=True,
         layer="last",
     ):
         super().__init__()
+        device = device or get_default_device_name()
         assert layer in self.LAYERS
         model, _, _ = open_clip.create_model_and_transforms(
             arch, device=torch.device("cpu"), pretrained=version
@@ -580,7 +596,7 @@ class FrozenOpenCLIPImageEmbedder(AbstractEmbModel):
         self,
         arch="ViT-H-14",
         version="laion2b_s32b_b79k",
-        device="cuda",
+        device=None,
         max_length=77,
         freeze=True,
         antialias=True,
@@ -592,6 +608,7 @@ class FrozenOpenCLIPImageEmbedder(AbstractEmbModel):
         init_device=None,
     ):
         super().__init__()
+        device = device or get_default_device_name()
         model, _, _ = open_clip.create_model_and_transforms(
             arch,
             device=torch.device(default(init_device, "cpu")),
@@ -737,11 +754,12 @@ class FrozenCLIPT5Encoder(AbstractEmbModel):
         self,
         clip_version="openai/clip-vit-large-patch14",
         t5_version="google/t5-v1_1-xl",
-        device="cuda",
+        device=None,
         clip_max_length=77,
         t5_max_length=77,
     ):
         super().__init__()
+        device = device or get_default_device_name()
         self.clip_encoder = FrozenCLIPEmbedder(
             clip_version, device, max_length=clip_max_length
         )
@@ -1006,7 +1024,7 @@ class VideoPredictionEmbedderWithEncoder(AbstractEmbModel):
             noise = torch.randn_like(vid)
             vid = vid + noise * append_dims(sigmas, vid.ndim)
 
-        with torch.autocast("cuda", enabled=not self.disable_encoder_autocast):
+        with safe_autocast(get_default_device_name(), enabled=not self.disable_encoder_autocast):
             n_samples = (
                 self.en_and_decode_n_samples_a_time
                 if self.en_and_decode_n_samples_a_time is not None
