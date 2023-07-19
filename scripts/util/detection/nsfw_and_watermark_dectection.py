@@ -1,9 +1,11 @@
+import argparse
 import os
-import torch
+
+import clip
 import numpy as np
+import torch
 import torchvision.transforms as T
 from PIL import Image
-import clip
 
 RESOURCES_ROOT = "scripts/util/detection/"
 
@@ -81,11 +83,15 @@ def load_img(path: str) -> torch.Tensor:
     return image_transforms(image)[None, ...]
 
 
-def test(root):
+def test():
     from einops import rearrange
+    ap = argparse.ArgumentParser()
+    ap.add_argument("root", required=True)
+    args = ap.parse_args()
+    root = args.root
 
     filter = DeepFloydDataFiltering(verbose=True)
-    for p in os.listdir((root)):
+    for p in os.listdir(root):
         print(f"running on {p}...")
         img = load_img(os.path.join(root, p))
         filtered_img = filter(img)
@@ -96,9 +102,8 @@ def test(root):
             os.path.join(root, f"{os.path.splitext(p)[0]}-filtered.jpg")
         )
 
+    print("done.")
+
 
 if __name__ == "__main__":
-    import fire
-
-    fire.Fire(test)
-    print("done.")
+    main()

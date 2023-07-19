@@ -1,6 +1,5 @@
 omegaconf
 einops
-fire
 tqdm
 pillow
 numpy
@@ -14,7 +13,6 @@ torchvision>=0.15.2
 opencv-python==4.6.0.66
 fairscale
 pytorch-lightning==2.0.1
-fire
 fsspec
 kornia==0.6.9
 natsort

@@ -1,6 +1,5 @@
 omegaconf
 einops
-fire
 tqdm
 pillow
 numpy
