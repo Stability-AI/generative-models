@@ -13,11 +13,11 @@ jobs:
     if: github.repository == 'stability-ai/generative-models'
     runs-on: [self-hosted, slurm, g40]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: "Symlink checkpoints"
         run: ln -s /admin/home-palp/sgm-checkpoints checkpoints
       - name: "Setup python"
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
       - name: "Install Hatch"
