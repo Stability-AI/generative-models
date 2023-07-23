@@ -1,0 +1,21 @@
+name: Test inference
+
+on: 
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  test:    
+    # This action is designed only to run on the Stability research cluster at this time, so many assumptions are made about the envrionment
+    if: github.repository == 'stability-ai/generative-models'
+    runs-on: [self-hosted, slurm, g40]
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Symlink checkpoints"
+        run: ln -s ~/sgm-checkpoints checkpoints
+      - name: "Install Hatch"
+        run: pip install hatch
+      - name: "Run inference tests"
+        run: hatch run ci:test-inference
