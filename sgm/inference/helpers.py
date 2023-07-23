@@ -77,7 +77,7 @@ def load_model_from_config(config, ckpt=None, verbose=True):
         print(f"Loading model from {ckpt}")
         if ckpt.endswith("ckpt"):
             pl_sd = torch.load(ckpt, map_location="cpu")
-            if "global_step" in pl_sd:                                
+            if "global_step" in pl_sd:
                 print(f"Global Step: {pl_sd['global_step']}")
             sd = pl_sd["state_dict"]
         elif ckpt.endswith("safetensors"):
@@ -142,17 +142,17 @@ class Img2ImgDiscretizationWrapper:
         print(f"sigmas after pruning: ", sigmas)
         return sigmas
 
+
 def get_guider(guider, **kwargs):
-    
     if guider == "IdentityGuider":
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
         }
     elif guider == "VanillaCFG":
         scale = max(0.0, min(100.0, kwargs.pop("scale", 5.0)))
-        
+
         thresholder = kwargs.pop("thresholder", "None")
-        
+
         if thresholder == "None":
             dyn_thresh_config = {
                 "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
@@ -168,13 +168,14 @@ def get_guider(guider, **kwargs):
         raise NotImplementedError
     return guider_config
 
+
 def get_discretization(discretization, **kwargs):
     if discretization == "LegacyDDPMDiscretization":
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
         }
     elif discretization == "EDMDiscretization":
-        sigma_min = kwargs.pop("sigma_min", 0.03) # 0.0292
+        sigma_min = kwargs.pop("sigma_min", 0.03)  # 0.0292
         sigma_max = kwargs.pop("sigma_max", 14.61)  # 14.6146
         rho = kwargs.pop("rho", 3.0)
         discretization_config = {
@@ -186,8 +187,9 @@ def get_discretization(discretization, **kwargs):
             },
         }
     else:
-        raise ValueError(f'unknown discertization {discretization}')
+        raise ValueError(f"unknown discertization {discretization}")
     return discretization_config
+
 
 def get_sampler(sampler_name, steps, discretization_config, guider_config, **kwargs):
     if sampler_name == "EulerEDMSampler" or sampler_name == "HeunEDMSampler":
@@ -263,6 +265,7 @@ def get_sampler(sampler_name, steps, discretization_config, guider_config, **kwa
         raise ValueError(f"unknown sampler {sampler_name}!")
 
     return sampler
+
 
 def do_sample(
     model,
@@ -405,6 +408,7 @@ def get_input_image_tensor(image: Image, device="cuda"):
     image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
     return image.to(device)
 
+
 @torch.no_grad()
 def do_img2img(
     img,
@@ -417,7 +421,7 @@ def do_img2img(
     offset_noise_level: int = 0.0,
     return_latents=False,
     skip_encode=False,
-    filter=None,    
+    filter=None,
     logger=None,
 ):
     precision_scope = autocast
@@ -449,8 +453,8 @@ def do_img2img(
                 sigma = sigmas[0].to(z.device)
 
                 if logger is not None:
-                  logger.info(f"all sigmas: {sigmas}")
-                  logger.info(f"noising sigma: {sigma}")
+                    logger.info(f"all sigmas: {sigmas}")
+                    logger.info(f"noising sigma: {sigma}")
 
                 if offset_noise_level > 0.0:
                     noise = noise + offset_noise_level * append_dims(
@@ -470,7 +474,7 @@ def do_img2img(
 
                 if filter is not None:
                     samples = filter(samples)
-                
+
                 if return_latents:
                     return samples, samples_z
                 return samples
