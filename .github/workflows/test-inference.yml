@@ -23,4 +23,12 @@ jobs:
       - name: "Install Hatch"
         run: pip install hatch
       - name: "Run inference tests"
-        run: hatch run ci:test-inference
+        run: hatch run ci:test-inference --junit-xml test-results.xml
+      - name: Surface failing tests
+        if: always()
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: test-results.xml
+          summary: true      
+          display-options: fEX
+          fail-on-empty: true        
