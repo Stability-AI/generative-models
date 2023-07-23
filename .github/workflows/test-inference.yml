@@ -16,7 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: "Symlink checkpoints"
-        run: ln -s ~/sgm-checkpoints checkpoints
+        run: ln -s /admin/home-palp/sgm-checkpoints checkpoints
+      - name: "Setup python"
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10      
       - name: "Install Hatch"
         run: pip install hatch
       - name: "Run inference tests"
