@@ -67,7 +67,7 @@ class WatermarkEmbedder:
 WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
 # bin(x)[2:] gives bits of x as str, use int to convert them to 0/1
 WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
-embed_watemark = WatermarkEmbedder(WATERMARK_BITS)
+embed_watermark = WatermarkEmbedder(WATERMARK_BITS)
 
 
 def load_model_from_config(config, ckpt=None, verbose=True):
@@ -110,7 +110,7 @@ def get_unique_embedder_keys_from_conditioner(conditioner):
 def perform_save_locally(save_path, samples):
     os.makedirs(os.path.join(save_path), exist_ok=True)
     base_count = len(os.listdir(os.path.join(save_path)))
-    samples = embed_watemark(samples)
+    samples = embed_watermark(samples)
     for sample in samples:
         sample = 255.0 * rearrange(sample.cpu().numpy(), "c h w -> h w c")
         Image.fromarray(sample.astype(np.uint8)).save(
@@ -407,6 +407,45 @@ def get_input_image_tensor(image: Image, device="cuda"):
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
     return image.to(device)
+
+
+def apply_refiner(
+    input,
+    model,
+    sampler,
+    num_samples,
+    prompt,
+    negative_prompt,
+    filter=None,
+):
+    init_dict = {
+        "orig_width": input.shape[3] * 8,
+        "orig_height": input.shape[2] * 8,
+        "target_width": input.shape[3] * 8,
+        "target_height": input.shape[2] * 8,
+    }
+
+    value_dict = init_dict
+    value_dict["prompt"] = prompt
+    value_dict["negative_prompt"] = negative_prompt
+
+    value_dict["crop_coords_top"] = 0
+    value_dict["crop_coords_left"] = 0
+
+    value_dict["aesthetic_score"] = 6.0
+    value_dict["negative_aesthetic_score"] = 2.5
+
+    samples = do_img2img(
+        input,
+        model,
+        sampler,
+        value_dict,
+        num_samples,
+        skip_encode=True,
+        filter=filter,
+    )
+
+    return samples
 
 
 @torch.no_grad()
