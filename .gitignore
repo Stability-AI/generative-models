@@ -1,9 +1,14 @@
+# extensions
 *.egg-info
 *.py[cod]
+
+# envs
 .pt13
 .pt2
-.pt2_2
+
+# directories
 /checkpoints
 /dist
 /outputs
-build
+/build
+/src
