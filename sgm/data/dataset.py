@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 import torchdata.datapipes.iter
@@ -5,16 +6,17 @@ import webdataset as wds
 from omegaconf import DictConfig
 from pytorch_lightning import LightningDataModule
 
+logger = logging.getLogger(__name__)
+
 try:
     from sdata import create_dataset, create_dummy_dataset, create_loader
 except ImportError as e:
-    print("#" * 100)
-    print("Datasets not yet available")
-    print("to enable, we need to add stable-datasets as a submodule")
-    print("please use ``git submodule update --init --recursive``")
-    print("and do ``pip install -e stable-datasets/`` from the root of this repo")
-    print("#" * 100)
-    exit(1)
+    raise NotImplementedError(
+        "Datasets not yet available. "
+        "To enable, we need to add stable-datasets as a submodule; "
+        "please use ``git submodule update --init --recursive`` "
+        "and do ``pip install -e stable-datasets/`` from the root of this repo"
+    ) from e
 
 
 class StableDataModuleFromConfig(LightningDataModule):
@@ -39,8 +41,8 @@ class StableDataModuleFromConfig(LightningDataModule):
                     "datapipeline" in self.val_config and "loader" in self.val_config
                 ), "validation config requires the fields `datapipeline` and `loader`"
             else:
-                print(
-                    "Warning: No Validation datapipeline defined, using that one from training"
+                logger.warning(
+                    "No Validation datapipeline defined, using that one from training"
                 )
                 self.val_config = train
 
@@ -52,12 +54,10 @@ class StableDataModuleFromConfig(LightningDataModule):
 
         self.dummy = dummy
         if self.dummy:
-            print("#" * 100)
-            print("USING DUMMY DATASET: HOPE YOU'RE DEBUGGING ;)")
-            print("#" * 100)
+            logger.warning("USING DUMMY DATASET: HOPE YOU'RE DEBUGGING ;)")
 
     def setup(self, stage: str) -> None:
-        print("Preparing datasets")
+        logger.debug("Preparing datasets")
         if self.dummy:
             data_fn = create_dummy_dataset
         else:
