@@ -5,6 +5,7 @@ from pytest import fixture
 from omegaconf import OmegaConf
 import torch
 
+from sgm.util import load_model_from_config
 import sgm.inference.helpers as helpers
 
 VERSION2SPECS = {
@@ -67,7 +68,7 @@ class TestInference:
     def model(self, request):
         specs = VERSION2SPECS[request.param]
         config = OmegaConf.load(specs["config"])
-        model, _ = helpers.load_model_from_config(config, specs["ckpt"])
+        model, _ = load_model_from_config(config, specs["ckpt"])
         model.conditioner.half()
         model.model.half()
         yield model, specs

@@ -69,40 +69,6 @@ WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
 WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
 embed_watermark = WatermarkEmbedder(WATERMARK_BITS)
 
-
-def load_model_from_config(config, ckpt=None, verbose=True):
-    model = instantiate_from_config(config.model)
-
-    if ckpt is not None:
-        print(f"Loading model from {ckpt}")
-        if ckpt.endswith("ckpt"):
-            pl_sd = torch.load(ckpt, map_location="cpu")
-            if "global_step" in pl_sd:
-                print(f"Global Step: {pl_sd['global_step']}")
-            sd = pl_sd["state_dict"]
-        elif ckpt.endswith("safetensors"):
-            sd = load_safetensors(ckpt)
-        else:
-            raise NotImplementedError
-
-        msg = None
-
-        m, u = model.load_state_dict(sd, strict=False)
-
-        if len(m) > 0 and verbose:
-            print("missing keys:")
-            print(m)
-        if len(u) > 0 and verbose:
-            print("unexpected keys:")
-            print(u)
-    else:
-        msg = None
-
-    model.cuda()
-    model.eval()
-    return model, msg
-
-
 def get_unique_embedder_keys_from_conditioner(conditioner):
     return list(set([x.input_key for x in conditioner.embedders]))
 
@@ -280,6 +246,7 @@ def do_sample(
     batch2model_input: List = None,
     return_latents=False,
     filter=None,
+    device="cuda",
 ):
     if force_uc_zero_embeddings is None:
         force_uc_zero_embeddings = []
@@ -288,7 +255,7 @@ def do_sample(
 
     precision_scope = autocast
     with torch.no_grad():
-        with precision_scope("cuda"):
+        with precision_scope(device):
             with model.ema_scope():
                 num_samples = [num_samples]
                 batch, batch_uc = get_batch(
@@ -312,7 +279,7 @@ def do_sample(
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
-                            lambda y: y[k][: math.prod(num_samples)].to("cuda"), (c, uc)
+                            lambda y: y[k][: math.prod(num_samples)].to(device), (c, uc)
                         )
 
                 additional_model_inputs = {}
@@ -320,7 +287,7 @@ def do_sample(
                     additional_model_inputs[k] = batch[k]
 
                 shape = (math.prod(num_samples), C, H // F, W // F)
-                randn = torch.randn(shape).to("cuda")
+                randn = torch.randn(shape).to(device)
 
                 def denoiser(input, sigma, c):
                     return model.denoiser(
@@ -462,10 +429,11 @@ def do_img2img(
     skip_encode=False,
     filter=None,
     logger=None,
+    device="cuda"
 ):
     precision_scope = autocast
     with torch.no_grad():
-        with precision_scope("cuda"):
+        with precision_scope(device):
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
@@ -479,7 +447,7 @@ def do_img2img(
                 )
 
                 for k in c:
-                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to("cuda"), (c, uc))
+                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
 
                 for k in additional_kwargs:
                     c[k] = uc[k] = additional_kwargs[k]
