@@ -3,7 +3,6 @@ from typing import List, Optional, Union
 import torch
 import torch.nn as nn
 from omegaconf import ListConfig
-from taming.modules.losses.lpips import LPIPS
 
 from ...util import append_dims, instantiate_from_config
 
@@ -26,6 +25,8 @@ class StandardDiffusionLoss(nn.Module):
         self.offset_noise_level = offset_noise_level
 
         if type == "lpips":
+            from taming.modules.losses.lpips import LPIPS  # late import to avoid extra dependency
+
             self.lpips = LPIPS().eval()
 
         if not batch2model_keys:

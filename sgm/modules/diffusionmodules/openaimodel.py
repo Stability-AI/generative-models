@@ -20,7 +20,7 @@ from ...modules.diffusionmodules.util import (
     timestep_embedding,
     zero_module,
 )
-from ...util import default, exists
+from ...util import default, exists, get_default_device_name
 
 logger = logging.getLogger(__name__)
 
@@ -1244,6 +1244,7 @@ if __name__ == "__main__":
                 ]
             )
 
+    device = get_default_device_name()
     model = UNetModel(
         use_checkpoint=True,
         image_size=64,
@@ -1258,8 +1259,8 @@ if __name__ == "__main__":
         use_linear_in_transformer=True,
         transformer_depth=1,
         legacy=False,
-    ).cuda()
-    x = th.randn(11, 4, 64, 64).cuda()
-    t = th.randint(low=0, high=10, size=(11,), device="cuda")
+    ).to(device)
+    x = th.randn(11, 4, 64, 64).to(device)
+    t = th.randint(low=0, high=10, size=(11,), device=device)
     o = model(x, t)
     print("done.")

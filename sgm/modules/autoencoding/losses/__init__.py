@@ -4,9 +4,6 @@ from typing import Any, Union
 import torch
 import torch.nn as nn
 from einops import rearrange
-from taming.modules.discriminator.model import NLayerDiscriminator, weights_init
-from taming.modules.losses.lpips import LPIPS
-from taming.modules.losses.vqperceptual import hinge_d_loss, vanilla_d_loss
 
 from ....util import default, instantiate_from_config
 
@@ -30,6 +27,7 @@ class LatentLPIPS(nn.Module):
         scale_tgt_to_input_size=False,
         perceptual_weight_on_inputs=0.0,
     ):
+        from taming.modules.losses.lpips import LPIPS  # late import to avoid extra dependency
         super().__init__()
         self.scale_input_to_tgt_size = scale_input_to_tgt_size
         self.scale_tgt_to_input_size = scale_tgt_to_input_size
@@ -105,6 +103,9 @@ class GeneralLPIPSWithDiscriminator(nn.Module):
         learn_logvar: bool = False,
         regularization_weights: Union[None, dict] = None,
     ):
+        from taming.modules.losses.lpips import LPIPS  # late import to avoid extra dependency
+        from taming.modules.discriminator.model import NLayerDiscriminator, weights_init  # late import to avoid extra dependency
+        from taming.modules.losses.vqperceptual import hinge_d_loss, vanilla_d_loss  # late import to avoid extra dependency
         super().__init__()
         self.dims = dims
         if self.dims > 2:
