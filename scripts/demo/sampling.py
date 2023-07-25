@@ -283,7 +283,7 @@ if __name__ == "__main__":
         sampler2 = init_sampling(
             key=2,
             img2img_strength=stage2strength,
-            use_identity_guider=not version_dict["is_guided"],
+            use_identity_guider=not version_dict2["is_guided"],
             get_num_samples=False,
         )
         st.write("__________________________")
@@ -311,8 +311,9 @@ if __name__ == "__main__":
         samples, samples_z = out
     else:
         samples = out
+        samples_z = None
 
-    if add_pipeline:
+    if add_pipeline and samples_z is not None:
         st.write("**Running Refinement Stage**")
         samples = apply_refiner(
             samples_z,

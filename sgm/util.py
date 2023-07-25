@@ -1,5 +1,6 @@
 import functools
 import importlib
+import logging
 import os
 from functools import partial
 from inspect import isfunction
@@ -9,6 +10,8 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
 from safetensors.torch import load_file as load_safetensors
+
+logger = logging.getLogger(__name__)
 
 
 def disabled_train(self, mode=True):
@@ -86,7 +89,7 @@ def log_txt_as_img(wh, xc, size=10):
         try:
             draw.text((0, 0), lines, fill="black", font=font)
         except UnicodeEncodeError:
-            print("Cant encode string for logging. Skipping.")
+            logger.warning("Cant encode string %r for logging. Skipping.", lines)
 
         txt = np.array(txt).transpose(2, 0, 1) / 127.5 - 1.0
         txts.append(txt)
@@ -161,7 +164,7 @@ def mean_flat(tensor):
 def count_params(model, verbose=False):
     total_params = sum(p.numel() for p in model.parameters())
     if verbose:
-        print(f"{model.__class__.__name__} has {total_params * 1.e-6:.2f} M params.")
+        logger.info(f"{model.__class__.__name__} has {total_params * 1.e-6:.2f} M params.")
     return total_params
 
 
@@ -200,11 +203,11 @@ def append_dims(x, target_dims):
 
 
 def load_model_from_config(config, ckpt, verbose=True, freeze=True):
-    print(f"Loading model from {ckpt}")
+    logger.info(f"Loading model from {ckpt}")
     if ckpt.endswith("ckpt"):
         pl_sd = torch.load(ckpt, map_location="cpu")
         if "global_step" in pl_sd:
-            print(f"Global Step: {pl_sd['global_step']}")
+            logger.debug(f"Global Step: {pl_sd['global_step']}")
         sd = pl_sd["state_dict"]
     elif ckpt.endswith("safetensors"):
         sd = load_safetensors(ckpt)
@@ -212,16 +215,14 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
         raise NotImplementedError
 
     model = instantiate_from_config(config.model)
-    sd = pl_sd["state_dict"]
 
-    m, u = model.load_state_dict(sd, strict=False)
+    missing, unexpected = model.load_state_dict(sd, strict=False)
 
-    if len(m) > 0 and verbose:
-        print("missing keys:")
-        print(m)
-    if len(u) > 0 and verbose:
-        print("unexpected keys:")
-        print(u)
+    if verbose:
+        if missing:
+            logger.info("missing keys: %r", missing)
+        if unexpected:
+            logger.info("unexpected keys: %r", unexpected)
 
     if freeze:
         for param in model.parameters():
@@ -229,3 +230,21 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
 
     model.eval()
     return model
+
+
+def get_configs_path() -> str:
+    """
+    Get the `configs` directory.
+    For a working copy, this is the one in the root of the repository,
+    but for an installed copy, it's in the `sgm` package (see pyproject.toml).
+    """
+    this_dir = os.path.dirname(__file__)
+    candidates = (
+        os.path.join(this_dir, "configs"),
+        os.path.join(this_dir, "..", "configs"),
+    )
+    for candidate in candidates:
+        candidate = os.path.abspath(candidate)
+        if os.path.isdir(candidate):
+            return candidate
+    raise FileNotFoundError(f"Could not find SGM configs in {candidates}")

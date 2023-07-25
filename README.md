@@ -4,6 +4,9 @@
 
 ## News
 
+**July 4, 2023**
+- A technical report on SDXL is now available [here](assets/sdxl_report.pdf).
+
 **June 22, 2023**
 
 
@@ -25,7 +28,7 @@ Modularity is king. This repo implements a config-driven approach where we build
 
 ### Changelog from the old `ldm` codebase
 
-For training, we use [pytorch-lightning](https://www.pytorchlightning.ai/index.html), but it should be easy to use other training wrappers around the base modules. The core diffusion model class (formerly `LatentDiffusion`, now `DiffusionEngine`) has been cleaned up:
+For training, we use [PyTorch Lightning](https://lightning.ai/docs/pytorch/stable/), but it should be easy to use other training wrappers around the base modules. The core diffusion model class (formerly `LatentDiffusion`, now `DiffusionEngine`) has been cleaned up:
 
 - No more extensive subclassing! We now handle all types of conditioning inputs (vectors, sequences and spatial conditionings, and all combinations thereof) in a single class: `GeneralConditioner`, see `sgm/modules/encoders/modules.py`.
 - We separate guiders (such as classifier-free guidance, see `sgm/modules/diffusionmodules/guiders.py`) from the
@@ -72,6 +75,23 @@ source .pt2/bin/activate
 pip3 install wheel
 pip3 install -r requirements_pt2.txt
 ```
+
+## Packaging
+
+This repository uses PEP 517 compliant packaging using [Hatch](https://hatch.pypa.io/latest/).
+
+To build a distributable wheel, install `hatch` and run `hatch build`
+(specifying `-t wheel` will skip building a sdist, which is not necessary).
+
+```
+pip install hatch
+hatch build -t wheel
+```
+
+You will find the built package in `dist/`. You can install the wheel with `pip install dist/*.whl`.
+
+Note that the package does **not** currently specify dependencies; you will need to install the required packages,
+depending on your use case and PyTorch version, manually.
 
 ## Inference:
 
