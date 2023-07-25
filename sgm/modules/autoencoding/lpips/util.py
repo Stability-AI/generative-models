@@ -1,10 +1,13 @@
 import hashlib
+import logging
 import os
 
 import requests
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 URL_MAP = {"vgg_lpips": "https://heibox.uni-heidelberg.de/f/607503859c864bc1b30b/?dl=1"}
 
@@ -35,7 +38,7 @@ def get_ckpt_path(name, root, check=False):
     assert name in URL_MAP
     path = os.path.join(root, CKPT_MAP[name])
     if not os.path.exists(path) or (check and not md5_hash(path) == MD5_MAP[name]):
-        print("Downloading {} model from {} to {}".format(name, URL_MAP[name], path))
+        logger.info(f"Downloading {name} model from {URL_MAP[name]} to {path}")
         download(URL_MAP[name], path)
         md5 = md5_hash(path)
         assert md5 == MD5_MAP[name], md5

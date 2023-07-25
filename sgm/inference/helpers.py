@@ -229,7 +229,7 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
 
 def get_input_image_tensor(image: Image.Image, device="cuda"):
     w, h = image.size
-    print(f"loaded input image of size ({w}, {h})")
+    logger.info(f"loaded input image of size ({w}, {h})")
     width, height = map(
         lambda x: x - x % 64, (w, h)
     )  # resize to integer multiple of 64

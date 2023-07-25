@@ -1,5 +1,5 @@
 """Stripped version of https://github.com/richzhang/PerceptualSimilarity/tree/master/models"""
-
+import logging
 from collections import namedtuple
 
 import torch
@@ -7,6 +7,8 @@ import torch.nn as nn
 from torchvision import models
 
 from ..util import get_ckpt_path
+
+logger = logging.getLogger(__name__)
 
 
 class LPIPS(nn.Module):
@@ -30,7 +32,7 @@ class LPIPS(nn.Module):
         self.load_state_dict(
             torch.load(ckpt, map_location=torch.device("cpu")), strict=False
         )
-        print("loaded pretrained LPIPS loss from {}".format(ckpt))
+        logger.info(f"loaded pretrained LPIPS loss from {ckpt}")
 
     @classmethod
     def from_pretrained(cls, name="vgg_lpips"):
