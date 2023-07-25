@@ -3,10 +3,9 @@ from typing import Any, Union
 import torch
 import torch.nn as nn
 from einops import rearrange
-from taming.modules.discriminator.model import NLayerDiscriminator, weights_init
-from taming.modules.losses.lpips import LPIPS
-from taming.modules.losses.vqperceptual import hinge_d_loss, vanilla_d_loss
-
+from ...diffusionmodules.lpips.lpips import LPIPS
+from ...diffusionmodules.lpips.model import NLayerDiscriminator, weights_init
+from ...diffusionmodules.lpips.vqperceptual import hinge_d_loss, vanilla_d_loss
 from ....util import default, instantiate_from_config
 
 
