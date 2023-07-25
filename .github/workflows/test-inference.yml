@@ -1,21 +1,21 @@
 name: Test inference
 
-on: 
-  pull_request:    
+on:
+  pull_request:
   push:
     branches:
       - main
 
 jobs:
-  test:  
-    name: "Test inference"  
+  test:
+    name: "Test inference"
     # This action is designed only to run on the Stability research cluster at this time, so many assumptions are made about the envrionment
     if: github.repository == 'stability-ai/generative-models'
     runs-on: [self-hosted, slurm, g40]
     steps:
       - uses: actions/checkout@v3
       - name: "Symlink checkpoints"
-        run: ln -s /admin/home-palp/sgm-checkpoints checkpoints
+        run: ln -s ${{secrets.SGM_CHECKPOINTS_PATH}} checkpoints
       - name: "Setup python"
         uses: actions/setup-python@v4
         with:
@@ -29,6 +29,6 @@ jobs:
         uses: pmeier/pytest-results-action@main
         with:
           path: test-results.xml
-          summary: true      
+          summary: true
           display-options: fEX
-          fail-on-empty: true        
+          fail-on-empty: true
