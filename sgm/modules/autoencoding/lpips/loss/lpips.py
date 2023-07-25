@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from .util import get_ckpt_path
+from ..util import get_ckpt_path
 
 
 class LPIPS(nn.Module):

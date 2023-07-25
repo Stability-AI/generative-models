@@ -5,9 +5,9 @@ import torch.nn as nn
 from einops import rearrange
 
 from ....util import default, instantiate_from_config
-from ...diffusionmodules.lpips.lpips import LPIPS
-from ...diffusionmodules.lpips.model import NLayerDiscriminator, weights_init
-from ...diffusionmodules.lpips.vqperceptual import hinge_d_loss, vanilla_d_loss
+from ..lpips.loss.lpips import LPIPS
+from ..lpips.model.model import NLayerDiscriminator, weights_init
+from ..lpips.vqperceptual import hinge_d_loss, vanilla_d_loss
 
 
 def adopt_weight(weight, global_step, threshold=0, value=0.0):
