@@ -5,13 +5,10 @@ import math
 import numpy as np
 import torch
 from PIL import Image
-from einops import rearrange, repeat
+from einops import rearrange
 from imwatermark import WatermarkEncoder
-from omegaconf import OmegaConf, ListConfig
+from omegaconf import ListConfig
 from torch import autocast
-from torchvision import transforms
-from torchvision.utils import make_grid
-from safetensors.torch import load_file as load_safetensors
 
 from sgm.modules.diffusionmodules.sampling import (
     EulerEDMSampler,
@@ -22,8 +19,6 @@ from sgm.modules.diffusionmodules.sampling import (
     LinearMultistepSampler,
 )
 from sgm.util import append_dims
-from sgm.util import instantiate_from_config
-
 
 class WatermarkEmbedder:
     def __init__(self, watermark):
@@ -70,7 +65,7 @@ WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
 embed_watermark = WatermarkEmbedder(WATERMARK_BITS)
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
-    return list(set([x.input_key for x in conditioner.embedders]))
+    return list({x.input_key for x in conditioner.embedders})
 
 
 def perform_save_locally(save_path, samples):
@@ -141,8 +136,8 @@ def get_discretization(discretization, **kwargs):
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
         }
     elif discretization == "EDMDiscretization":
-        sigma_min = kwargs.pop("sigma_min", 0.03)  # 0.0292
-        sigma_max = kwargs.pop("sigma_max", 14.61)  # 14.6146
+        sigma_min = kwargs.pop("sigma_min", 0.0292) 
+        sigma_max = kwargs.pop("sigma_max", 14.6146)
         rho = kwargs.pop("rho", 3.0)
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.EDMDiscretization",
@@ -385,22 +380,18 @@ def apply_refiner(
     negative_prompt,
     filter=None,
 ):
-    init_dict = {
+    value_dict = {
         "orig_width": input.shape[3] * 8,
         "orig_height": input.shape[2] * 8,
         "target_width": input.shape[3] * 8,
         "target_height": input.shape[2] * 8,
+        "prompt": prompt,
+        "negative_prompt": negative_prompt,
+        "crop_coords_top": 0,
+        "crop_coords_left": 0,
+        "aesthetic_score": 6.0,
+        "negative_aesthetic_score": 2.5
     }
-
-    value_dict = init_dict
-    value_dict["prompt"] = prompt
-    value_dict["negative_prompt"] = negative_prompt
-
-    value_dict["crop_coords_top"] = 0
-    value_dict["crop_coords_left"] = 0
-
-    value_dict["aesthetic_score"] = 6.0
-    value_dict["negative_aesthetic_score"] = 2.5
 
     samples = do_img2img(
         input,
@@ -424,7 +415,7 @@ def do_img2img(
     num_samples,
     force_uc_zero_embeddings=[],
     additional_kwargs={},
-    offset_noise_level: int = 0.0,
+    offset_noise_level: float = 0.0,
     return_latents=False,
     skip_encode=False,
     filter=None,
