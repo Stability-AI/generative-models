@@ -69,6 +69,7 @@ class TestInference:
         specs = VERSION2SPECS[request.param]
         config = OmegaConf.load(specs["config"])
         model = load_model_from_config(config, specs["ckpt"])
+        model.cuda()
         model.conditioner.half()
         model.model.half()
         yield model, specs
