@@ -1,10 +1,11 @@
-import torch
-import numpy as np
-from functools import partial
 from abc import abstractmethod
+from functools import partial
 
-from ...util import append_zero
+import numpy as np
+import torch
+
 from ...modules.diffusionmodules.util import make_beta_schedule
+from ...util import append_zero
 
 
 def generate_roughly_equally_spaced_steps(

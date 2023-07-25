@@ -1,29 +1,28 @@
-import os
-from typing import Union, List
-
 import math
+import os
+from typing import List, Union
+
 import numpy as np
 import streamlit as st
 import torch
-from PIL import Image
 from einops import rearrange, repeat
 from imwatermark import WatermarkEncoder
-from omegaconf import OmegaConf, ListConfig
+from omegaconf import ListConfig, OmegaConf
+from PIL import Image
+from safetensors.torch import load_file as load_safetensors
 from torch import autocast
 from torchvision import transforms
 from torchvision.utils import make_grid
-from safetensors.torch import load_file as load_safetensors
 
 from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
     EulerEDMSampler,
     HeunEDMSampler,
-    EulerAncestralSampler,
-    DPMPP2SAncestralSampler,
-    DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from sgm.util import append_dims
-from sgm.util import instantiate_from_config
+from sgm.util import append_dims, instantiate_from_config
 
 
 class WatermarkEmbedder:

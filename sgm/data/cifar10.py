@@ -1,7 +1,7 @@
-import torchvision
 import pytorch_lightning as pl
-from torchvision import transforms
+import torchvision
 from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms
 
 
 class CIFAR10DataDictWrapper(Dataset):
