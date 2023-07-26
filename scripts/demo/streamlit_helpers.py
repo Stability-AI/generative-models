@@ -27,7 +27,6 @@ from sgm.util import append_dims
 from sgm.util import instantiate_from_config, load_model_from_config
 
 
-
 @st.cache_resource()
 def init_st(version_dict, load_ckpt=True):
     state = dict()
@@ -40,7 +39,7 @@ def init_st(version_dict, load_ckpt=True):
         model = model.to("cuda")
         model.conditioner.half()
         model.model.half()
-                
+
         state["model"] = model
         state["ckpt"] = ckpt if load_ckpt else None
         state["config"] = config

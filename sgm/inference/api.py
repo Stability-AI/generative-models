@@ -18,10 +18,11 @@ from sgm.modules.diffusionmodules.sampling import (
 from sgm.util import load_model_from_config
 from typing import Optional
 
+
 class ModelArchitecture(str, Enum):
     SD_2_1 = "stable-diffusion-v2-1"
     SD_2_1_768 = "stable-diffusion-v2-1-768"
-    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"        
+    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
     SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
@@ -137,7 +138,7 @@ model_specs = {
         is_legacy=False,
         config="sd_xl_base.yaml",
         ckpt="sd_xl_base_1.0-metadata.safetensors",
-        is_guided=True
+        is_guided=True,
     ),
     ModelArchitecture.SDXL_V1_REFINER: SamplingSpec(
         height=1024,
@@ -148,7 +149,7 @@ model_specs = {
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_1.0-metadata.safetensors",
         is_guided=True,
-    )
+    ),
 }
 
 
