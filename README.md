@@ -59,10 +59,9 @@ This is assuming you have navigated to the `generative-models` root after clonin
 
 ```shell
 # install required packages from pypi
-python3 -m venv .pt1
-source .pt1/bin/activate
-pip3 install wheel
-pip3 install -r requirements_pt13.txt
+python3 -m venv .pt13
+source .pt13/bin/activate
+pip3 install -r requirements/pt13.txt
 ```
 
 **PyTorch 2.0** 
@@ -72,8 +71,20 @@ pip3 install -r requirements_pt13.txt
 # install required packages from pypi
 python3 -m venv .pt2
 source .pt2/bin/activate
-pip3 install wheel
-pip3 install -r requirements_pt2.txt
+pip3 install -r requirements/pt2.txt
+```
+
+
+#### 3. Install `sgm`
+
+```shell
+pip3 install .
+```
+
+#### 4. Install `sdata` for training
+
+```shell
+pip3 install -e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
 ```
 
 ## Packaging
