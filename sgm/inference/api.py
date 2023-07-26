@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from omegaconf import OmegaConf
 import pathlib
@@ -193,7 +193,7 @@ class SamplingPipeline:
         return_latents: bool = False,
     ):
         sampler = get_sampler_config(params)
-        value_dict = dict(params)
+        value_dict = asdict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
         value_dict["target_width"] = params.width
@@ -229,7 +229,7 @@ class SamplingPipeline:
                 strength=params.img2img_strength,
             )
         height, width = image.shape[2], image.shape[3]
-        value_dict = dict(params)
+        value_dict = asdict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
         value_dict["target_width"] = width
