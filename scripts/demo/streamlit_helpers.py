@@ -200,19 +200,8 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
             value_dict["negative_aesthetic_score"] = 2.5
 
         if key == "target_size_as_tuple":
-            target_width = st.number_input(
-                "target_width",
-                value=init_dict["target_width"],
-                min_value=16,
-            )
-            target_height = st.number_input(
-                "target_height",
-                value=init_dict["target_height"],
-                min_value=16,
-            )
-
-            value_dict["target_width"] = target_width
-            value_dict["target_height"] = target_height
+            value_dict["target_width"] = init_dict["target_width"]
+            value_dict["target_height"] = init_dict["target_height"]
 
     return value_dict
 
