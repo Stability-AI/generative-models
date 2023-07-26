@@ -13,6 +13,7 @@ torchmetrics
 torchvision>=0.15.2
 opencv-python==4.6.0.66
 fairscale
+pydantic
 pytorch-lightning==2.0.1
 fire
 fsspec
