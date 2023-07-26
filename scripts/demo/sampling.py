@@ -131,7 +131,7 @@ def run_txt2img(
 
     if st.button("Sample"):
         st.write(f"**Model I:** {version}")
-        outputs = outputs = st.empty()
+        outputs = st.empty()
         st.text("Sampling")
         samples = do_sample(
             state["model"],
@@ -181,7 +181,7 @@ def run_img2img(
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
-        outputs = outputs = st.empty()
+        outputs = st.empty()
         st.text("Sampling")
         samples = do_img2img(
             repeat(img, "1 ... -> n ...", n=num_samples),
