@@ -2,7 +2,7 @@ from enum import Enum
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 import pathlib
-from sgm.inference.helpers import (    
+from sgm.inference.helpers import (
     do_sample,
     do_img2img,
     Img2ImgDiscretizationWrapper,
@@ -247,7 +247,8 @@ class SamplingPipeline:
             filter=None,
         )
 
-def get_guider_config(params:SamplingParams):
+
+def get_guider_config(params: SamplingParams):
     if params.guider == Guider.IDENTITY:
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
@@ -319,8 +320,9 @@ def get_sampler_config(params: SamplingParams):
                 verbose=True,
             )
     elif (
-        params.sampler == Sampler.EULER_ANCESTRAL or params.sampler == Sampler.DPMPP2S_ANCESTRAL
-    ):        
+        params.sampler == Sampler.EULER_ANCESTRAL
+        or params.sampler == Sampler.DPMPP2S_ANCESTRAL
+    ):
         if params.sampler == Sampler.EULER_ANCESTRAL:
             sampler = EulerAncestralSampler(
                 num_steps=params.steps,
@@ -346,7 +348,7 @@ def get_sampler_config(params: SamplingParams):
             guider_config=guider_config,
             verbose=True,
         )
-    elif params.sampler == Sampler.LINEAR_MULTISTEP:        
+    elif params.sampler == Sampler.LINEAR_MULTISTEP:
         sampler = LinearMultistepSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,

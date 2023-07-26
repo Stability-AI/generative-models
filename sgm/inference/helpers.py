@@ -12,6 +12,7 @@ from torch import autocast
 
 from sgm.util import append_dims
 
+
 class WatermarkEmbedder:
     def __init__(self, watermark):
         self.watermark = watermark
@@ -55,6 +56,7 @@ WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
 # bin(x)[2:] gives bits of x as str, use int to convert them to 0/1
 WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
 embed_watermark = WatermarkEmbedder(WATERMARK_BITS)
+
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
     return list({x.input_key for x in conditioner.embedders})
@@ -238,6 +240,7 @@ def get_input_image_tensor(image: Image, device="cuda"):
     image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
     return image.to(device)
 
+
 @torch.no_grad()
 def do_img2img(
     img,
@@ -252,7 +255,7 @@ def do_img2img(
     skip_encode=False,
     filter=None,
     logger=None,
-    device="cuda"
+    device="cuda",
 ):
     precision_scope = autocast
     with torch.no_grad():

@@ -2,10 +2,8 @@ import numpy
 from PIL import Image
 import pytest
 from pytest import fixture
-from omegaconf import OmegaConf
 import torch
 
-from sgm.util import load_model_from_config
 from sgm.inference.api import model_specs, SamplingParams, SamplingPipeline, Sampler
 import sgm.inference.helpers as helpers
 
