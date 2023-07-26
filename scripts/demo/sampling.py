@@ -181,6 +181,8 @@ def run_img2img(
     value_dict = init_embedder_options(
         get_unique_embedder_keys_from_conditioner(state["model"].conditioner),
         init_dict,
+        prompt=prompt,
+        negative_prompt=negative_prompt,
     )
     strength = st.number_input(
         "**Img2Img Strength**", value=0.75, min_value=0.0, max_value=1.0
