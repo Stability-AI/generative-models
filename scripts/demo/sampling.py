@@ -7,7 +7,7 @@ from sgm.inference.helpers import (
     do_img2img,
     do_sample,
     get_unique_embedder_keys_from_conditioner,
-    perform_save_locally,    
+    perform_save_locally,
 )
 
 SAVE_PATH = "outputs/demo/txt2img/"
@@ -196,8 +196,8 @@ def run_img2img(
             num_samples,
             force_uc_zero_embeddings=["txt"] if not is_legacy else [],
             return_latents=return_latents,
-            filter=filter            
-        )        
+            filter=filter,
+        )
         show_samples(out, outputs)
         return out
 
@@ -336,8 +336,8 @@ if __name__ == "__main__":
             prompt=prompt,
             negative_prompt=negative_prompt if is_legacy else "",
             filter=filter,
-        )    
-        show_samples(samples, outputs)    
+        )
+        show_samples(samples, outputs)
 
     if save_locally and samples is not None:
         perform_save_locally(save_path, samples)

@@ -107,12 +107,14 @@ def init_save_locally(_dir, init_value: bool = False):
 
     return save_locally, save_path
 
+
 def show_samples(samples, outputs):
     if isinstance(samples, tuple):
         samples, _ = samples
     grid = embed_watermark(torch.stack([samples]))
     grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
     outputs.image(grid.cpu().numpy())
+
 
 def get_guider(key):
     guider = st.sidebar.selectbox(

@@ -52,7 +52,7 @@ class Thresholder(str, Enum):
 
 
 @dataclass
-class SamplingParams():
+class SamplingParams:
     width: int = 1024
     height: int = 1024
     steps: int = 50
@@ -80,7 +80,7 @@ class SamplingParams():
 
 
 @dataclass
-class SamplingSpec():
+class SamplingSpec:
     width: int
     height: int
     channels: int
