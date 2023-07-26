@@ -7,7 +7,7 @@ name = "sgm"
 dynamic = ["version"]
 description = "Stability Generative Models"
 readme = "README.md"
-license-files = { paths = ["LICENSE"] }
+license-files = { paths = ["LICENSE-CODE"] }
 requires-python = ">=3.8"
 
 [project.urls]
