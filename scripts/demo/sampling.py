@@ -88,7 +88,6 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_refiner.yaml",
         "ckpt": "checkpoints/sd_xl_refiner_1.0.safetensors",
     },
-
 }
 
 
@@ -122,12 +121,8 @@ def run_txt2img(
     if version.startswith("SDXL-base"):
         W, H = st.selectbox("Resolution:", list(SD_XL_BASE_RATIOS.values()), 10)
     else:
-        H = st.number_input(
-            "H", value=version_dict["H"], min_value=64, max_value=2048
-        )
-        W = st.number_input(
-            "W", value=version_dict["W"], min_value=64, max_value=2048
-        )
+        H = st.number_input("H", value=version_dict["H"], min_value=64, max_value=2048)
+        W = st.number_input("W", value=version_dict["W"], min_value=64, max_value=2048)
     C = version_dict["C"]
     F = version_dict["f"]
 
@@ -188,7 +183,7 @@ def run_img2img(
         init_dict,
     )
     strength = st.number_input(
-        "**Img2Img Strength**", value=0.5, min_value=0.0, max_value=1.0
+        "**Img2Img Strength**", value=0.75, min_value=0.0, max_value=1.0
     )
     sampler, num_rows, num_cols = init_sampling(
         img2img_strength=strength,
