@@ -1,9 +1,10 @@
 import os
-import torch
+
+import clip
 import numpy as np
+import torch
 import torchvision.transforms as T
 from PIL import Image
-import clip
 
 RESOURCES_ROOT = "scripts/util/detection/"
 

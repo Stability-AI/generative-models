@@ -8,11 +8,11 @@ from torchvision import transforms
 
 
 from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
     EulerEDMSampler,
     HeunEDMSampler,
-    EulerAncestralSampler,
-    DPMPP2SAncestralSampler,
-    DPMPP2MSampler,
     LinearMultistepSampler,
 )
 from sgm.inference.helpers import Img2ImgDiscretizationWrapper, embed_watermark
