@@ -70,15 +70,6 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_2_1_768.yaml",
         "ckpt": "checkpoints/v2-1_768-ema-pruned.safetensors",
     },
-    "sd-1.5": {
-        "H": 512,
-        "W": 512,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_1_5.yaml",
-        "ckpt": "checkpoints/v1-5-pruned-emaonly.safetensors",
-    },
     "SDXL-Refiner (0.9)": {
         "H": 1024,
         "W": 1024,
@@ -302,7 +293,7 @@ if __name__ == "__main__":
 
     if add_pipeline:
         st.write("__________________________")
-        version2 = st.selectbox("Refiner:", ["SDXL-Refiner (0.9)", "SDXL-Refiner (1.0)"])
+        version2 = st.selectbox("Refiner:", ["SDXL-Refiner (1.0)", "SDXL-Refiner (0.9)"])
         st.warning(
             f"Running with {version2} as the second stage model. Make sure to provide (V)RAM :) "
         )
