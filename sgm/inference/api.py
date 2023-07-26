@@ -139,7 +139,7 @@ model_specs = {
         factor=8,
         is_legacy=False,
         config="sd_xl_base.yaml",
-        ckpt="sd_xl_base_1.0-metadata.safetensors",
+        ckpt="sd_xl_base_1.0.safetensors",
         is_guided=True,
     ),
     ModelArchitecture.SDXL_V1_REFINER: SamplingSpec(
@@ -149,7 +149,7 @@ model_specs = {
         factor=8,
         is_legacy=True,
         config="sd_xl_refiner.yaml",
-        ckpt="sd_xl_refiner_1.0-metadata.safetensors",
+        ckpt="sd_xl_refiner_1.0.safetensors",
         is_guided=True,
     ),
 }
