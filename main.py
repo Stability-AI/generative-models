@@ -12,22 +12,18 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 import wandb
-from PIL import Image
 from matplotlib import pyplot as plt
 from natsort import natsorted
 from omegaconf import OmegaConf
 from packaging import version
+from PIL import Image
 from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.trainer import Trainer
 from pytorch_lightning.utilities import rank_zero_only
 
-from sgm.util import (
-    exists,
-    instantiate_from_config,
-    isheatmap,
-)
+from sgm.util import exists, instantiate_from_config, isheatmap
 
 MULTINODE_HACKS = True
 
@@ -910,10 +906,11 @@ if __name__ == "__main__":
             trainer.test(model, data)
     except RuntimeError as err:
         if MULTINODE_HACKS:
-            import requests
             import datetime
             import os
             import socket
+
+            import requests
 
             device = os.environ.get("CUDA_VISIBLE_DEVICES", "?")
             hostname = socket.gethostname()

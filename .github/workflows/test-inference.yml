@@ -1,0 +1,34 @@
+name: Test inference
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: "Test inference"
+    # This action is designed only to run on the Stability research cluster at this time, so many assumptions are made about the environment
+    if: github.repository == 'stability-ai/generative-models'
+    runs-on: [self-hosted, slurm, g40]
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Symlink checkpoints"
+        run: ln -s ${{vars.SGM_CHECKPOINTS_PATH}} checkpoints
+      - name: "Setup python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: "Install Hatch"
+        run: pip install hatch
+      - name: "Run inference tests"
+        run: hatch run ci:test-inference --junit-xml test-results.xml
+      - name: Surface failing tests
+        if: always()
+        uses: pmeier/pytest-results-action@main
+        with:
+          path: test-results.xml
+          summary: true
+          display-options: fEX
+          fail-on-empty: true

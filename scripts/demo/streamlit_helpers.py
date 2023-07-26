@@ -1,29 +1,29 @@
-import os
-from typing import Union, List
-
 import math
+import os
+from typing import List, Union
+
 import numpy as np
 import streamlit as st
 import torch
-from PIL import Image
 from einops import rearrange, repeat
 from imwatermark import WatermarkEncoder
-from omegaconf import OmegaConf, ListConfig
+from omegaconf import ListConfig, OmegaConf
+from PIL import Image
+from safetensors.torch import load_file as load_safetensors
 from torch import autocast
 from torchvision import transforms
 from torchvision.utils import make_grid
-from safetensors.torch import load_file as load_safetensors
 
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
     EulerEDMSampler,
     HeunEDMSampler,
-    EulerAncestralSampler,
-    DPMPP2SAncestralSampler,
-    DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from sgm.util import append_dims
-from sgm.util import instantiate_from_config
+from sgm.util import append_dims, instantiate_from_config
 
 
 class WatermarkEmbedder:
@@ -72,7 +72,7 @@ embed_watemark = WatermarkEmbedder(WATERMARK_BITS)
 
 
 @st.cache_resource()
-def init_st(version_dict, load_ckpt=True):
+def init_st(version_dict, load_ckpt=True, load_filter=True):
     state = dict()
     if not "model" in state:
         config = version_dict["config"]
@@ -85,7 +85,37 @@ def init_st(version_dict, load_ckpt=True):
         state["model"] = model
         state["ckpt"] = ckpt if load_ckpt else None
         state["config"] = config
+        if load_filter:
+            state["filter"] = DeepFloydDataFiltering(verbose=False)
     return state
+
+
+def load_model(model):
+    model.cuda()
+
+
+lowvram_mode = False
+
+
+def set_lowvram_mode(mode):
+    global lowvram_mode
+    lowvram_mode = mode
+
+
+def initial_model_load(model):
+    global lowvram_mode
+    if lowvram_mode:
+        model.model.half()
+    else:
+        model.cuda()
+    return model
+
+
+def unload_model(model):
+    global lowvram_mode
+    if lowvram_mode:
+        model.cpu()
+        torch.cuda.empty_cache()
 
 
 def load_model_from_config(config, ckpt=None, verbose=True):
@@ -118,7 +148,7 @@ def load_model_from_config(config, ckpt=None, verbose=True):
     else:
         msg = None
 
-    model.cuda()
+    model = initial_model_load(model)
     model.eval()
     return model, msg
 
@@ -170,19 +200,8 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
             value_dict["negative_aesthetic_score"] = 2.5
 
         if key == "target_size_as_tuple":
-            target_width = st.number_input(
-                "target_width",
-                value=init_dict["target_width"],
-                min_value=16,
-            )
-            target_height = st.number_input(
-                "target_height",
-                value=init_dict["target_height"],
-                min_value=16,
-            )
-
-            value_dict["target_width"] = target_width
-            value_dict["target_height"] = target_height
+            value_dict["target_width"] = init_dict["target_width"]
+            value_dict["target_height"] = init_dict["target_height"]
 
     return value_dict
 
@@ -233,6 +252,36 @@ class Img2ImgDiscretizationWrapper:
         return sigmas
 
 
+class Txt2NoisyDiscretizationWrapper:
+    """
+    wraps a discretizer, and prunes the sigmas
+    params:
+        strength: float between 0.0 and 1.0. 0.0 means full sampling (all sigmas are returned)
+    """
+
+    def __init__(self, discretization, strength: float = 0.0, original_steps=None):
+        self.discretization = discretization
+        self.strength = strength
+        self.original_steps = original_steps
+        assert 0.0 <= self.strength <= 1.0
+
+    def __call__(self, *args, **kwargs):
+        # sigmas start large first, and decrease then
+        sigmas = self.discretization(*args, **kwargs)
+        print(f"sigmas after discretization, before pruning img2img: ", sigmas)
+        sigmas = torch.flip(sigmas, (0,))
+        if self.original_steps is None:
+            steps = len(sigmas)
+        else:
+            steps = self.original_steps + 1
+        prune_index = max(min(int(self.strength * steps) - 1, steps - 1), 0)
+        sigmas = sigmas[prune_index:]
+        print("prune index:", prune_index)
+        sigmas = torch.flip(sigmas, (0,))
+        print(f"sigmas after pruning: ", sigmas)
+        return sigmas
+
+
 def get_guider(key):
     guider = st.sidebar.selectbox(
         f"Discretization #{key}",
@@ -275,16 +324,19 @@ def get_guider(key):
 
 
 def init_sampling(
-    key=1, img2img_strength=1.0, use_identity_guider=False, get_num_samples=True
+    key=1,
+    img2img_strength=1.0,
+    specify_num_samples=True,
+    stage2strength=None,
 ):
-    if get_num_samples:
-        num_rows = 1
+    num_rows, num_cols = 1, 1
+    if specify_num_samples:
         num_cols = st.number_input(
             f"num cols #{key}", value=2, min_value=1, max_value=10
         )
 
     steps = st.sidebar.number_input(
-        f"steps #{key}", value=50, min_value=1, max_value=1000
+        f"steps #{key}", value=40, min_value=1, max_value=1000
     )
     sampler = st.sidebar.selectbox(
         f"Sampler #{key}",
@@ -318,9 +370,11 @@ def init_sampling(
         sampler.discretization = Img2ImgDiscretizationWrapper(
             sampler.discretization, strength=img2img_strength
         )
-    if get_num_samples:
-        return num_rows, num_cols, sampler
-    return sampler
+    if stage2strength is not None:
+        sampler.discretization = Txt2NoisyDiscretizationWrapper(
+            sampler.discretization, strength=stage2strength, original_steps=steps
+        )
+    return sampler, num_rows, num_cols
 
 
 def get_discretization(discretization, key=1):
@@ -482,6 +536,7 @@ def do_sample(
         with precision_scope("cuda"):
             with model.ema_scope():
                 num_samples = [num_samples]
+                load_model(model.conditioner)
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
@@ -499,6 +554,7 @@ def do_sample(
                     batch_uc=batch_uc,
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                 )
+                unload_model(model.conditioner)
 
                 for k in c:
                     if not k == "crossattn":
@@ -518,9 +574,16 @@ def do_sample(
                         model.model, input, sigma, c, **additional_model_inputs
                     )
 
+                load_model(model.denoiser)
+                load_model(model.model)
                 samples_z = sampler(denoiser, randn, cond=c, uc=uc)
+                unload_model(model.model)
+                unload_model(model.denoiser)
+
+                load_model(model.first_stage_model)
                 samples_x = model.decode_first_stage(samples_z)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                unload_model(model.first_stage_model)
 
                 if filter is not None:
                     samples = filter(samples)
@@ -604,6 +667,7 @@ def do_img2img(
     return_latents=False,
     skip_encode=False,
     filter=None,
+    add_noise=True,
 ):
     st.text("Sampling")
 
@@ -612,6 +676,7 @@ def do_img2img(
     with torch.no_grad():
         with precision_scope("cuda"):
             with model.ema_scope():
+                load_model(model.conditioner)
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
@@ -622,7 +687,7 @@ def do_img2img(
                     batch_uc=batch_uc,
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                 )
-
+                unload_model(model.conditioner)
                 for k in c:
                     c[k], uc[k] = map(lambda y: y[k][:num_samples].to("cuda"), (c, uc))
 
@@ -631,28 +696,41 @@ def do_img2img(
                 if skip_encode:
                     z = img
                 else:
+                    load_model(model.first_stage_model)
                     z = model.encode_first_stage(img)
+                    unload_model(model.first_stage_model)
+
                 noise = torch.randn_like(z)
-                sigmas = sampler.discretization(sampler.num_steps)
+
+                sigmas = sampler.discretization(sampler.num_steps).cuda()
                 sigma = sigmas[0]
 
                 st.info(f"all sigmas: {sigmas}")
                 st.info(f"noising sigma: {sigma}")
-
                 if offset_noise_level > 0.0:
                     noise = noise + offset_noise_level * append_dims(
                         torch.randn(z.shape[0], device=z.device), z.ndim
                     )
-                noised_z = z + noise * append_dims(sigma, z.ndim)
-                noised_z = noised_z / torch.sqrt(
-                    1.0 + sigmas[0] ** 2.0
-                )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                if add_noise:
+                    noised_z = z + noise * append_dims(sigma, z.ndim).cuda()
+                    noised_z = noised_z / torch.sqrt(
+                        1.0 + sigmas[0] ** 2.0
+                    )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                else:
+                    noised_z = z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
 
                 def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)
 
+                load_model(model.denoiser)
+                load_model(model.model)
                 samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
+                unload_model(model.model)
+                unload_model(model.denoiser)
+
+                load_model(model.first_stage_model)
                 samples_x = model.decode_first_stage(samples_z)
+                unload_model(model.first_stage_model)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:

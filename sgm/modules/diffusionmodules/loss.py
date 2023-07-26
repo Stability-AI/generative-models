@@ -3,9 +3,9 @@ from typing import List, Optional, Union
 import torch
 import torch.nn as nn
 from omegaconf import ListConfig
-from taming.modules.losses.lpips import LPIPS
 
 from ...util import append_dims, instantiate_from_config
+from ...modules.autoencoding.lpips.loss.lpips import LPIPS
 
 
 class StandardDiffusionLoss(nn.Module):
