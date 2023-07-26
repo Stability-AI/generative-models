@@ -139,7 +139,7 @@ def run_txt2img(
         st.write(f"**Model I:** {version}")
         outputs = st.empty()
         st.text("Sampling")
-        samples = do_sample(
+        out = do_sample(
             state["model"],
             sampler,
             value_dict,
@@ -152,11 +152,13 @@ def run_txt2img(
             return_latents=return_latents,
             filter=filter,
         )
+        if return_latents:
+            samples, _ = out
         grid = embed_watermark(torch.stack([samples]))
         grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
         outputs.image(grid.cpu().numpy())
 
-        return samples
+        return out
 
 
 def run_img2img(
@@ -189,7 +191,7 @@ def run_img2img(
     if st.button("Sample"):
         outputs = st.empty()
         st.text("Sampling")
-        samples = do_img2img(
+        out = do_img2img(
             repeat(img, "1 ... -> n ...", n=num_samples),
             state["model"],
             sampler,
@@ -200,10 +202,12 @@ def run_img2img(
             filter=filter,
             logger=st,
         )
+        if return_latents:
+            samples, _ = out
         grid = embed_watermark(torch.stack([samples]))
         grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
         outputs.image(grid.cpu().numpy())
-        return samples
+        return out
 
 
 def apply_refiner(
