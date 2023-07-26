@@ -307,7 +307,7 @@ class DiffusionEngine(pl.LightningModule):
         log["inputs"] = x
         z = self.encode_first_stage(x)
         log["reconstructions"] = self.decode_first_stage(z)
-        logger.update(self.log_conditionings(batch, N))
+        log.update(self.log_conditionings(batch, N))
 
         for k in c:
             if isinstance(c[k], torch.Tensor):
