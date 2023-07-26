@@ -5,8 +5,7 @@ from sgm.inference.helpers import (
     do_img2img,
     do_sample,
     get_unique_embedder_keys_from_conditioner,
-    perform_save_locally,
-    embed_watermark,
+    perform_save_locally,    
 )
 
 SAVE_PATH = "outputs/demo/txt2img/"
@@ -152,11 +151,7 @@ def run_txt2img(
             return_latents=return_latents,
             filter=filter,
         )
-        if return_latents:
-            samples, _ = out
-        grid = embed_watermark(torch.stack([samples]))
-        grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
-        outputs.image(grid.cpu().numpy())
+        show_samples(samples, outputs)
 
         return out
 
@@ -201,12 +196,8 @@ def run_img2img(
             return_latents=return_latents,
             filter=filter,
             logger=st,
-        )
-        if return_latents:
-            samples, _ = out
-        grid = embed_watermark(torch.stack([samples]))
-        grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
-        outputs.image(grid.cpu().numpy())
+        )        
+        show_samples(samples, outputs)
         return out
 
 
@@ -334,6 +325,7 @@ if __name__ == "__main__":
         samples_z = None
 
     if add_pipeline and samples_z is not None:
+        outputs = st.empty()
         st.write("**Running Refinement Stage**")
         samples = apply_refiner(
             samples_z,
@@ -343,7 +335,8 @@ if __name__ == "__main__":
             prompt=prompt,
             negative_prompt=negative_prompt if is_legacy else "",
             filter=filter,
-        )
+        )    
+        show_samples(samples, outputs)    
 
     if save_locally and samples is not None:
         perform_save_locally(save_path, samples)

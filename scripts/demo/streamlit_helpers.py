@@ -1,18 +1,11 @@
 import os
-from typing import Union, List
-
-import math
-import numpy as np
 import streamlit as st
 import torch
 from PIL import Image
 from einops import rearrange, repeat
-from imwatermark import WatermarkEncoder
-from omegaconf import OmegaConf, ListConfig
-from torch import autocast
+from omegaconf import OmegaConf
 from torchvision import transforms
-from torchvision.utils import make_grid
-from safetensors.torch import load_file as load_safetensors
+
 
 from sgm.modules.diffusionmodules.sampling import (
     EulerEDMSampler,
@@ -22,9 +15,8 @@ from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from sgm.inference.helpers import Img2ImgDiscretizationWrapper
-from sgm.util import append_dims
-from sgm.util import instantiate_from_config, load_model_from_config
+from sgm.inference.helpers import Img2ImgDiscretizationWrapper, embed_watermark
+from sgm.util import load_model_from_config
 
 
 @st.cache_resource()
@@ -115,6 +107,12 @@ def init_save_locally(_dir, init_value: bool = False):
 
     return save_locally, save_path
 
+def show_samples(samples, outputs):
+    if isinstance(samples, tuple):
+        samples, _ = samples
+    grid = embed_watermark(torch.stack([samples]))
+    grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+    outputs.image(grid.cpu().numpy())
 
 def get_guider(key):
     guider = st.sidebar.selectbox(
