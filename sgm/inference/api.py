@@ -330,7 +330,7 @@ def get_sampler_config(params: SamplingParams):
     guider_config = get_guider_config(params)
     sampler = None
     if params.sampler == Sampler.EULER_EDM:
-        sampler = EulerEDMSampler(
+        return EulerEDMSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
@@ -340,8 +340,8 @@ def get_sampler_config(params: SamplingParams):
             s_noise=params.s_noise,
             verbose=True,
         )
-    elif params.sampler == Sampler.HEUN_EDM:
-        sampler = HeunEDMSampler(
+    if params.sampler == Sampler.HEUN_EDM:
+        return HeunEDMSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
@@ -351,8 +351,8 @@ def get_sampler_config(params: SamplingParams):
             s_noise=params.s_noise,
             verbose=True,
         )
-    elif params.sampler == Sampler.EULER_ANCESTRAL:
-        sampler = EulerAncestralSampler(
+    if params.sampler == Sampler.EULER_ANCESTRAL:
+        return EulerAncestralSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
@@ -360,8 +360,8 @@ def get_sampler_config(params: SamplingParams):
             s_noise=params.s_noise,
             verbose=True,
         )
-    elif params.sampler == Sampler.DPMPP2S_ANCESTRAL:
-        sampler = DPMPP2SAncestralSampler(
+    if params.sampler == Sampler.DPMPP2S_ANCESTRAL:
+        return DPMPP2SAncestralSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
@@ -369,22 +369,20 @@ def get_sampler_config(params: SamplingParams):
             s_noise=params.s_noise,
             verbose=True,
         )
-    elif params.sampler == Sampler.DPMPP2M:
-        sampler = DPMPP2MSampler(
+    if params.sampler == Sampler.DPMPP2M:
+        return DPMPP2MSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
             verbose=True,
         )
-    elif params.sampler == Sampler.LINEAR_MULTISTEP:
-        sampler = LinearMultistepSampler(
+    if params.sampler == Sampler.LINEAR_MULTISTEP:
+        return LinearMultistepSampler(
             num_steps=params.steps,
             discretization_config=discretization_config,
             guider_config=guider_config,
             order=params.order,
             verbose=True,
         )
-    if sampler is None:
-        raise ValueError(f"unknown sampler {params.sampler}!")
 
-    return sampler
+    raise ValueError(f"unknown sampler {params.sampler}!")
