@@ -34,9 +34,7 @@ include = [
 "./configs" = "sgm/configs"
 
 [tool.hatch.envs.ci]
-# Skip for now, since requirements.txt is used by scripts and includes the project
-# This should be changed when dependencies are handled by Hatch
-skip-install = true 
+skip-install = false
 
 dependencies = [
     "pytest"
@@ -45,6 +43,6 @@ dependencies = [
 [tool.hatch.envs.ci.scripts]
 test-inference = [
     "pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118",
-    "pip install -r requirements/pt2.txt",
+    "pip install -r requirements/pt2.txt",    
     "pytest -v tests/inference/test_inference.py {args}",
 ]
