@@ -2,6 +2,7 @@ name: Build package
 
 on:
   push:
+    branches: [ main ]
   pull_request:
 
 jobs:
@@ -19,6 +20,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip  
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
