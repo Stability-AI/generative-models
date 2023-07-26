@@ -329,51 +329,46 @@ def get_sampler_config(params: SamplingParams):
     discretization_config = get_discretization_config(params)
     guider_config = get_guider_config(params)
     sampler = None
-    if params.sampler == Sampler.EULER_EDM or params.sampler == Sampler.HEUN_EDM:
-        if params.sampler == Sampler.EULER_EDM:
-            sampler = EulerEDMSampler(
-                num_steps=params.steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=params.s_churn,
-                s_tmin=params.s_tmin,
-                s_tmax=params.s_tmax,
-                s_noise=params.s_noise,
-                verbose=True,
-            )
-        elif params.sampler == Sampler.HEUN_EDM:
-            sampler = HeunEDMSampler(
-                num_steps=params.steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=params.s_churn,
-                s_tmin=params.s_tmin,
-                s_tmax=params.s_tmax,
-                s_noise=params.s_noise,
-                verbose=True,
-            )
-    elif (
-        params.sampler == Sampler.EULER_ANCESTRAL
-        or params.sampler == Sampler.DPMPP2S_ANCESTRAL
-    ):
-        if params.sampler == Sampler.EULER_ANCESTRAL:
-            sampler = EulerAncestralSampler(
-                num_steps=params.steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=params.eta,
-                s_noise=params.s_noise,
-                verbose=True,
-            )
-        elif params.sampler == Sampler.DPMPP2S_ANCESTRAL:
-            sampler = DPMPP2SAncestralSampler(
-                num_steps=params.steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=params.eta,
-                s_noise=params.s_noise,
-                verbose=True,
-            )
+    if params.sampler == Sampler.EULER_EDM:
+        sampler = EulerEDMSampler(
+            num_steps=params.steps,
+            discretization_config=discretization_config,
+            guider_config=guider_config,
+            s_churn=params.s_churn,
+            s_tmin=params.s_tmin,
+            s_tmax=params.s_tmax,
+            s_noise=params.s_noise,
+            verbose=True,
+        )
+    elif params.sampler == Sampler.HEUN_EDM:
+        sampler = HeunEDMSampler(
+            num_steps=params.steps,
+            discretization_config=discretization_config,
+            guider_config=guider_config,
+            s_churn=params.s_churn,
+            s_tmin=params.s_tmin,
+            s_tmax=params.s_tmax,
+            s_noise=params.s_noise,
+            verbose=True,
+        )
+    elif params.sampler == Sampler.EULER_ANCESTRAL:
+        sampler = EulerAncestralSampler(
+            num_steps=params.steps,
+            discretization_config=discretization_config,
+            guider_config=guider_config,
+            eta=params.eta,
+            s_noise=params.s_noise,
+            verbose=True,
+        )
+    elif params.sampler == Sampler.DPMPP2S_ANCESTRAL:
+        sampler = DPMPP2SAncestralSampler(
+            num_steps=params.steps,
+            discretization_config=discretization_config,
+            guider_config=guider_config,
+            eta=params.eta,
+            s_noise=params.s_noise,
+            verbose=True,
+        )
     elif params.sampler == Sampler.DPMPP2M:
         sampler = DPMPP2MSampler(
             num_steps=params.steps,

@@ -118,9 +118,8 @@ def do_sample(
     if batch2model_input is None:
         batch2model_input = []
 
-    precision_scope = autocast
     with torch.no_grad():
-        with precision_scope(device):
+        with autocast(device) as precision_scope:
             with model.ema_scope():
                 num_samples = [num_samples]
                 batch, batch_uc = get_batch(
@@ -241,7 +240,6 @@ def get_input_image_tensor(image: Image.Image, device="cuda"):
     return image_tensor.to(device)
 
 
-@torch.no_grad()
 def do_img2img(
     img,
     model,
@@ -256,9 +254,8 @@ def do_img2img(
     filter=None,
     device="cuda",
 ):
-    precision_scope = autocast
     with torch.no_grad():
-        with precision_scope(device):
+        with autocast(device) as precision_scope:
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
