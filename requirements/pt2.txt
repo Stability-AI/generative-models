@@ -35,4 +35,5 @@ triton==2.0.0
 urllib3<1.27,>=1.25.4
 wandb>=0.15.6
 webdataset>=0.2.33
+wheel>=0.41.0
 xformers>=0.0.20

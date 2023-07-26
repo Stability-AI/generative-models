@@ -1,3 +1,4 @@
+black==23.7.0
 chardet>=5.1.0
 clip @ git+https://github.com/openai/CLIP.git
 einops>=0.6.1
