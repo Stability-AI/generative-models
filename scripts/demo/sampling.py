@@ -34,7 +34,7 @@ SD_XL_BASE_RATIOS = {
 }
 
 VERSION2SPECS = {
-    "SD-XL base (1.0)": {
+    "SDXL-base-1.0": {
         "H": 1024,
         "W": 1024,
         "C": 4,
@@ -43,7 +43,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_base.yaml",
         "ckpt": "checkpoints/sd_xl_base_1.0.safetensors",
     },
-    "SD-XL base (0.9)": {
+    "SDXL-base-0.9": {
         "H": 1024,
         "W": 1024,
         "C": 4,
@@ -52,7 +52,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_base.yaml",
         "ckpt": "checkpoints/sd_xl_base_0.9.safetensors",
     },
-    "sd-2.1": {
+    "SD-2.1": {
         "H": 512,
         "W": 512,
         "C": 4,
@@ -61,7 +61,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_2_1.yaml",
         "ckpt": "checkpoints/v2-1_512-ema-pruned.safetensors",
     },
-    "sd-2.1-768": {
+    "SD-2.1-768": {
         "H": 768,
         "W": 768,
         "C": 4,
@@ -70,7 +70,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_2_1_768.yaml",
         "ckpt": "checkpoints/v2-1_768-ema-pruned.safetensors",
     },
-    "SDXL-Refiner (0.9)": {
+    "SDXL-refiner-0.9": {
         "H": 1024,
         "W": 1024,
         "C": 4,
@@ -79,7 +79,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_refiner.yaml",
         "ckpt": "checkpoints/sd_xl_refiner_0.9.safetensors",
     },
-    "SDXL-Refiner (1.0)": {
+    "SDXL-refiner-1.0": {
         "H": 1024,
         "W": 1024,
         "C": 4,
@@ -119,7 +119,7 @@ def run_txt2img(
     filter=None,
     stage2strength=None,
 ):
-    if version.startswith("SD-XL base"):
+    if version.startswith("SDXL-base"):
         W, H = st.selectbox("Resolution:", list(SD_XL_BASE_RATIOS.values()), 10)
     else:
         H = st.number_input(
@@ -261,8 +261,8 @@ if __name__ == "__main__":
 
     set_lowvram_mode(st.checkbox("Low vram mode", True))
 
-    if version.startswith("SD-XL base"):
-        add_pipeline = st.checkbox("Load SDXL-Refiner?", False)
+    if version.startswith("SDXL-base"):
+        add_pipeline = st.checkbox("Load SDXL-refiner?", False)
         st.write("__________________________")
     else:
         add_pipeline = False
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 
     if add_pipeline:
         st.write("__________________________")
-        version2 = st.selectbox("Refiner:", ["SDXL-Refiner (1.0)", "SDXL-Refiner (0.9)"])
+        version2 = st.selectbox("Refiner:", ["SDXL-refiner-1.0", "SDXL-refiner-0.9"])
         st.warning(
             f"Running with {version2} as the second stage model. Make sure to provide (V)RAM :) "
         )
