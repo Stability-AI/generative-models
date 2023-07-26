@@ -1,6 +1,7 @@
 from pytorch_lightning import seed_everything
 from scripts.demo.streamlit_helpers import *
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
+from sgm.inference.helpers import do_img2img, do_sample, get_unique_embedder_keys_from_conditioner, perform_save_locally, embed_watermark
 
 SAVE_PATH = "outputs/demo/txt2img/"
 
@@ -130,7 +131,9 @@ def run_txt2img(
 
     if st.button("Sample"):
         st.write(f"**Model I:** {version}")
-        out = do_sample(
+        outputs = outputs = st.empty()
+        st.text("Sampling")
+        samples = do_sample(
             state["model"],
             sampler,
             value_dict,
@@ -143,7 +146,11 @@ def run_txt2img(
             return_latents=return_latents,
             filter=filter,
         )
-        return out
+        grid = embed_watermark(torch.stack([samples]))
+        grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+        outputs.image(grid.cpu().numpy())
+
+        return samples
 
 
 def run_img2img(
@@ -174,7 +181,9 @@ def run_img2img(
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
-        out = do_img2img(
+        outputs = outputs = st.empty()
+        st.text("Sampling")
+        samples = do_img2img(
             repeat(img, "1 ... -> n ...", n=num_samples),
             state["model"],
             sampler,
@@ -183,8 +192,12 @@ def run_img2img(
             force_uc_zero_embeddings=["txt"] if not is_legacy else [],
             return_latents=return_latents,
             filter=filter,
+            logger=st
         )
-        return out
+        grid = embed_watermark(torch.stack([samples]))
+        grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+        outputs.image(grid.cpu().numpy())
+        return samples
 
 
 def apply_refiner(
@@ -247,9 +260,7 @@ if __name__ == "__main__":
 
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, version))
 
-    state = init_st(version_dict)
-    if state["msg"]:
-        st.info(state["msg"])
+    state = init_st(version_dict)    
     model = state["model"]
 
     is_legacy = version_dict["is_legacy"]
