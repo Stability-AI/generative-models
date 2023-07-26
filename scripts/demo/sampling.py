@@ -1,7 +1,7 @@
 from pytorch_lightning import seed_everything
 from scripts.demo.streamlit_helpers import *
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
-from sgm.inference.helpers import do_img2img, do_sample, get_unique_embedder_keys_from_conditioner, perform_save_locally
+from sgm.inference.helpers import do_img2img, do_sample, get_unique_embedder_keys_from_conditioner, perform_save_locally, embed_watermark
 
 SAVE_PATH = "outputs/demo/txt2img/"
 
@@ -146,11 +146,11 @@ def run_txt2img(
             return_latents=return_latents,
             filter=filter,
         )
-        grid = torch.stack([samples])
+        grid = embed_watermark(torch.stack([samples]))
         grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
         outputs.image(grid.cpu().numpy())
 
-        return out
+        return samples
 
 
 def run_img2img(
@@ -181,8 +181,9 @@ def run_img2img(
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
+        outputs = outputs = st.empty()
         st.text("Sampling")
-        out = do_img2img(
+        samples = do_img2img(
             repeat(img, "1 ... -> n ...", n=num_samples),
             state["model"],
             sampler,
@@ -193,7 +194,10 @@ def run_img2img(
             filter=filter,
             logger=st
         )
-        return out
+        grid = embed_watermark(torch.stack([samples]))
+        grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+        outputs.image(grid.cpu().numpy())
+        return samples
 
 
 def apply_refiner(
