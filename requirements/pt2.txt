@@ -10,7 +10,7 @@ kornia==0.6.9
 matplotlib>=3.7.2
 natsort>=8.4.0
 ninja>=1.11.1
-numpy>=1.25.1
+numpy>=1.24.4
 omegaconf>=2.3.0
 open-clip-torch>=2.20.0
 opencv-python==4.6.0.66
