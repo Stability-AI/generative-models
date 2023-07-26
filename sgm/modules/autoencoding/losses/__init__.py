@@ -1,4 +1,3 @@
-import logging
 from typing import Any, Union
 
 import torch
@@ -9,9 +8,6 @@ from taming.modules.losses.lpips import LPIPS
 from taming.modules.losses.vqperceptual import hinge_d_loss, vanilla_d_loss
 
 from ....util import default, instantiate_from_config
-
-
-logger = logging.getLogger(__name__)
 
 
 def adopt_weight(weight, global_step, threshold=0, value=0.0):
@@ -108,7 +104,7 @@ class GeneralLPIPSWithDiscriminator(nn.Module):
         super().__init__()
         self.dims = dims
         if self.dims > 2:
-            logger.info(
+            print(
                 f"running with dims={dims}. This means that for perceptual loss calculation, "
                 f"the LPIPS loss will be applied to each frame independently. "
             )
