@@ -1,5 +1,5 @@
 import os
-from typing import Union, List
+from typing import Union, List, Optional
 
 import math
 import numpy as np
@@ -107,8 +107,8 @@ def do_sample(
     W,
     C,
     F,
-    force_uc_zero_embeddings: List = None,
-    batch2model_input: List = None,
+    force_uc_zero_embeddings: Optional[List] = None,
+    batch2model_input: Optional[List] = None,
     return_latents=False,
     filter=None,
     device="cuda",
@@ -228,17 +228,17 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
     return batch, batch_uc
 
 
-def get_input_image_tensor(image: Image, device="cuda"):
+def get_input_image_tensor(image: Image.Image, device="cuda"):
     w, h = image.size
     print(f"loaded input image of size ({w}, {h})")
     width, height = map(
         lambda x: x - x % 64, (w, h)
     )  # resize to integer multiple of 64
     image = image.resize((width, height))
-    image = np.array(image.convert("RGB"))
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
-    return image.to(device)
+    image_array = np.array(image.convert("RGB"))
+    image_array = image_array[None].transpose(0, 3, 1, 2)
+    image_tensor = torch.from_numpy(image_array).to(dtype=torch.float32) / 127.5 - 1.0
+    return image_tensor.to(device)
 
 
 @torch.no_grad()

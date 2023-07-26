@@ -16,13 +16,15 @@ from sgm.modules.diffusionmodules.sampling import (
     LinearMultistepSampler,
 )
 from sgm.util import load_model_from_config
+from typing import Optional
 
-
-class ModelIdentifier(str, Enum):
-    SD_2_1 = "StableDiffusion2.1"
-    SD_2_1_768 = "StableDiffusion2.1-768"
-    SDXL_BASE = "SDXLBase"
-    SDXL_REFINER = "SDXLRefiner"
+class ModelArchitecture(str, Enum):
+    SD_2_1 = "stable-diffusion-v2-1"
+    SD_2_1_768 = "stable-diffusion-v2-1-768"
+    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"        
+    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
+    SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
+    SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
 
 
 class Sampler(str, Enum):
@@ -87,7 +89,7 @@ class SamplingSpec(BaseModel):
 
 
 model_specs = {
-    ModelIdentifier.SD_2_1: SamplingSpec(
+    ModelArchitecture.SD_2_1: SamplingSpec(
         height=512,
         width=512,
         channels=4,
@@ -97,7 +99,7 @@ model_specs = {
         ckpt="v2-1_512-ema-pruned.safetensors",
         is_guided=True,
     ),
-    ModelIdentifier.SD_2_1_768: SamplingSpec(
+    ModelArchitecture.SD_2_1_768: SamplingSpec(
         height=768,
         width=768,
         channels=4,
@@ -107,7 +109,7 @@ model_specs = {
         ckpt="v2-1_768-ema-pruned.safetensors",
         is_guided=True,
     ),
-    ModelIdentifier.SDXL_BASE: SamplingSpec(
+    ModelArchitecture.SDXL_V0_9_BASE: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -117,7 +119,7 @@ model_specs = {
         ckpt="sd_xl_base_0.9.safetensors",
         is_guided=True,
     ),
-    ModelIdentifier.SDXL_REFINER: SamplingSpec(
+    ModelArchitecture.SDXL_V0_9_REFINER: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -127,13 +129,33 @@ model_specs = {
         ckpt="sd_xl_refiner_0.9.safetensors",
         is_guided=True,
     ),
+    ModelArchitecture.SDXL_V1_BASE: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=False,
+        config="sd_xl_base.yaml",
+        ckpt="sd_xl_base_1.0.safetensors",
+        is_guided=True
+    ),
+    ModelArchitecture.SDXL_V1_REFINER: SamplingSpec(
+        height=1024,
+        width=1024,
+        channels=4,
+        factor=8,
+        is_legacy=True,
+        config="sd_xl_refiner.yaml",
+        ckpt="sd_xl_refiner_0.9.safetensors",
+        is_guided=True,
+    )
 }
 
 
 class SamplingPipeline:
     def __init__(
         self,
-        model_id: ModelIdentifier,
+        model_id: ModelArchitecture,
         model_path="checkpoints",
         config_path="configs/inference",
         device="cuda",
@@ -150,6 +172,8 @@ class SamplingPipeline:
     def _load_model(self, device="cuda"):
         config = OmegaConf.load(self.specs.config)
         model = load_model_from_config(config, self.specs.ckpt)
+        if model is None:
+            raise ValueError(f"Model {self.model_id} could not be loaded")
         model.to(device)
         model.conditioner.half()
         model.model.half()
@@ -167,6 +191,8 @@ class SamplingPipeline:
         value_dict = dict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
+        value_dict["target_width"] = params.width
+        value_dict["target_height"] = params.height
         return do_sample(
             self.model,
             sampler,
@@ -197,11 +223,12 @@ class SamplingPipeline:
                 sampler.discretization,
                 strength=params.img2img_strength,
             )
-
+        height, width = image.shape[2], image.shape[3]
         value_dict = dict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
-
+        value_dict["target_width"] = width
+        value_dict["target_height"] = height
         return do_img2img(
             image,
             self.model,
@@ -218,7 +245,7 @@ class SamplingPipeline:
         params: SamplingParams,
         image,
         prompt: str,
-        negative_prompt: str = None,
+        negative_prompt: Optional[str] = None,
         samples: int = 1,
         return_latents: bool = False,
     ):
@@ -296,6 +323,7 @@ def get_discretization_config(params: SamplingParams):
 def get_sampler_config(params: SamplingParams):
     discretization_config = get_discretization_config(params)
     guider_config = get_guider_config(params)
+    sampler = None
     if params.sampler == Sampler.EULER_EDM or params.sampler == Sampler.HEUN_EDM:
         if params.sampler == Sampler.EULER_EDM:
             sampler = EulerEDMSampler(
@@ -356,7 +384,7 @@ def get_sampler_config(params: SamplingParams):
             order=params.order,
             verbose=True,
         )
-    else:
-        raise ValueError(f"unknown sampler {sampler}!")
+    if sampler is None:
+        raise ValueError(f"unknown sampler {params.sampler}!")
 
     return sampler
