@@ -699,7 +699,6 @@ def do_img2img(
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                 )
                 unload_model(model.conditioner)
-
                 for k in c:
                     c[k], uc[k] = map(lambda y: y[k][:num_samples].to("cuda"), (c, uc))
 

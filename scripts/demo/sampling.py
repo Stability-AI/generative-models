@@ -34,14 +34,14 @@ SD_XL_BASE_RATIOS = {
 }
 
 VERSION2SPECS = {
-    "SD-XL base": {
+    "SD-XL base (1.0)": {
         "H": 1024,
         "W": 1024,
         "C": 4,
         "f": 8,
         "is_legacy": False,
         "config": "configs/inference/sd_xl_base.yaml",
-        "ckpt": "checkpoints/sd_xl_base.safetensors",
+        "ckpt": "checkpoints/sd_xl_base_1.0.safetensors",
     },
     "SD-XL base (0.9)": {
         "H": 1024,
@@ -79,7 +79,7 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_1_5.yaml",
         "ckpt": "checkpoints/v1-5-pruned-emaonly.safetensors",
     },
-    "SDXL-Refiner": {
+    "SDXL-Refiner (0.9)": {
         "H": 1024,
         "W": 1024,
         "C": 4,
@@ -88,6 +88,16 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_refiner.yaml",
         "ckpt": "checkpoints/sd_xl_refiner_0.9.safetensors",
     },
+    "SDXL-Refiner (1.0)": {
+        "H": 1024,
+        "W": 1024,
+        "C": 4,
+        "f": 8,
+        "is_legacy": True,
+        "config": "configs/inference/sd_xl_refiner.yaml",
+        "ckpt": "checkpoints/sd_xl_refiner_1.0.safetensors",
+    },
+
 }
 
 
@@ -119,13 +129,12 @@ def run_txt2img(
     stage2strength=None,
 ):
     if version.startswith("SD-XL base"):
-        ratio = st.sidebar.selectbox("Ratio:", list(SD_XL_BASE_RATIOS.keys()), 10)
-        W, H = SD_XL_BASE_RATIOS[ratio]
+        W, H = st.selectbox("Resolution:", list(SD_XL_BASE_RATIOS.values()), 10)
     else:
-        H = st.sidebar.number_input(
+        H = st.number_input(
             "H", value=version_dict["H"], min_value=64, max_value=2048
         )
-        W = st.sidebar.number_input(
+        W = st.number_input(
             "W", value=version_dict["W"], min_value=64, max_value=2048
         )
     C = version_dict["C"]
@@ -143,9 +152,7 @@ def run_txt2img(
         prompt=prompt,
         negative_prompt=negative_prompt,
     )
-
     sampler, num_rows, num_cols = init_sampling(stage2strength=stage2strength)
-
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
@@ -192,7 +199,6 @@ def run_img2img(
     strength = st.number_input(
         "**Img2Img Strength**", value=0.5, min_value=0.0, max_value=1.0
     )
-
     sampler, num_rows, num_cols = init_sampling(
         img2img_strength=strength,
         stage2strength=stage2strength,
@@ -296,8 +302,7 @@ if __name__ == "__main__":
 
     if add_pipeline:
         st.write("__________________________")
-
-        version2 = "SDXL-Refiner"
+        version2 = st.selectbox("Refiner:", ["SDXL-Refiner (0.9)", "SDXL-Refiner (1.0)"])
         st.warning(
             f"Running with {version2} as the second stage model. Make sure to provide (V)RAM :) "
         )
