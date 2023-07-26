@@ -32,3 +32,17 @@ include = [
 
 [tool.hatch.build.targets.wheel.force-include]
 "./configs" = "sgm/configs"
+
+[tool.hatch.envs.ci]
+skip-install = false
+
+dependencies = [
+    "pytest"
+]
+
+[tool.hatch.envs.ci.scripts]
+test-inference = [
+    "pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118",
+    "pip install -r requirements/pt2.txt",    
+    "pytest -v tests/inference/test_inference.py {args}",
+]
