@@ -284,8 +284,7 @@ if __name__ == "__main__":
         st.write("**Refiner Options:**")
 
         version_dict2 = VERSION2SPECS[version2]
-        state2 = init_st(version_dict2)
-        st.info(state2["msg"])
+        state2 = init_st(version_dict2)        
 
         stage2strength = st.number_input(
             "**Refinement strength**", value=0.3, min_value=0.0, max_value=1.0
