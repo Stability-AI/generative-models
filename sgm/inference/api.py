@@ -160,6 +160,7 @@ class SamplingPipeline:
         model_path="checkpoints",
         config_path="configs/inference",
         device="cuda",
+        use_fp16=True,
     ) -> None:
         if model_id not in model_specs:
             raise ValueError(f"Model {model_id} not supported")
@@ -168,16 +169,17 @@ class SamplingPipeline:
         self.config = str(pathlib.Path(config_path, self.specs.config))
         self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
         self.device = device
-        self.model = self._load_model()
+        self.model = self._load_model(device=device, use_fp16=use_fp16)
 
-    def _load_model(self, device="cuda"):
+    def _load_model(self, device="cuda", use_fp16=True):
         config = OmegaConf.load(self.config)
         model = load_model_from_config(config, self.ckpt)
         if model is None:
             raise ValueError(f"Model {self.model_id} could not be loaded")
         model.to(device)
-        model.conditioner.half()
-        model.model.half()
+        if use_fp16:
+            model.conditioner.half()
+            model.model.half()
         return model
 
     def text_to_image(
@@ -317,7 +319,7 @@ def get_discretization_config(params: SamplingParams):
             },
         }
     else:
-        raise ValueError(f"unknown discertization {params.discretization}")
+        raise ValueError(f"unknown discretization {params.discretization}")
     return discretization_config
 
 
