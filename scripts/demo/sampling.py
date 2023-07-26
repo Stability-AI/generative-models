@@ -151,7 +151,7 @@ def run_txt2img(
             return_latents=return_latents,
             filter=filter,
         )
-        show_samples(samples, outputs)
+        show_samples(out, outputs)
 
         return out
 
@@ -197,7 +197,7 @@ def run_img2img(
             filter=filter,
             logger=st,
         )        
-        show_samples(samples, outputs)
+        show_samples(out, outputs)
         return out
 
 
