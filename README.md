@@ -5,7 +5,7 @@
 ## News
 
 **July 26, 2023**
-- We are releasing two new open models with a permissive [`CreativeML Open RAIL++-M` license](model_licenses/LICENSE-SDXL1.0):
+- We are releasing two new open models with a permissive [`CreativeML Open RAIL++-M` license](model_licenses/LICENSE-SDXL1.0) (see [Inference](#inference) for file hashes):
   - [SDXL-base-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0): An improved version over `SDXL-base-0.9`.
   - [SDXL-refiner-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0): An improved version over `SDXL-refiner-0.9`.
 
@@ -22,11 +22,11 @@
   - `SDXL-base-0.9`: The base model was trained on a variety of aspect ratios on images with resolution 1024^2. The base model uses [OpenCLIP-ViT/G](https://github.com/mlfoundations/open_clip) and [CLIP-ViT/L](https://github.com/openai/CLIP/tree/main) for text encoding whereas the refiner model only uses the OpenCLIP model.
   - `SDXL-refiner-0.9`: The refiner has been trained to denoise small noise levels of high quality data and as such is not expected to work as a text-to-image model; instead, it should only be used as an image-to-image model.
 
-If you would like to access these models for your research, please apply using one of the following links: 
-[SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
-This means that you can apply for any of the two links - and if you are granted - you can access both. 
+If you would like to access these models for your research, please apply using one of the following links:
+[SDXL-0.9-Base model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-0.9-Refiner](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9).
+This means that you can apply for any of the two links - and if you are granted - you can access both.
 Please log in to your Hugging Face Account with your organization email to request access.
-**We plan to do a full release soon (July).** 
+**We plan to do a full release soon (July).**
 
 ## The codebase
 
@@ -58,12 +58,12 @@ cd generative-models
 
 #### 2. Setting up the virtualenv
 
-This is assuming you have navigated to the `generative-models` root after cloning it. 
+This is assuming you have navigated to the `generative-models` root after cloning it.
 
 **NOTE:** This is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
 
 
-**PyTorch 1.13** 
+**PyTorch 1.13**
 
 ```shell
 # install required packages from pypi
@@ -72,7 +72,7 @@ source .pt13/bin/activate
 pip3 install -r requirements/pt13.txt
 ```
 
-**PyTorch 2.0** 
+**PyTorch 2.0**
 
 
 ```shell
@@ -112,13 +112,22 @@ You will find the built package in `dist/`. You can install the wheel with `pip 
 Note that the package does **not** currently specify dependencies; you will need to install the required packages,
 depending on your use case and PyTorch version, manually.
 
-## Inference:
+## Inference
 
-We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`. 
+We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`.
+We provide file hashes for the complete file as well as for only the saved tensors in the file (see [Model Spec](https://github.com/Stability-AI/ModelSpec) for a script to evaluate that).
 The following models are currently supported:
 
 - [SDXL-base-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0)
+  ```
+  File Hash (sha256): 31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+  Tensordata Hash (sha256): 0xd7a9105a900fd52748f20725fe52fe52b507fd36bee4fc107b1550a26e6ee1d7
+  ```
 - [SDXL-refiner-1.0](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0)
+  ```
+  File Hash (sha256): 7440042bbdc8a24813002c09b6b69b64dc90fded4472613437b7f55f9b7d9c5f
+  Tensordata Hash (sha256): 0x1a77d21bebc4b4de78c474a90cb74dc0d2217caf4061971dbfa75ad406b75d81
+  ```
 - [SDXL-base-0.9](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9)
 - [SDXL-refiner-0.9](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9)
 - [SD-2.1-512](https://huggingface.co/stabilityai/stable-diffusion-2-1-base/blob/main/v2-1_512-ema-pruned.safetensors)
@@ -134,13 +143,13 @@ The weights of SDXL-1.0 are available (subject to a [`CreativeML Open RAIL++-M` 
 
 **SDXL-0.9:**
 The weights of SDXL-0.9 are available and subject to a [research license](model_licenses/LICENSE-SDXL0.9).
-If you would like to access these models for your research, please apply using one of the following links: 
-[SDXL-base-0.9 model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-refiner-0.9](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9). 
-This means that you can apply for any of the two links - and if you are granted - you can access both. 
+If you would like to access these models for your research, please apply using one of the following links:
+[SDXL-base-0.9 model](https://huggingface.co/stabilityai/stable-diffusion-xl-base-0.9), and [SDXL-refiner-0.9](https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-0.9).
+This means that you can apply for any of the two links - and if you are granted - you can access both.
 Please log in to your Hugging Face Account with your organization email to request access.
 
 
-After obtaining the weights, place them into `checkpoints/`. 
+After obtaining the weights, place them into `checkpoints/`.
 Next, start the demo using
 
 ```
@@ -194,7 +203,7 @@ run
 python main.py --base configs/example_training/toy/mnist_cond.yaml
 ```
 
-**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments containing `USER:` in the respective config.  
+**NOTE 1:** Using the non-toy-dataset configs `configs/example_training/imagenet-f8_cond.yaml`, `configs/example_training/txt2img-clipl.yaml` and `configs/example_training/txt2img-clipl-legacy-ucg-training.yaml` for training will require edits depending on the used dataset (which is expected to stored in tar-file in the [webdataset-format](https://github.com/webdataset/webdataset)). To find the parts which have to be adapted, search for comments containing `USER:` in the respective config.
 
 **NOTE 2:** This repository supports both `pytorch1.13` and `pytorch2`for training generative models. However for autoencoder training as e.g. in `configs/example_training/autoencoder/kl-f4/imagenet-attnfree-logvar.yaml`, only `pytorch1.13` is supported.
 
