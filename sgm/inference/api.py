@@ -164,14 +164,14 @@ class SamplingPipeline:
             raise ValueError(f"Model {model_id} not supported")
         self.model_id = model_id
         self.specs = model_specs[self.model_id]
-        self.specs.config = str(pathlib.Path(config_path, self.specs.config))
-        self.specs.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
+        self.config = str(pathlib.Path(config_path, self.specs.config))
+        self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
         self.device = device
         self.model = self._load_model()
 
     def _load_model(self, device="cuda"):
-        config = OmegaConf.load(self.specs.config)
-        model = load_model_from_config(config, self.specs.ckpt)
+        config = OmegaConf.load(self.config)
+        model = load_model_from_config(config, self.ckpt)
         if model is None:
             raise ValueError(f"Model {self.model_id} could not be loaded")
         model.to(device)
