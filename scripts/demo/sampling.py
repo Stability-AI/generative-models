@@ -195,8 +195,7 @@ def run_img2img(
             num_samples,
             force_uc_zero_embeddings=["txt"] if not is_legacy else [],
             return_latents=return_latents,
-            filter=filter,
-            logger=st,
+            filter=filter            
         )        
         show_samples(out, outputs)
         return out

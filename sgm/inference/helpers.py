@@ -253,8 +253,7 @@ def do_img2img(
     offset_noise_level: float = 0.0,
     return_latents=False,
     skip_encode=False,
-    filter=None,
-    logger=None,
+    filter=None,    
     device="cuda",
 ):
     precision_scope = autocast
@@ -284,11 +283,7 @@ def do_img2img(
                 noise = torch.randn_like(z)
                 sigmas = sampler.discretization(sampler.num_steps)
                 sigma = sigmas[0].to(z.device)
-
-                if logger is not None:
-                    logger.info(f"all sigmas: {sigmas}")
-                    logger.info(f"noising sigma: {sigma}")
-
+                
                 if offset_noise_level > 0.0:
                     noise = noise + offset_noise_level * append_dims(
                         torch.randn(z.shape[0], device=z.device), z.ndim

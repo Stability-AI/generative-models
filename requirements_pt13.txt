@@ -13,7 +13,6 @@ torchvision==0.14.1+cu117
 torchmetrics
 opencv-python==4.6.0.66
 fairscale
-pydantic
 pytorch-lightning==1.8.5
 fsspec
 kornia==0.6.9

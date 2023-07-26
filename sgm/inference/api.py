@@ -1,6 +1,6 @@
+from dataclasses import dataclass
 from enum import Enum
 from omegaconf import OmegaConf
-from pydantic import BaseModel
 import pathlib
 from sgm.inference.helpers import (
     do_sample,
@@ -51,7 +51,8 @@ class Thresholder(str, Enum):
     NONE = "None"
 
 
-class SamplingParams(BaseModel):
+@dataclass
+class SamplingParams():
     width: int = 1024
     height: int = 1024
     steps: int = 50
@@ -78,7 +79,8 @@ class SamplingParams(BaseModel):
     order: int = 4
 
 
-class SamplingSpec(BaseModel):
+@dataclass
+class SamplingSpec():
     width: int
     height: int
     channels: int
