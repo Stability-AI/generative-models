@@ -6,74 +6,17 @@ from omegaconf import OmegaConf
 import torch
 
 from sgm.util import load_model_from_config
+from sgm.inference.api import model_specs, SamplingParams, SamplingPipeline, Sampler
 import sgm.inference.helpers as helpers
-
-VERSION2SPECS = {
-    "SD-XL base": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": False,
-        "config": "configs/inference/sd_xl_base.yaml",
-        "ckpt": "checkpoints/sd_xl_base_0.9.safetensors",
-        "is_guided": True,
-    },
-    "sd-2.1": {
-        "H": 512,
-        "W": 512,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_2_1.yaml",
-        "ckpt": "checkpoints/v2-1_512-ema-pruned.safetensors",
-        "is_guided": True,
-    },
-    "sd-2.1-768": {
-        "H": 768,
-        "W": 768,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_2_1_768.yaml",
-        "ckpt": "checkpoints/v2-1_768-ema-pruned.safetensors",
-    },
-    "SDXL-Refiner": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_xl_refiner.yaml",
-        "ckpt": "checkpoints/sd_xl_refiner_0.9.safetensors",
-        "is_guided": True,
-    },
-}
-
-samplers = [
-    "EulerEDMSampler",
-    "HeunEDMSampler",
-    "EulerAncestralSampler",
-    "DPMPP2SAncestralSampler",
-    "DPMPP2MSampler",
-    "LinearMultistepSampler",
-]
 
 
 @pytest.mark.inference
 class TestInference:
-    @fixture(
-        scope="class", params=["SD-XL base", "sd-2.1", "sd-2.1-768", "SDXL-Refiner"]
-    )
-    def model(self, request):
-        specs = VERSION2SPECS[request.param]
-        config = OmegaConf.load(specs["config"])
-        model = load_model_from_config(config, specs["ckpt"])
-        model.cuda()
-        model.conditioner.half()
-        model.model.half()
-        yield model, specs
-        del model
+    @fixture(scope="class", params=model_specs.keys())
+    def pipeline(self, request) -> SamplingPipeline:
+        pipeline = SamplingPipeline(request.param)
+        yield pipeline
+        del pipeline
         torch.cuda.empty_cache()
 
     def create_init_image(self, h, w):
@@ -81,74 +24,24 @@ class TestInference:
         image = Image.fromarray(image_array.astype("uint8")).convert("RGB")
         return helpers.get_input_image_tensor(image)
 
-    @pytest.mark.parametrize("sampler_name", samplers)
-    def test_txt2img(self, model, sampler_name):
-        specs = model[1]
-        model = model[0]
-        value_dict = {
-            "prompt": "A professional photograph of an astronaut riding a pig",
-            "negative_prompt": "",
-            "aesthetic_score": 6.0,
-            "negative_aesthetic_score": 2.5,
-            "orig_height": specs["H"],
-            "orig_width": specs["W"],
-            "target_height": specs["H"],
-            "target_width": specs["W"],
-            "crop_coords_top": 0,
-            "crop_coords_left": 0,
-        }
-        sampler = helpers.get_sampler(
-            sampler_name=sampler_name,
-            steps=10,
-            discretization_config=helpers.get_discretization(
-                "LegacyDDPMDiscretization"
-            ),
-            guider_config=helpers.get_guider(guider="VanillaCFG", scale=7.0),
-        )
-        output = helpers.do_sample(
-            model=model,
-            sampler=sampler,
-            value_dict=value_dict,
-            num_samples=1,
-            H=specs["H"],
-            W=specs["W"],
-            C=specs["C"],
-            F=specs["f"],
+    @pytest.mark.parametrize("sampler_enum", Sampler)
+    def test_txt2img(self, pipeline: SamplingPipeline, sampler_enum):
+        output = pipeline.text_to_image(
+            params=SamplingParams(sampler=sampler_enum.value, steps=10),
+            prompt="A professional photograph of an astronaut riding a pig",
+            negative_prompt="",
+            samples=1,
         )
 
         assert output is not None
 
-    @pytest.mark.parametrize("sampler_name", samplers)
-    def test_img2img(self, model, sampler_name):
-        specs = model[1]
-        model = model[0]
-        init_image = self.create_init_image(specs["H"], specs["W"]).to("cuda")
-        value_dict = {
-            "prompt": "A professional photograph of an astronaut riding a pig",
-            "negative_prompt": "",
-            "aesthetic_score": 6.0,
-            "negative_aesthetic_score": 2.5,
-            "orig_height": specs["H"],
-            "orig_width": specs["W"],
-            "target_height": specs["H"],
-            "target_width": specs["W"],
-            "crop_coords_top": 0,
-            "crop_coords_left": 0,
-        }
-
-        sampler = helpers.get_sampler(
-            sampler_name=sampler_name,
-            steps=10,
-            discretization_config=helpers.get_discretization(
-                "LegacyDDPMDiscretization"
-            ),
-            guider_config=helpers.get_guider(guider="VanillaCFG", scale=7.0),
+    @pytest.mark.parametrize("sampler_enum", Sampler)
+    def test_img2img(self, pipeline: SamplingPipeline, sampler_enum):
+        output = pipeline.image_to_image(
+            params=SamplingParams(sampler=sampler_enum.value, steps=10),
+            image=self.create_init_image(pipeline.specs.height, pipeline.specs.width),
+            prompt="A professional photograph of an astronaut riding a pig",
+            negative_prompt="",
+            samples=1,
         )
-
-        output = helpers.do_img2img(
-            img=init_image,
-            model=model,
-            sampler=sampler,
-            value_dict=value_dict,
-            num_samples=1,
-        )
+        assert output is not None

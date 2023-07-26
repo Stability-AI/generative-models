@@ -10,14 +10,6 @@ from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig
 from torch import autocast
 
-from sgm.modules.diffusionmodules.sampling import (
-    EulerEDMSampler,
-    HeunEDMSampler,
-    EulerAncestralSampler,
-    DPMPP2SAncestralSampler,
-    DPMPP2MSampler,
-    LinearMultistepSampler,
-)
 from sgm.util import append_dims
 
 class WatermarkEmbedder:
@@ -102,130 +94,6 @@ class Img2ImgDiscretizationWrapper:
         sigmas = torch.flip(sigmas, (0,))
         print(f"sigmas after pruning: ", sigmas)
         return sigmas
-
-
-def get_guider(guider, **kwargs):
-    if guider == "IdentityGuider":
-        guider_config = {
-            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
-        }
-    elif guider == "VanillaCFG":
-        scale = max(0.0, min(100.0, kwargs.pop("scale", 5.0)))
-
-        thresholder = kwargs.pop("thresholder", "None")
-
-        if thresholder == "None":
-            dyn_thresh_config = {
-                "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
-            }
-        else:
-            raise NotImplementedError
-
-        guider_config = {
-            "target": "sgm.modules.diffusionmodules.guiders.VanillaCFG",
-            "params": {"scale": scale, "dyn_thresh_config": dyn_thresh_config},
-        }
-    else:
-        raise NotImplementedError
-    return guider_config
-
-
-def get_discretization(discretization, **kwargs):
-    if discretization == "LegacyDDPMDiscretization":
-        discretization_config = {
-            "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
-        }
-    elif discretization == "EDMDiscretization":
-        sigma_min = kwargs.pop("sigma_min", 0.0292) 
-        sigma_max = kwargs.pop("sigma_max", 14.6146)
-        rho = kwargs.pop("rho", 3.0)
-        discretization_config = {
-            "target": "sgm.modules.diffusionmodules.discretizer.EDMDiscretization",
-            "params": {
-                "sigma_min": sigma_min,
-                "sigma_max": sigma_max,
-                "rho": rho,
-            },
-        }
-    else:
-        raise ValueError(f"unknown discertization {discretization}")
-    return discretization_config
-
-
-def get_sampler(sampler_name, steps, discretization_config, guider_config, **kwargs):
-    if sampler_name == "EulerEDMSampler" or sampler_name == "HeunEDMSampler":
-        s_churn = kwargs.pop("s_churn", 0.0)
-        s_tmin = kwargs.pop("s_tmin", 0.0)
-        s_tmax = kwargs.pop("s_tmax", 999.0)
-        s_noise = kwargs.pop("s_noise", 1.0)
-
-        if sampler_name == "EulerEDMSampler":
-            sampler = EulerEDMSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=s_churn,
-                s_tmin=s_tmin,
-                s_tmax=s_tmax,
-                s_noise=s_noise,
-                verbose=True,
-            )
-        elif sampler_name == "HeunEDMSampler":
-            sampler = HeunEDMSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=s_churn,
-                s_tmin=s_tmin,
-                s_tmax=s_tmax,
-                s_noise=s_noise,
-                verbose=True,
-            )
-    elif (
-        sampler_name == "EulerAncestralSampler"
-        or sampler_name == "DPMPP2SAncestralSampler"
-    ):
-        s_noise = kwargs.pop("s_noise", 1.0)
-        eta = kwargs.pop("eta", 1.0)
-
-        if sampler_name == "EulerAncestralSampler":
-            sampler = EulerAncestralSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=eta,
-                s_noise=s_noise,
-                verbose=True,
-            )
-        elif sampler_name == "DPMPP2SAncestralSampler":
-            sampler = DPMPP2SAncestralSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=eta,
-                s_noise=s_noise,
-                verbose=True,
-            )
-    elif sampler_name == "DPMPP2MSampler":
-        sampler = DPMPP2MSampler(
-            num_steps=steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            verbose=True,
-        )
-    elif sampler_name == "LinearMultistepSampler":
-        order = kwargs.pop("order", 4)
-        sampler = LinearMultistepSampler(
-            num_steps=steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            order=order,
-            verbose=True,
-        )
-    else:
-        raise ValueError(f"unknown sampler {sampler_name}!")
-
-    return sampler
 
 
 def do_sample(
@@ -369,42 +237,6 @@ def get_input_image_tensor(image: Image, device="cuda"):
     image = image[None].transpose(0, 3, 1, 2)
     image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
     return image.to(device)
-
-
-def apply_refiner(
-    input,
-    model,
-    sampler,
-    num_samples,
-    prompt,
-    negative_prompt,
-    filter=None,
-):
-    value_dict = {
-        "orig_width": input.shape[3] * 8,
-        "orig_height": input.shape[2] * 8,
-        "target_width": input.shape[3] * 8,
-        "target_height": input.shape[2] * 8,
-        "prompt": prompt,
-        "negative_prompt": negative_prompt,
-        "crop_coords_top": 0,
-        "crop_coords_left": 0,
-        "aesthetic_score": 6.0,
-        "negative_aesthetic_score": 2.5
-    }
-
-    samples = do_img2img(
-        input,
-        model,
-        sampler,
-        value_dict,
-        num_samples,
-        skip_encode=True,
-        filter=filter,
-    )
-
-    return samples
-
 
 @torch.no_grad()
 def do_img2img(
