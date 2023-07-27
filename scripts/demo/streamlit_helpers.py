@@ -16,6 +16,7 @@ from sgm.inference.helpers import (
     Img2ImgDiscretizationWrapper,
     Txt2NoisyDiscretizationWrapper,
     embed_watermark,
+    get_unique_embedder_keys_from_conditioner,
 )
 from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
@@ -78,10 +79,6 @@ def unload_model(model):
     if lowvram_mode:
         model.cpu()
         torch.cuda.empty_cache()
-
-
-def get_unique_embedder_keys_from_conditioner(conditioner):
-    return list(set([x.input_key for x in conditioner.embedders]))
 
 
 def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
