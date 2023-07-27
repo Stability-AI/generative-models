@@ -8,7 +8,6 @@ import torch
 from einops import rearrange, repeat
 from omegaconf import ListConfig, OmegaConf
 from PIL import Image
-from safetensors.torch import load_file as load_safetensors
 from torch import autocast
 from torchvision import transforms
 
@@ -26,7 +25,7 @@ from sgm.modules.diffusionmodules.sampling import (
     HeunEDMSampler,
     LinearMultistepSampler,
 )
-from sgm.util import append_dims, instantiate_from_config
+from sgm.util import append_dims, load_model_from_config
 
 
 @st.cache_resource()
@@ -37,9 +36,14 @@ def init_st(version_dict, load_ckpt=True, load_filter=True):
         ckpt = version_dict["ckpt"]
 
         config = OmegaConf.load(config)
-        model, msg = load_model_from_config(config, ckpt if load_ckpt else None)
+        model = load_model_from_config(
+            config=config,
+            ckpt=(ckpt if load_ckpt else None),
+        )
+        model = initial_model_load(model)
+        model.eval()
 
-        state["msg"] = msg
+        state["msg"] = None
         state["model"] = model
         state["ckpt"] = ckpt if load_ckpt else None
         state["config"] = config
@@ -74,41 +78,6 @@ def unload_model(model):
     if lowvram_mode:
         model.cpu()
         torch.cuda.empty_cache()
-
-
-def load_model_from_config(config, ckpt=None, verbose=True):
-    model = instantiate_from_config(config.model)
-
-    if ckpt is not None:
-        print(f"Loading model from {ckpt}")
-        if ckpt.endswith("ckpt"):
-            pl_sd = torch.load(ckpt, map_location="cpu")
-            if "global_step" in pl_sd:
-                global_step = pl_sd["global_step"]
-                st.info(f"loaded ckpt from global step {global_step}")
-                print(f"Global Step: {pl_sd['global_step']}")
-            sd = pl_sd["state_dict"]
-        elif ckpt.endswith("safetensors"):
-            sd = load_safetensors(ckpt)
-        else:
-            raise NotImplementedError
-
-        msg = None
-
-        m, u = model.load_state_dict(sd, strict=False)
-
-        if len(m) > 0 and verbose:
-            print("missing keys:")
-            print(m)
-        if len(u) > 0 and verbose:
-            print("unexpected keys:")
-            print(u)
-    else:
-        msg = None
-
-    model = initial_model_load(model)
-    model.eval()
-    return model, msg
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
