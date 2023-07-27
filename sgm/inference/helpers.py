@@ -1,4 +1,5 @@
 import os
+from contextlib import nullcontext
 from typing import Union, List, Optional
 
 import math
@@ -98,6 +99,13 @@ class Img2ImgDiscretizationWrapper:
         return sigmas
 
 
+def safe_autocast(device):
+    """Autocast that doesn't crash on devices unsupported by autocast."""
+    if device not in ("cpu", "cuda"):
+        return nullcontext()
+    return torch.autocast(device)
+
+
 def do_sample(
     model,
     sampler,
@@ -119,7 +127,7 @@ def do_sample(
         batch2model_input = []
 
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with safe_autocast(device):
             with model.ema_scope():
                 num_samples = [num_samples]
                 batch, batch_uc = get_batch(
@@ -255,7 +263,7 @@ def do_img2img(
     device="cuda",
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with safe_autocast(device):
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
