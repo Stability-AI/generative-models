@@ -12,7 +12,6 @@ from PIL import Image
 from safetensors.torch import load_file as load_safetensors
 from torch import autocast
 from torchvision import transforms
-from torchvision.utils import make_grid
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.modules.diffusionmodules.sampling import (

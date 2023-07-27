@@ -1,8 +1,6 @@
 import os
 
-import numpy as np
 import streamlit as st
-import torch
 from einops import repeat
 from pytorch_lightning import seed_everything
 
@@ -18,6 +16,7 @@ from scripts.demo.streamlit_helpers import (
     perform_save_locally,
     set_lowvram_mode,
 )
+from sgm.inference.helpers import get_input_image_tensor
 
 SAVE_PATH = "outputs/demo/txt2img/"
 
@@ -114,16 +113,7 @@ def load_img(display=True, key=None, device="cuda"):
         return None
     if display:
         st.image(image)
-    w, h = image.size
-    print(f"loaded input image of size ({w}, {h})")
-    width, height = map(
-        lambda x: x - x % 64, (w, h)
-    )  # resize to integer multiple of 64
-    image = image.resize((width, height))
-    image = np.array(image.convert("RGB"))
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image).to(dtype=torch.float32) / 127.5 - 1.0
-    return image.to(device)
+    return get_input_image_tensor(image, device=device)
 
 
 def run_txt2img(
