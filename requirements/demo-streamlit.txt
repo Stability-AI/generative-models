@@ -1,0 +1,3 @@
+-r ./demo-minimal.txt
+-e git+https://github.com/openai/CLIP.git@main#egg=clip
+streamlit

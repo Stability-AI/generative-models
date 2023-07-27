@@ -49,6 +49,8 @@ For training, we use [PyTorch Lightning](https://lightning.ai/docs/pytorch/stabl
 ## Installation:
 <a name="installation"></a>
 
+**NOTE:** This is tested under `python3.8` and `python3.10`. For other Python versions, you might encounter version conflicts.
+
 #### 1. Clone the repo
 
 ```shell
@@ -60,28 +62,18 @@ cd generative-models
 
 This is assuming you have navigated to the `generative-models` root after cloning it.
 
-**NOTE:** This is tested under `python3.8` and `python3.10`. For other python versions, you might encounter version conflicts.
-
-
-**PyTorch 1.13**
-
 ```shell
-# install required packages from pypi
-python3 -m venv .pt13
-source .pt13/bin/activate
-pip3 install -r requirements/pt13.txt
+python3 -m venv venv
+source venv/bin/activate
+pip install -U setuptools wheel
 ```
 
-**PyTorch 2.0**
+Then, depending on your use case, choose a set of requirements to install.
 
-
-```shell
-# install required packages from pypi
-python3 -m venv .pt2
-source .pt2/bin/activate
-pip3 install -r requirements/pt2.txt
-```
-
+* `pip install -r requirements/demo-streamlit.txt`: Demo inference dependencies, enough to run the Streamlit demo
+* `pip install -r requirements/demo-minimal.txt`: Demo inference dependencies, enough to run inference
+* `pip install -r requirements/pt2.txt`: PyTorch 2, including training dependencies
+* `pip install -r requirements/pt13.txt`: PyTorch 1.13, including training dependencies
 
 #### 3. Install `sgm`
 
@@ -89,7 +81,7 @@ pip3 install -r requirements/pt2.txt
 pip3 install .
 ```
 
-#### 4. Install `sdata` for training
+#### 4. Optionally install `sdata` for training
 
 ```shell
 pip3 install -e git+https://github.com/Stability-AI/datapipelines.git@main#egg=sdata
