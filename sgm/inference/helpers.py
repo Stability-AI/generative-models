@@ -134,6 +134,7 @@ def do_sample(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
                     num_samples,
+                    device=device,
                 )
                 for key in batch:
                     if isinstance(batch[key], torch.Tensor):
@@ -178,7 +179,13 @@ def do_sample(
                 return samples
 
 
-def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
+def get_batch(
+    keys,
+    value_dict,
+    N: Union[List, ListConfig],
+    *,
+    device: str,
+):
     # Hardcoded demo setups; might undergo some changes in the future
 
     batch = {}
@@ -269,6 +276,7 @@ def do_img2img(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
                     [num_samples],
+                    device=device,
                 )
                 c, uc = model.conditioner.get_unconditional_conditioning(
                     batch,
