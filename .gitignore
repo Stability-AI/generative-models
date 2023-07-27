@@ -7,11 +7,9 @@
 .pt2
 
 # directories
+__pycache__
 /checkpoints
 /dist
 /outputs
-/checkpoints
-__pycache__
-/dist
-/src
 /build
+/src
