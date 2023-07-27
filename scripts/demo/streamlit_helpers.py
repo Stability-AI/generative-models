@@ -1,22 +1,17 @@
-import math
 import os
-from typing import List
+from contextlib import contextmanager
 
 import streamlit as st
 import torch
 from einops import rearrange, repeat
 from omegaconf import OmegaConf
 from PIL import Image
-from torch import autocast
 from torchvision import transforms
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import (
     Img2ImgDiscretizationWrapper,
     Txt2NoisyDiscretizationWrapper,
-    embed_watermark,
-    get_batch,
-    get_unique_embedder_keys_from_conditioner,
 )
 from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
@@ -26,7 +21,7 @@ from sgm.modules.diffusionmodules.sampling import (
     HeunEDMSampler,
     LinearMultistepSampler,
 )
-from sgm.util import append_dims, load_model_from_config
+from sgm.util import load_model_from_config
 
 
 @st.cache_resource()
@@ -53,10 +48,6 @@ def init_st(version_dict, load_ckpt=True, load_filter=True):
     return state
 
 
-def load_model(model):
-    model.cuda()
-
-
 lowvram_mode = False
 
 
@@ -74,11 +65,19 @@ def initial_model_load(model):
     return model
 
 
-def unload_model(model):
-    global lowvram_mode
-    if lowvram_mode:
-        model.cpu()
-        torch.cuda.empty_cache()
+@contextmanager
+def lowvram_model_mover(model, device):
+    """
+    Context manager that moves the model to the device and back to CPU
+    afterwards if lowvram_mode is set to True.
+    """
+    try:
+        model.to(device)
+        yield
+    finally:
+        if lowvram_mode:
+            model.cpu()
+            torch.cuda.empty_cache()
 
 
 def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
@@ -367,179 +366,7 @@ def get_init_img(batch_size=1, key=None):
     return init_image
 
 
-def do_sample(
-    model,
-    sampler,
-    value_dict,
-    num_samples,
-    H,
-    W,
-    C,
-    F,
-    force_uc_zero_embeddings: List = None,
-    batch2model_input: List = None,
-    return_latents=False,
-    filter=None,
-):
-    if force_uc_zero_embeddings is None:
-        force_uc_zero_embeddings = []
-    if batch2model_input is None:
-        batch2model_input = []
-
-    st.text("Sampling")
-
-    outputs = st.empty()
-    precision_scope = autocast
-    with torch.no_grad():
-        with precision_scope("cuda"):
-            with model.ema_scope():
-                num_samples = [num_samples]
-                load_model(model.conditioner)
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    num_samples,
-                )
-                for key in batch:
-                    if isinstance(batch[key], torch.Tensor):
-                        print(key, batch[key].shape)
-                    elif isinstance(batch[key], list):
-                        print(key, [len(l) for l in batch[key]])
-                    else:
-                        print(key, batch[key])
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
-                unload_model(model.conditioner)
-
-                for k in c:
-                    if not k == "crossattn":
-                        c[k], uc[k] = map(
-                            lambda y: y[k][: math.prod(num_samples)].to("cuda"), (c, uc)
-                        )
-
-                additional_model_inputs = {}
-                for k in batch2model_input:
-                    additional_model_inputs[k] = batch[k]
-
-                shape = (math.prod(num_samples), C, H // F, W // F)
-                randn = torch.randn(shape).to("cuda")
-
-                def denoiser(input, sigma, c):
-                    return model.denoiser(
-                        model.model, input, sigma, c, **additional_model_inputs
-                    )
-
-                load_model(model.denoiser)
-                load_model(model.model)
-                samples_z = sampler(denoiser, randn, cond=c, uc=uc)
-                unload_model(model.model)
-                unload_model(model.denoiser)
-
-                load_model(model.first_stage_model)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
-                unload_model(model.first_stage_model)
-
-                if filter is not None:
-                    samples = filter(samples)
-
-                grid = torch.stack([samples])
-                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
-                outputs.image(grid.cpu().numpy())
-
-                if return_latents:
-                    return samples, samples_z
-                return samples
-
-
-@torch.no_grad()
-def do_img2img(
-    img,
-    model,
-    sampler,
-    value_dict,
-    num_samples,
-    force_uc_zero_embeddings=[],
-    additional_kwargs={},
-    offset_noise_level: int = 0.0,
-    return_latents=False,
-    skip_encode=False,
-    filter=None,
-    add_noise=True,
-):
-    st.text("Sampling")
-
-    outputs = st.empty()
-    precision_scope = autocast
-    with torch.no_grad():
-        with precision_scope("cuda"):
-            with model.ema_scope():
-                load_model(model.conditioner)
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    [num_samples],
-                )
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
-                unload_model(model.conditioner)
-                for k in c:
-                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to("cuda"), (c, uc))
-
-                for k in additional_kwargs:
-                    c[k] = uc[k] = additional_kwargs[k]
-                if skip_encode:
-                    z = img
-                else:
-                    load_model(model.first_stage_model)
-                    z = model.encode_first_stage(img)
-                    unload_model(model.first_stage_model)
-
-                noise = torch.randn_like(z)
-
-                sigmas = sampler.discretization(sampler.num_steps).cuda()
-                sigma = sigmas[0]
-
-                st.info(f"all sigmas: {sigmas}")
-                st.info(f"noising sigma: {sigma}")
-                if offset_noise_level > 0.0:
-                    noise = noise + offset_noise_level * append_dims(
-                        torch.randn(z.shape[0], device=z.device), z.ndim
-                    )
-                if add_noise:
-                    noised_z = z + noise * append_dims(sigma, z.ndim).cuda()
-                    noised_z = noised_z / torch.sqrt(
-                        1.0 + sigmas[0] ** 2.0
-                    )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
-                else:
-                    noised_z = z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
-
-                def denoiser(x, sigma, c):
-                    return model.denoiser(model.model, x, sigma, c)
-
-                load_model(model.denoiser)
-                load_model(model.model)
-                samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
-                unload_model(model.model)
-                unload_model(model.denoiser)
-
-                load_model(model.first_stage_model)
-                samples_x = model.decode_first_stage(samples_z)
-                unload_model(model.first_stage_model)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
-
-                if filter is not None:
-                    samples = filter(samples)
-
-                grid = embed_watermark(torch.stack([samples]))
-                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
-                outputs.image(grid.cpu().numpy())
-                if return_latents:
-                    return samples, samples_z
-                return samples
+def samples_to_streamlit(outputs, samples):
+    grid = torch.stack([samples])
+    grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+    outputs.image(grid.cpu().numpy())

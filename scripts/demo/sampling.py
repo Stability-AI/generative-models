@@ -5,17 +5,22 @@ from einops import repeat
 from pytorch_lightning import seed_everything
 
 from scripts.demo.streamlit_helpers import (
-    do_img2img,
-    do_sample,
     get_interactive_image,
     get_unique_embedder_keys_from_conditioner,
     init_embedder_options,
     init_sampling,
     init_save_locally,
     init_st,
+    lowvram_model_mover,
+    samples_to_streamlit,
     set_lowvram_mode,
 )
-from sgm.inference.helpers import get_input_image_tensor, perform_save_locally
+from sgm.inference.helpers import (
+    do_img2img,
+    do_sample,
+    get_input_image_tensor,
+    perform_save_locally,
+)
 
 SAVE_PATH = "outputs/demo/txt2img/"
 
@@ -149,7 +154,9 @@ def run_txt2img(
 
     if st.button("Sample"):
         st.write(f"**Model I:** {version}")
-        out = do_sample(
+        st.text("Sampling")
+        outputs = st.empty()
+        samples, latents = do_sample(
             state["model"],
             sampler,
             value_dict,
@@ -159,9 +166,11 @@ def run_txt2img(
             C,
             F,
             force_uc_zero_embeddings=["txt"] if not is_legacy else [],
-            return_latents=return_latents,
+            return_latents=True,
             filter=filter,
+            move_model=lowvram_model_mover,
         )
+        samples_to_streamlit(outputs, samples)
         return out
 
 
@@ -200,16 +209,20 @@ def run_img2img(
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
-        out = do_img2img(
+        st.text("Sampling")
+        outputs = st.empty()
+        samples, latents = do_img2img(
             repeat(img, "1 ... -> n ...", n=num_samples),
             state["model"],
             sampler,
             value_dict,
             num_samples,
             force_uc_zero_embeddings=["txt"] if not is_legacy else [],
-            return_latents=return_latents,
+            return_latents=True,
             filter=filter,
+            move_model=lowvram_model_mover,
         )
+        samples_to_streamlit(outputs, samples)
         return out
 
 
@@ -250,6 +263,7 @@ def apply_refiner(
         skip_encode=True,
         filter=filter,
         add_noise=not finish_denoising,
+        move_model=lowvram_model_mover,
     )
 
     return samples

@@ -1,3 +1,4 @@
+import contextlib
 import os
 from typing import Union, List, Optional
 
@@ -128,6 +129,16 @@ class Txt2NoisyDiscretizationWrapper:
         return sigmas
 
 
+@contextlib.contextmanager
+def default_model_mover(model, device):
+    """
+    Default model mover: ensure the model is loaded to `device` on entry,
+    do not unload on exit
+    """
+    model.to(device)
+    yield
+
+
 def do_sample(
     model,
     sampler,
@@ -142,6 +153,7 @@ def do_sample(
     return_latents=False,
     filter=None,
     device="cuda",
+    move_model=default_model_mover,
 ):
     if force_uc_zero_embeddings is None:
         force_uc_zero_embeddings = []
@@ -149,26 +161,27 @@ def do_sample(
         batch2model_input = []
 
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with autocast(device):
             with model.ema_scope():
                 num_samples = [num_samples]
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    num_samples,
-                )
-                for key in batch:
-                    if isinstance(batch[key], torch.Tensor):
-                        print(key, batch[key].shape)
-                    elif isinstance(batch[key], list):
-                        print(key, [len(l) for l in batch[key]])
-                    else:
-                        print(key, batch[key])
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
+                with move_model(model.conditioner, device):
+                    batch, batch_uc = get_batch(
+                        get_unique_embedder_keys_from_conditioner(model.conditioner),
+                        value_dict,
+                        num_samples,
+                    )
+                    for key in batch:
+                        if isinstance(batch[key], torch.Tensor):
+                            print(key, batch[key].shape)
+                        elif isinstance(batch[key], list):
+                            print(key, [len(l) for l in batch[key]])
+                        else:
+                            print(key, batch[key])
+                    c, uc = model.conditioner.get_unconditional_conditioning(
+                        batch,
+                        batch_uc=batch_uc,
+                        force_uc_zero_embeddings=force_uc_zero_embeddings,
+                    )
 
                 for k in c:
                     if not k == "crossattn":
@@ -188,9 +201,13 @@ def do_sample(
                         model.model, input, sigma, c, **additional_model_inputs
                     )
 
-                samples_z = sampler(denoiser, randn, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                with move_model(model.denoiser, device):
+                    with move_model(model.model, device):
+                        samples_z = sampler(denoiser, randn, cond=c, uc=uc)
+
+                with move_model(model.first_stage_model, device):
+                    samples_x = model.decode_first_stage(samples_z)
+                    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
                     samples = filter(samples)
@@ -283,21 +300,23 @@ def do_img2img(
     skip_encode=False,
     filter=None,
     device="cuda",
+    add_noise=True,
+    move_model=default_model_mover,
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with autocast(device):
             with model.ema_scope():
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    [num_samples],
-                )
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
-
+                with move_model(model.conditioner, device):
+                    batch, batch_uc = get_batch(
+                        get_unique_embedder_keys_from_conditioner(model.conditioner),
+                        value_dict,
+                        [num_samples],
+                    )
+                    c, uc = model.conditioner.get_unconditional_conditioning(
+                        batch,
+                        batch_uc=batch_uc,
+                        force_uc_zero_embeddings=force_uc_zero_embeddings,
+                    )
                 for k in c:
                     c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
 
@@ -306,8 +325,11 @@ def do_img2img(
                 if skip_encode:
                     z = img
                 else:
-                    z = model.encode_first_stage(img)
+                    with move_model(model.first_stage_model, device):
+                        z = model.encode_first_stage(img)
+
                 noise = torch.randn_like(z)
+
                 sigmas = sampler.discretization(sampler.num_steps)
                 sigma = sigmas[0].to(z.device)
 
@@ -315,16 +337,24 @@ def do_img2img(
                     noise = noise + offset_noise_level * append_dims(
                         torch.randn(z.shape[0], device=z.device), z.ndim
                     )
-                noised_z = z + noise * append_dims(sigma, z.ndim)
-                noised_z = noised_z / torch.sqrt(
-                    1.0 + sigmas[0] ** 2.0
-                )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+
+                if add_noise:
+                    noised_z = z + noise * append_dims(sigma, z.ndim)
+                    # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                    noised_z = noised_z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
+                else:
+                    noised_z = z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
 
                 def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)
 
-                samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
+                with move_model(model.denoiser, device):
+                    with move_model(model.model, device):
+                        samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
+
+                with move_model(model.first_stage_model, device):
+                    samples_x = model.decode_first_stage(samples_z)
+
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
