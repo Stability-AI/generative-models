@@ -13,7 +13,11 @@ from torch import autocast
 from torchvision import transforms
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
-from sgm.inference.helpers import Txt2NoisyDiscretizationWrapper, embed_watermark
+from sgm.inference.helpers import (
+    Img2ImgDiscretizationWrapper,
+    Txt2NoisyDiscretizationWrapper,
+    embed_watermark,
+)
 from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     DPMPP2SAncestralSampler,
@@ -168,30 +172,6 @@ def init_save_locally(_dir, init_value: bool = False):
         save_path = None
 
     return save_locally, save_path
-
-
-class Img2ImgDiscretizationWrapper:
-    """
-    wraps a discretizer, and prunes the sigmas
-    params:
-        strength: float between 0.0 and 1.0. 1.0 means full sampling (all sigmas are returned)
-    """
-
-    def __init__(self, discretization, strength: float = 1.0):
-        self.discretization = discretization
-        self.strength = strength
-        assert 0.0 <= self.strength <= 1.0
-
-    def __call__(self, *args, **kwargs):
-        # sigmas start large first, and decrease then
-        sigmas = self.discretization(*args, **kwargs)
-        print(f"sigmas after discretization, before pruning img2img: ", sigmas)
-        sigmas = torch.flip(sigmas, (0,))
-        sigmas = sigmas[: max(int(self.strength * len(sigmas)), 1)]
-        print("prune index:", max(int(self.strength * len(sigmas)), 1))
-        sigmas = torch.flip(sigmas, (0,))
-        print(f"sigmas after pruning: ", sigmas)
-        return sigmas
 
 
 def get_guider(key):
