@@ -1,3 +1,5 @@
+import warnings
+
 import math
 from inspect import isfunction
 from typing import Any, Optional
@@ -393,7 +395,7 @@ class BasicTransformerBlock(nn.Module):
         super().__init__()
         assert attn_mode in self.ATTENTION_MODES
         if attn_mode != "softmax" and not XFORMERS_IS_AVAILABLE:
-            print(
+            warnings.warn(
                 f"Attention mode '{attn_mode}' is not available. Falling back to native attention. "
                 f"This is not a problem in Pytorch >= 2.0. FYI, you are running with PyTorch version {torch.__version__}"
             )
