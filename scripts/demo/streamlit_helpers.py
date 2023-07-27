@@ -1,12 +1,11 @@
 import math
 import os
-from typing import List, Union
+from typing import List
 
-import numpy as np
 import streamlit as st
 import torch
 from einops import rearrange, repeat
-from omegaconf import ListConfig, OmegaConf
+from omegaconf import OmegaConf
 from PIL import Image
 from torch import autocast
 from torchvision import transforms
@@ -16,6 +15,7 @@ from sgm.inference.helpers import (
     Img2ImgDiscretizationWrapper,
     Txt2NoisyDiscretizationWrapper,
     embed_watermark,
+    get_batch,
     get_unique_embedder_keys_from_conditioner,
 )
 from sgm.modules.diffusionmodules.sampling import (
@@ -453,63 +453,6 @@ def do_sample(
                 if return_latents:
                     return samples, samples_z
                 return samples
-
-
-def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
-    # Hardcoded demo setups; might undergo some changes in the future
-
-    batch = {}
-    batch_uc = {}
-
-    for key in keys:
-        if key == "txt":
-            batch["txt"] = (
-                np.repeat([value_dict["prompt"]], repeats=math.prod(N))
-                .reshape(N)
-                .tolist()
-            )
-            batch_uc["txt"] = (
-                np.repeat([value_dict["negative_prompt"]], repeats=math.prod(N))
-                .reshape(N)
-                .tolist()
-            )
-        elif key == "original_size_as_tuple":
-            batch["original_size_as_tuple"] = (
-                torch.tensor([value_dict["orig_height"], value_dict["orig_width"]])
-                .to(device)
-                .repeat(*N, 1)
-            )
-        elif key == "crop_coords_top_left":
-            batch["crop_coords_top_left"] = (
-                torch.tensor(
-                    [value_dict["crop_coords_top"], value_dict["crop_coords_left"]]
-                )
-                .to(device)
-                .repeat(*N, 1)
-            )
-        elif key == "aesthetic_score":
-            batch["aesthetic_score"] = (
-                torch.tensor([value_dict["aesthetic_score"]]).to(device).repeat(*N, 1)
-            )
-            batch_uc["aesthetic_score"] = (
-                torch.tensor([value_dict["negative_aesthetic_score"]])
-                .to(device)
-                .repeat(*N, 1)
-            )
-
-        elif key == "target_size_as_tuple":
-            batch["target_size_as_tuple"] = (
-                torch.tensor([value_dict["target_height"], value_dict["target_width"]])
-                .to(device)
-                .repeat(*N, 1)
-            )
-        else:
-            batch[key] = value_dict[key]
-
-    for key in batch.keys():
-        if key not in batch_uc and isinstance(batch[key], torch.Tensor):
-            batch_uc[key] = torch.clone(batch[key])
-    return batch, batch_uc
 
 
 @torch.no_grad()
