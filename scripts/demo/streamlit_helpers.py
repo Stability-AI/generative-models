@@ -6,7 +6,6 @@ import numpy as np
 import streamlit as st
 import torch
 from einops import rearrange, repeat
-from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig, OmegaConf
 from PIL import Image
 from safetensors.torch import load_file as load_safetensors
@@ -14,7 +13,7 @@ from torch import autocast
 from torchvision import transforms
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
-from sgm.inference.helpers import Txt2NoisyDiscretizationWrapper
+from sgm.inference.helpers import Txt2NoisyDiscretizationWrapper, embed_watermark
 from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     DPMPP2SAncestralSampler,
@@ -24,51 +23,6 @@ from sgm.modules.diffusionmodules.sampling import (
     LinearMultistepSampler,
 )
 from sgm.util import append_dims, instantiate_from_config
-
-
-class WatermarkEmbedder:
-    def __init__(self, watermark):
-        self.watermark = watermark
-        self.num_bits = len(WATERMARK_BITS)
-        self.encoder = WatermarkEncoder()
-        self.encoder.set_watermark("bits", self.watermark)
-
-    def __call__(self, image: torch.Tensor):
-        """
-        Adds a predefined watermark to the input image
-
-        Args:
-            image: ([N,] B, C, H, W) in range [0, 1]
-
-        Returns:
-            same as input but watermarked
-        """
-        # watermarking libary expects input as cv2 BGR format
-        squeeze = len(image.shape) == 4
-        if squeeze:
-            image = image[None, ...]
-        n = image.shape[0]
-        image_np = rearrange(
-            (255 * image).detach().cpu(), "n b c h w -> (n b) h w c"
-        ).numpy()[:, :, :, ::-1]
-        # torch (b, c, h, w) in [0, 1] -> numpy (b, h, w, c) [0, 255]
-        for k in range(image_np.shape[0]):
-            image_np[k] = self.encoder.encode(image_np[k], "dwtDct")
-        image = torch.from_numpy(
-            rearrange(image_np[:, :, :, ::-1], "(n b) h w c -> n b c h w", n=n)
-        ).to(image.device)
-        image = torch.clamp(image / 255, min=0.0, max=1.0)
-        if squeeze:
-            image = image[0]
-        return image
-
-
-# A fixed 48-bit message that was choosen at random
-# WATERMARK_MESSAGE = 0xB3EC907BB19E
-WATERMARK_MESSAGE = 0b101100111110110010010000011110111011000110011110
-# bin(x)[2:] gives bits of x as str, use int to convert them to 0/1
-WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
-embed_watemark = WatermarkEmbedder(WATERMARK_BITS)
 
 
 @st.cache_resource()
@@ -209,7 +163,7 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
 def perform_save_locally(save_path, samples):
     os.makedirs(os.path.join(save_path), exist_ok=True)
     base_count = len(os.listdir(os.path.join(save_path)))
-    samples = embed_watemark(samples)
+    samples = embed_watermark(samples)
     for sample in samples:
         sample = 255.0 * rearrange(sample.cpu().numpy(), "c h w -> h w c")
         Image.fromarray(sample.astype(np.uint8)).save(
@@ -706,7 +660,7 @@ def do_img2img(
                 if filter is not None:
                     samples = filter(samples)
 
-                grid = embed_watemark(torch.stack([samples]))
+                grid = embed_watermark(torch.stack([samples]))
                 grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
                 outputs.image(grid.cpu().numpy())
                 if return_latents:
