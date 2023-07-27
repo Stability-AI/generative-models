@@ -160,18 +160,6 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
     return value_dict
 
 
-def perform_save_locally(save_path, samples):
-    os.makedirs(os.path.join(save_path), exist_ok=True)
-    base_count = len(os.listdir(os.path.join(save_path)))
-    samples = embed_watermark(samples)
-    for sample in samples:
-        sample = 255.0 * rearrange(sample.cpu().numpy(), "c h w -> h w c")
-        Image.fromarray(sample.astype(np.uint8)).save(
-            os.path.join(save_path, f"{base_count:09}.png")
-        )
-        base_count += 1
-
-
 def init_save_locally(_dir, init_value: bool = False):
     save_locally = st.sidebar.checkbox("Save images locally", value=init_value)
     if save_locally:

@@ -13,10 +13,9 @@ from scripts.demo.streamlit_helpers import (
     init_sampling,
     init_save_locally,
     init_st,
-    perform_save_locally,
     set_lowvram_mode,
 )
-from sgm.inference.helpers import get_input_image_tensor
+from sgm.inference.helpers import get_input_image_tensor, perform_save_locally
 
 SAVE_PATH = "outputs/demo/txt2img/"
 
