@@ -106,6 +106,16 @@ depending on your use case and PyTorch version, manually.
 
 ## Inference
 
+### Minimal txt2img demo
+
+There is a minimal text-to-image demo available as `txt2img.py`:
+
+```
+python txt2img.py --prompt "Big fluffy cat in a cereal bowl" --steps 25 --seed 1050
+```
+
+### Streamlit demo
+
 We provide a [streamlit](https://streamlit.io/) demo for text-to-image and image-to-image sampling in `scripts/demo/sampling.py`.
 We provide file hashes for the complete file as well as for only the saved tensors in the file (see [Model Spec](https://github.com/Stability-AI/ModelSpec) for a script to evaluate that).
 The following models are currently supported:
