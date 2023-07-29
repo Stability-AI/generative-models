@@ -4,16 +4,14 @@ import pytest
 from pytest import fixture
 import torch
 from typing import Tuple
+import matplotlib.pyplot as plt
 
-from sgm.inference.api import (
-    model_specs,
-    SamplingParams,
-    SamplingPipeline,
-    Sampler,
-    ModelArchitecture,
-)
-import sgm.inference.helpers as helpers
+# "sgm.inference.api" ve "sgm.inference.helpers" modüllerinden çeşitli bileşenleri içe aktarma
 
+def show_output_image(output_image):
+    plt.imshow(output_image)
+    plt.axis('off')
+    plt.show()
 
 @pytest.mark.inference
 class TestInference:
@@ -53,19 +51,24 @@ class TestInference:
             negative_prompt="",
             samples=1,
         )
-
         assert output is not None
 
     @pytest.mark.parametrize("sampler_enum", Sampler)
-    def test_img2img(self, pipeline: SamplingPipeline, sampler_enum):
+    @pytest.mark.parametrize("num_samples", [1, 3, 5])  # New parameter: Different expansion capabilities
+    @pytest.mark.parametrize("num_steps", [5, 10, 15])  # New parameter: Different conversion steps
+    def test_img2img(self, pipeline: SamplingPipeline, sampler_enum, num_samples, num_steps):
         output = pipeline.image_to_image(
-            params=SamplingParams(sampler=sampler_enum.value, steps=10),
+            params=SamplingParams(sampler=sampler_enum.value, steps=num_steps),
             image=self.create_init_image(pipeline.specs.height, pipeline.specs.width),
             prompt="A professional photograph of an astronaut riding a pig",
             negative_prompt="",
-            samples=1,
+            samples=num_samples,
         )
         assert output is not None
+
+        # Let's show the output visually
+        for i in range(num_samples):
+            show_output_image(output[i])
 
     @pytest.mark.parametrize("sampler_enum", Sampler)
     @pytest.mark.parametrize(
