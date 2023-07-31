@@ -49,14 +49,14 @@ For training, we use [PyTorch Lightning](https://lightning.ai/docs/pytorch/stabl
 ## Installation:
 <a name="installation"></a>
 
-#### 1. Clone the repo
+#### 1. Clone the repo:
 
 ```shell
 git clone git@github.com:Stability-AI/generative-models.git
 cd generative-models
 ```
 
-#### 2. Setting up the virtualenv
+#### 2. Setting up the virtualenv:
 
 This is assuming you have navigated to the `generative-models` root after cloning it.
 
