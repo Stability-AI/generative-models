@@ -268,6 +268,12 @@ class SamplingPipeline:
             "negative_aesthetic_score": 2.5,
         }
 
+        if params.img2img_strength < 1.0:
+            sampler.discretization = Img2ImgDiscretizationWrapper(
+                sampler.discretization,
+                strength=params.img2img_strength,
+            )
+
         return do_img2img(
             image,
             self.model,
