@@ -102,10 +102,10 @@ class TestInference:
         samples, samples_z = output
         assert samples is not None
         assert samples_z is not None
-        refiner_pipeline.refiner(
-            params=SamplingParams(sampler=sampler_enum.value, steps=10),
+        refiner_pipeline.refiner(            
             image=samples_z,
             prompt="A professional photograph of an astronaut riding a pig",
+            params=SamplingParams(sampler=sampler_enum.value, steps=40, img2img_strength=0.20),
             negative_prompt="",
             samples=1,
         )

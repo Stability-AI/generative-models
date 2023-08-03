@@ -55,7 +55,7 @@ class Thresholder(str, Enum):
 class SamplingParams:
     width: int = 1024
     height: int = 1024
-    steps: int = 50
+    steps: int = 40
     sampler: Sampler = Sampler.DPMPP2M
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
@@ -247,10 +247,12 @@ class SamplingPipeline:
 
     def refiner(
         self,
-        params: SamplingParams,
         image,
         prompt: str,
-        negative_prompt: Optional[str] = None,
+        negative_prompt: str = "",
+        params: SamplingParams = SamplingParams(
+            sampler=Sampler.EULER_EDM, steps=40, img2img_strength=0.2
+        ),
         samples: int = 1,
         return_latents: bool = False,
     ):
