@@ -188,7 +188,8 @@ class SamplingPipeline:
             # This supports development installs where configs is root level of the repo
             if config_path is None:
                 config_path = (
-                    pathlib.Path(__file__).parent.parent.parent.resolve() / "configs/inference"
+                    pathlib.Path(__file__).parent.parent.parent.resolve()
+                    / "configs/inference"
                 )
             raise ValueError(
                 f"Config {self.config} not found, check model spec or config_path"
