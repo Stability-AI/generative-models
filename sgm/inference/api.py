@@ -181,20 +181,30 @@ class SamplingPipeline:
             model_path = pathlib.Path(__file__).parent.parent.resolve() / "checkpoints"
             if not os.path.exists(model_path):
                 # This supports development installs where checkpoints is root level of the repo
-                model_path = pathlib.Path(__file__).parent.parent.parent.resolve() / "checkpoints"
+                model_path = (
+                    pathlib.Path(__file__).parent.parent.parent.resolve()
+                    / "checkpoints"
+                )
         if config_path is None:
-            config_path = pathlib.Path(__file__).parent.parent.resolve() / "configs/inference"
+            config_path = (
+                pathlib.Path(__file__).parent.parent.resolve() / "configs/inference"
+            )
             if not os.path.exists(config_path):
                 # This supports development installs where configs is root level of the repo
                 config_path = (
-                    pathlib.Path(__file__).parent.parent.parent.resolve() / "configs/inference"
+                    pathlib.Path(__file__).parent.parent.parent.resolve()
+                    / "configs/inference"
                 )
         self.config = str(config_path / self.specs.config)
         self.ckpt = str(model_path / self.specs.ckpt)
         if not os.path.exists(self.config):
-            raise ValueError(f"Config {self.config} not found, check model spec or config_path")
+            raise ValueError(
+                f"Config {self.config} not found, check model spec or config_path"
+            )
         if not os.path.exists(self.ckpt):
-            raise ValueError(f"Checkpoint {self.ckpt} not found, check model spec or config_path")
+            raise ValueError(
+                f"Checkpoint {self.ckpt} not found, check model spec or config_path"
+            )
         self.device = device
         self.model = self._load_model(device=device, use_fp16=use_fp16)
 
@@ -221,7 +231,9 @@ class SamplingPipeline:
         sampler = get_sampler_config(params)
         if stage2strength is not None:
             sampler.discretization = Txt2NoisyDiscretizationWrapper(
-                sampler.discretization, strength=stage2strength, original_steps=params.steps
+                sampler.discretization,
+                strength=stage2strength,
+                original_steps=params.steps,
             )
         value_dict = asdict(params)
         value_dict["prompt"] = prompt
@@ -275,7 +287,10 @@ class SamplingPipeline:
         )
 
     def wrap_discretization(self, discretization, strength=1.0):
-        if not isinstance(discretization, Img2ImgDiscretizationWrapper) and strength < 1.0:
+        if (
+            not isinstance(discretization, Img2ImgDiscretizationWrapper)
+            and strength < 1.0
+        ):
             return Img2ImgDiscretizationWrapper(discretization, strength=strength)
         return discretization
 
@@ -322,7 +337,9 @@ class SamplingPipeline:
 
 def get_guider_config(params: SamplingParams):
     if params.guider == Guider.IDENTITY:
-        guider_config = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
+        guider_config = {
+            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
+        }
     elif params.guider == Guider.VANILLA:
         scale = params.scale
 

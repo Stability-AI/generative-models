@@ -34,7 +34,9 @@ def init_st(version_dict, load_ckpt=True, load_filter=True):
         ckpt = version_dict["ckpt"]
 
         config = OmegaConf.load(config)
-        model = load_model_from_config(config, ckpt if load_ckpt else None, freeze=False)
+        model = load_model_from_config(
+            config, ckpt if load_ckpt else None, freeze=False
+        )
 
         state["model"] = model
         state["ckpt"] = ckpt if load_ckpt else None
@@ -154,9 +156,13 @@ def get_guider(key):
     )
 
     if guider == "IdentityGuider":
-        guider_config = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
+        guider_config = {
+            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
+        }
     elif guider == "VanillaCFG":
-        scale = st.number_input(f"cfg-scale #{key}", value=5.0, min_value=0.0, max_value=100.0)
+        scale = st.number_input(
+            f"cfg-scale #{key}", value=5.0, min_value=0.0, max_value=100.0
+        )
 
         thresholder = st.sidebar.selectbox(
             f"Thresholder #{key}",
@@ -189,9 +195,13 @@ def init_sampling(
 ):
     num_rows, num_cols = 1, 1
     if specify_num_samples:
-        num_cols = st.number_input(f"num cols #{key}", value=2, min_value=1, max_value=10)
+        num_cols = st.number_input(
+            f"num cols #{key}", value=2, min_value=1, max_value=10
+        )
 
-    steps = st.sidebar.number_input(f"steps #{key}", value=40, min_value=1, max_value=1000)
+    steps = st.sidebar.number_input(
+        f"steps #{key}", value=40, min_value=1, max_value=1000
+    )
     sampler = st.sidebar.selectbox(
         f"Sampler #{key}",
         [
@@ -218,7 +228,9 @@ def init_sampling(
 
     sampler = get_sampler(sampler, steps, discretization_config, guider_config, key=key)
     if img2img_strength < 1.0:
-        st.warning(f"Wrapping {sampler.__class__.__name__} with Img2ImgDiscretizationWrapper")
+        st.warning(
+            f"Wrapping {sampler.__class__.__name__} with Img2ImgDiscretizationWrapper"
+        )
         sampler.discretization = Img2ImgDiscretizationWrapper(
             sampler.discretization, strength=img2img_strength
         )
@@ -279,7 +291,10 @@ def get_sampler(sampler_name, steps, discretization_config, guider_config, key=1
                 s_noise=s_noise,
                 verbose=True,
             )
-    elif sampler_name == "EulerAncestralSampler" or sampler_name == "DPMPP2SAncestralSampler":
+    elif (
+        sampler_name == "EulerAncestralSampler"
+        or sampler_name == "DPMPP2SAncestralSampler"
+    ):
         s_noise = st.sidebar.number_input("s_noise", value=1.0, min_value=0.0)
         eta = st.sidebar.number_input("eta", value=1.0, min_value=0.0)
 
