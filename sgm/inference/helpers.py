@@ -35,9 +35,9 @@ class WatermarkEmbedder:
         if squeeze:
             image = image[None, ...]
         n = image.shape[0]
-        image_np = rearrange(
-            (255 * image).detach().cpu(), "n b c h w -> (n b) h w c"
-        ).numpy()[:, :, :, ::-1]
+        image_np = rearrange((255 * image).detach().cpu(), "n b c h w -> (n b) h w c").numpy()[
+            :, :, :, ::-1
+        ]
         # torch (b, c, h, w) in [0, 1] -> numpy (b, h, w, c) [0, 255]
         for k in range(image_np.shape[0]):
             image_np[k] = self.encoder.encode(image_np[k], "dwtDct")
@@ -93,6 +93,36 @@ class Img2ImgDiscretizationWrapper:
         sigmas = torch.flip(sigmas, (0,))
         sigmas = sigmas[: max(int(self.strength * len(sigmas)), 1)]
         print("prune index:", max(int(self.strength * len(sigmas)), 1))
+        sigmas = torch.flip(sigmas, (0,))
+        print(f"sigmas after pruning: ", sigmas)
+        return sigmas
+
+
+class Txt2NoisyDiscretizationWrapper:
+    """
+    wraps a discretizer, and prunes the sigmas
+    params:
+        strength: float between 0.0 and 1.0. 0.0 means full sampling (all sigmas are returned)
+    """
+
+    def __init__(self, discretization, strength: float = 0.0, original_steps=None):
+        self.discretization = discretization
+        self.strength = strength
+        self.original_steps = original_steps
+        assert 0.0 <= self.strength <= 1.0
+
+    def __call__(self, *args, **kwargs):
+        # sigmas start large first, and decrease then
+        sigmas = self.discretization(*args, **kwargs)
+        print(f"sigmas after discretization, before pruning img2img: ", sigmas)
+        sigmas = torch.flip(sigmas, (0,))
+        if self.original_steps is None:
+            steps = len(sigmas)
+        else:
+            steps = self.original_steps + 1
+        prune_index = max(min(int(self.strength * steps) - 1, steps - 1), 0)
+        sigmas = sigmas[prune_index:]
+        print("prune index:", prune_index)
         sigmas = torch.flip(sigmas, (0,))
         print(f"sigmas after pruning: ", sigmas)
         return sigmas
@@ -154,13 +184,15 @@ def do_sample(
                 randn = torch.randn(shape).to(device)
 
                 def denoiser(input, sigma, c):
-                    return model.denoiser(
-                        model.model, input, sigma, c, **additional_model_inputs
-                    )
+                    return model.denoiser(model.model, input, sigma, c, **additional_model_inputs)
 
-                samples_z = sampler(denoiser, randn, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                with ModelOnDevice(model.denoiser, device):
+                    with ModelOnDevice(model.model, device):
+                        samples_z = sampler(denoiser, randn, cond=c, uc=uc)
+
+                with ModelOnDevice(model.first_stage_model, device):
+                    samples_x = model.decode_first_stage(samples_z)
+                    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
                     samples = filter(samples)
@@ -179,14 +211,10 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
     for key in keys:
         if key == "txt":
             batch["txt"] = (
-                np.repeat([value_dict["prompt"]], repeats=math.prod(N))
-                .reshape(N)
-                .tolist()
+                np.repeat([value_dict["prompt"]], repeats=math.prod(N)).reshape(N).tolist()
             )
             batch_uc["txt"] = (
-                np.repeat([value_dict["negative_prompt"]], repeats=math.prod(N))
-                .reshape(N)
-                .tolist()
+                np.repeat([value_dict["negative_prompt"]], repeats=math.prod(N)).reshape(N).tolist()
             )
         elif key == "original_size_as_tuple":
             batch["original_size_as_tuple"] = (
@@ -196,9 +224,7 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
             )
         elif key == "crop_coords_top_left":
             batch["crop_coords_top_left"] = (
-                torch.tensor(
-                    [value_dict["crop_coords_top"], value_dict["crop_coords_left"]]
-                )
+                torch.tensor([value_dict["crop_coords_top"], value_dict["crop_coords_left"]])
                 .to(device)
                 .repeat(*N, 1)
             )
@@ -207,9 +233,7 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
                 torch.tensor([value_dict["aesthetic_score"]]).to(device).repeat(*N, 1)
             )
             batch_uc["aesthetic_score"] = (
-                torch.tensor([value_dict["negative_aesthetic_score"]])
-                .to(device)
-                .repeat(*N, 1)
+                torch.tensor([value_dict["negative_aesthetic_score"]]).to(device).repeat(*N, 1)
             )
 
         elif key == "target_size_as_tuple":
@@ -230,9 +254,7 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
 def get_input_image_tensor(image: Image.Image, device="cuda"):
     w, h = image.size
     print(f"loaded input image of size ({w}, {h})")
-    width, height = map(
-        lambda x: x - x % 64, (w, h)
-    )  # resize to integer multiple of 64
+    width, height = map(lambda x: x - x % 64, (w, h))  # resize to integer multiple of 64
     image = image.resize((width, height))
     image_array = np.array(image.convert("RGB"))
     image_array = image_array[None].transpose(0, 3, 1, 2)
@@ -252,10 +274,11 @@ def do_img2img(
     return_latents=False,
     skip_encode=False,
     filter=None,
+    add_noise=True,
     device="cuda",
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with autocast(device):
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
@@ -285,17 +308,24 @@ def do_img2img(
                     noise = noise + offset_noise_level * append_dims(
                         torch.randn(z.shape[0], device=z.device), z.ndim
                     )
-                noised_z = z + noise * append_dims(sigma, z.ndim)
-                noised_z = noised_z / torch.sqrt(
-                    1.0 + sigmas[0] ** 2.0
-                )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                if add_noise:
+                    noised_z = z + noise * append_dims(sigma, z.ndim).cuda()
+                    noised_z = noised_z / torch.sqrt(
+                        1.0 + sigmas[0] ** 2.0
+                    )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                else:
+                    noised_z = z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
 
                 def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)
 
-                samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                with ModelOnDevice(model.denoiser, device):
+                    with ModelOnDevice(model.model, device):
+                        samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
+
+                with ModelOnDevice(model.first_stage_model, device):
+                    samples_x = model.decode_first_stage(samples_z)
+                    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
                     samples = filter(samples)
@@ -303,3 +333,28 @@ def do_img2img(
                 if return_latents:
                     return samples, samples_z
                 return samples
+
+
+class ModelOnDevice(object):
+    def __init__(self, model, device):
+        self.model = model
+        self.device = device
+        self.original_device = model.device
+
+    def __enter__(self):
+        if self.device != self.original_device:
+            self.model.to(self.device)
+
+    def __exit__(self, *args):
+        if self.device != self.original_device:
+            self.model.to(self.original_device)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+
+def load_model(model, device):
+    if model.device != device:
+        old_device = model.device
+        model.to(device)
+        return old_device
+    return False
