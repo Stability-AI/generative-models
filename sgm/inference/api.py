@@ -58,7 +58,7 @@ class SamplingParams:
     width: int = 1024
     height: int = 1024
     steps: int = 40
-    sampler: Sampler = Sampler.DPMPP2M
+    sampler: Sampler = Sampler.EULER_EDM
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
     thresholder: Thresholder = Thresholder.NONE

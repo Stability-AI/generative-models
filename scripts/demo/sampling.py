@@ -86,13 +86,13 @@ def run_txt2img(
             st.number_input("W", value=spec.width, min_value=64, max_value=2048)
         )
 
-    init_embedder_options(
+    params = init_embedder_options(
         get_unique_embedder_keys_from_conditioner(model.model.conditioner),
         params=params,
         prompt=prompt,
         negative_prompt=negative_prompt,
     )
-    num_rows, num_cols = init_sampling(params=params)
+    params, num_rows, num_cols = init_sampling(params=params)
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
@@ -129,7 +129,7 @@ def run_img2img(
         return None
     params.height, params.width = img.shape[2], img.shape[3]
 
-    init_embedder_options(
+    params = init_embedder_options(
         get_unique_embedder_keys_from_conditioner(model.model.conditioner),
         params=params,
         prompt=prompt,
@@ -138,7 +138,7 @@ def run_img2img(
     params.img2img_strength = st.number_input(
         "**Img2Img Strength**", value=0.75, min_value=0.0, max_value=1.0
     )
-    num_rows, num_cols = init_sampling(params=params)
+    params, num_rows, num_cols = init_sampling(params=params)
     num_samples = num_rows * num_cols
 
     if st.button("Sample"):
@@ -258,18 +258,21 @@ if __name__ == "__main__":
             "**Refinement strength**", value=0.15, min_value=0.0, max_value=1.0
         )
 
-        _, _ = init_sampling(
+        params2, *_ = init_sampling(
             key=2,
             params=state2["params"],
             specify_num_samples=False,
         )
         st.write("__________________________")
         finish_denoising = st.checkbox("Finish denoising with refiner.", True)
-        if not finish_denoising:
+        if finish_denoising:
+            stage2strength = params2.img2img_strength
+        else:
             stage2strength = None
     else:
         state2 = None
         params2 = None
+        stage2strength = None
 
     if mode == "txt2img":
         out = run_txt2img(
@@ -278,7 +281,7 @@ if __name__ == "__main__":
             prompt=prompt,
             negative_prompt=negative_prompt,
             return_latents=add_pipeline,
-            stage2strength=params2.img2img_strength if params2 is not None else None,
+            stage2strength=stage2strength,
         )
     elif mode == "img2img":
         out = run_img2img(
@@ -286,7 +289,7 @@ if __name__ == "__main__":
             prompt=prompt,
             negative_prompt=negative_prompt,
             return_latents=add_pipeline,
-            stage2strength=params2.img2img_strength if params2 is not None else None,
+            stage2strength=stage2strength,
         )
     else:
         raise ValueError(f"unknown mode {mode}")

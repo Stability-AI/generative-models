@@ -6,6 +6,7 @@ import torch
 from einops import rearrange, repeat
 from PIL import Image
 from torchvision import transforms
+from typing import Tuple
 
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
@@ -62,7 +63,7 @@ def get_unique_embedder_keys_from_conditioner(conditioner):
 
 def init_embedder_options(
     keys, params: SamplingParams, prompt=None, negative_prompt=None
-):
+) -> SamplingParams:
     for key in keys:
         if key == "txt":
             if prompt is None:
@@ -97,6 +98,7 @@ def init_embedder_options(
 
             params.crop_coords_top = int(crop_coord_top)
             params.crop_coords_left = int(crop_coord_left)
+    return params
 
 
 def perform_save_locally(save_path, samples):
@@ -129,7 +131,7 @@ def show_samples(samples, outputs):
     outputs.image(grid.cpu().numpy())
 
 
-def get_guider(key, params: SamplingParams):
+def get_guider(key, params: SamplingParams) -> SamplingParams:
     params.guider = Guider(
         st.sidebar.selectbox(
             f"Discretization #{key}", [member.value for member in Guider]
@@ -152,14 +154,14 @@ def get_guider(key, params: SamplingParams):
             params.thresholder = Thresholder.NONE
         else:
             raise NotImplementedError
+    return params
 
 
 def init_sampling(
     key=1,
     params: SamplingParams = SamplingParams(),
     specify_num_samples=True,
-):
-    # Use SamplingParams to share defaults with inference helpers
+) -> Tuple[SamplingParams, int, int]:
     params = SamplingParams(img2img_strength=params.img2img_strength)
 
     num_rows, num_cols = 1, 1
@@ -188,15 +190,15 @@ def init_sampling(
         )
     )
 
-    get_discretization(params, key=key)
+    params = get_discretization(params, key=key)
 
-    get_guider(key=key, params=params)
+    params = get_guider(key=key, params=params)
 
-    get_sampler(params, key=key)
-    return num_rows, num_cols
+    params = get_sampler(params, key=key)
+    return params, num_rows, num_cols
 
 
-def get_discretization(params: SamplingParams, key=1):
+def get_discretization(params: SamplingParams, key=1) -> SamplingParams:
     if params.discretization == Discretization.EDM:
         params.sigma_min = st.number_input(
             f"sigma_min #{key}", value=params.sigma_min
@@ -205,9 +207,10 @@ def get_discretization(params: SamplingParams, key=1):
             f"sigma_max #{key}", value=params.sigma_max
         )  # 14.6146
         params.rho = st.number_input(f"rho #{key}", value=params.rho)
+    return params
 
 
-def get_sampler(params: SamplingParams, key=1):
+def get_sampler(params: SamplingParams, key=1) -> SamplingParams:
     if params.sampler == Sampler.EULER_EDM or params.sampler == Sampler.HEUN_EDM:
         params.s_churn = st.sidebar.number_input(
             f"s_churn #{key}", value=params.s_churn, min_value=0.0
@@ -235,6 +238,7 @@ def get_sampler(params: SamplingParams, key=1):
         params.order = int(
             st.sidebar.number_input("order", value=params.order, min_value=1)
         )
+    return params
 
 
 def get_interactive_image(key=None) -> Image.Image:
