@@ -174,17 +174,20 @@ def init_sampling(
         )
     )
 
-    sampler = st.sidebar.selectbox(
-        f"Sampler #{key}",
-        [member.value for member in Sampler],
-        0,
+    params.sampler = Sampler(
+        st.sidebar.selectbox(
+            f"Sampler #{key}",
+            [member.value for member in Sampler],
+            0,
+        )
     )
-    discretization = st.sidebar.selectbox(
-        f"Discretization #{key}",
-        [member.value for member in Discretization],
+    params.discretization = Discretization(
+        st.sidebar.selectbox(
+            f"Discretization #{key}",
+            [member.value for member in Discretization],
+        )
     )
-    params.sampler = Sampler(sampler)
-    params.discretization = Discretization(discretization)
+
     get_discretization(params, key=key)
 
     get_guider(key=key, params=params)
@@ -241,9 +244,10 @@ def get_interactive_image(key=None) -> Image.Image:
         if not image.mode == "RGB":
             image = image.convert("RGB")
         return image
+    raise RuntimeError("No image uploaded")
 
 
-def load_img(display=True, key=None):
+def load_img(display=True, key=None) -> torch.Tensor:
     image = get_interactive_image(key=key)
     if image is None:
         return None

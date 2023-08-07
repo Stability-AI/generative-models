@@ -4,13 +4,10 @@ from pytorch_lightning import seed_everything
 from sgm.inference.api import (
     SamplingParams,
     ModelArchitecture,
-    Sampler,
     SamplingPipeline,
     model_specs,
 )
 from sgm.inference.helpers import (
-    do_img2img,
-    do_sample,
     get_unique_embedder_keys_from_conditioner,
     perform_save_locally,
 )
@@ -47,63 +44,6 @@ SD_XL_BASE_RATIOS = {
     "3.0": (1728, 576),
 }
 
-VERSION2SPECS = {
-    "SDXL-base-1.0": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": False,
-        "config": "configs/inference/sd_xl_base.yaml",
-        "ckpt": "checkpoints/sd_xl_base_1.0.safetensors",
-    },
-    "SDXL-base-0.9": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": False,
-        "config": "configs/inference/sd_xl_base.yaml",
-        "ckpt": "checkpoints/sd_xl_base_0.9.safetensors",
-    },
-    "SD-2.1": {
-        "H": 512,
-        "W": 512,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_2_1.yaml",
-        "ckpt": "checkpoints/v2-1_512-ema-pruned.safetensors",
-    },
-    "SD-2.1-768": {
-        "H": 768,
-        "W": 768,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_2_1_768.yaml",
-        "ckpt": "checkpoints/v2-1_768-ema-pruned.safetensors",
-    },
-    "SDXL-refiner-0.9": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_xl_refiner.yaml",
-        "ckpt": "checkpoints/sd_xl_refiner_0.9.safetensors",
-    },
-    "SDXL-refiner-1.0": {
-        "H": 1024,
-        "W": 1024,
-        "C": 4,
-        "f": 8,
-        "is_legacy": True,
-        "config": "configs/inference/sd_xl_refiner.yaml",
-        "ckpt": "checkpoints/sd_xl_refiner_1.0.safetensors",
-    },
-}
-
 
 def load_img(display=True, key=None, device="cuda"):
     image = get_interactive_image(key=key)
@@ -113,7 +53,9 @@ def load_img(display=True, key=None, device="cuda"):
         st.image(image)
     w, h = image.size
     print(f"loaded input image of size ({w}, {h})")
-    width, height = map(lambda x: x - x % 64, (w, h))  # resize to integer multiple of 64
+    width, height = map(
+        lambda x: x - x % 64, (w, h)
+    )  # resize to integer multiple of 64
     image = image.resize((width, height))
     image = np.array(image.convert("RGB"))
     image = image[None].transpose(0, 3, 1, 2)
@@ -137,11 +79,15 @@ def run_txt2img(
             "Resolution:", list(SD_XL_BASE_RATIOS.values()), 10
         )
     else:
-        params.height = int(st.number_input("H", value=spec.height, min_value=64, max_value=2048))
-        params.width = int(st.number_input("W", value=spec.width, min_value=64, max_value=2048))
+        params.height = int(
+            st.number_input("H", value=spec.height, min_value=64, max_value=2048)
+        )
+        params.width = int(
+            st.number_input("W", value=spec.width, min_value=64, max_value=2048)
+        )
 
     init_embedder_options(
-        get_unique_embedder_keys_from_conditioner(state["model"].conditioner),
+        get_unique_embedder_keys_from_conditioner(model.model.conditioner),
         params=params,
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -184,7 +130,7 @@ def run_img2img(
     params.height, params.width = img.shape[2], img.shape[3]
 
     init_embedder_options(
-        get_unique_embedder_keys_from_conditioner(state["model"].conditioner),
+        get_unique_embedder_keys_from_conditioner(model.model.conditioner),
         params=params,
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -265,7 +211,9 @@ if __name__ == "__main__":
     else:
         add_pipeline = False
 
-    seed = int(st.sidebar.number_input("seed", value=42, min_value=0, max_value=int(1e9)))
+    seed = int(
+        st.sidebar.number_input("seed", value=42, min_value=0, max_value=int(1e9))
+    )
     seed_everything(seed)
 
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, str(version)))
