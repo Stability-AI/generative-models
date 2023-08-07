@@ -240,8 +240,8 @@ if __name__ == "__main__":
             st.selectbox(
                 "Refiner:",
                 [
-                    ModelArchitecture.SDXL_V1_REFINER,
-                    ModelArchitecture.SDXL_V0_9_REFINER,
+                    ModelArchitecture.SDXL_V1_REFINER.value,
+                    ModelArchitecture.SDXL_V0_9_REFINER.value,
                 ],
             )
         )
@@ -250,14 +250,15 @@ if __name__ == "__main__":
         )
         st.write("**Refiner Options:**")
 
-        specs_2 = model_specs[version2]
-        state2 = init_st(specs_2, load_filter=False)
+        specs2 = model_specs[version2]
+        state2 = init_st(specs2, load_filter=False)
+        params2 = state2["params"]
 
-        stage2strength = st.number_input(
+        params2.img2img_strength = st.number_input(
             "**Refinement strength**", value=0.15, min_value=0.0, max_value=1.0
         )
 
-        sampler2, *_ = init_sampling(
+        _, _ = init_sampling(
             key=2,
             params=state2["params"],
             specify_num_samples=False,
@@ -268,6 +269,7 @@ if __name__ == "__main__":
             stage2strength = None
     else:
         state2 = None
+        params2 = None
 
     if mode == "txt2img":
         out = run_txt2img(
@@ -276,16 +278,15 @@ if __name__ == "__main__":
             prompt=prompt,
             negative_prompt=negative_prompt,
             return_latents=add_pipeline,
-            stage2strength=stage2strength,
+            stage2strength=params2.img2img_strength if params2 is not None else None,
         )
     elif mode == "img2img":
-        out = state["model"].image_to_image(
-            params=state["params"],
+        out = run_img2img(
+            state=state,
             prompt=prompt,
             negative_prompt=negative_prompt,
             return_latents=add_pipeline,
-            noise_strength=stage2strength,
-            filter=state.get("filter"),
+            stage2strength=params2.img2img_strength if params2 is not None else None,
         )
     else:
         raise ValueError(f"unknown mode {mode}")
