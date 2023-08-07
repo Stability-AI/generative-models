@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: "Symlink checkpoints"
-        run: ln -s ${{vars.SGM_CHECKPOINTS_PATH}} checkpoints
+        run: ln -s $SGM_CHECKPOINTS checkpoints
       - name: "Setup python"
         uses: actions/setup-python@v4
         with:
