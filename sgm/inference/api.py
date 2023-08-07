@@ -22,12 +22,12 @@ from typing import Optional
 
 
 class ModelArchitecture(str, Enum):
-    SD_2_1 = "stable-diffusion-v2-1"
-    SD_2_1_768 = "stable-diffusion-v2-1-768"
-    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
-    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
+    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
+    SD_2_1 = "stable-diffusion-v2-1"
+    SD_2_1_768 = "stable-diffusion-v2-1-768"
 
 
 class Sampler(str, Enum):
@@ -58,7 +58,7 @@ class SamplingParams:
     width: int = 1024
     height: int = 1024
     steps: int = 40
-    sampler: Sampler = Sampler.DPMPP2M
+    sampler: Sampler = Sampler.EULER_EDM
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
     thresholder: Thresholder = Thresholder.NONE
@@ -227,6 +227,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength=None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -253,7 +254,7 @@ class SamplingPipeline:
             self.specs.factor,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
         )
 
     def image_to_image(
@@ -265,6 +266,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength=None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -289,7 +291,7 @@ class SamplingPipeline:
             samples,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
         )
 
     def wrap_discretization(
@@ -327,6 +329,8 @@ class SamplingPipeline:
         ),
         samples: int = 1,
         return_latents: bool = False,
+        filter=None,
+        add_noise=False,
     ):
         sampler = get_sampler_config(params)
         value_dict = {
@@ -354,8 +358,8 @@ class SamplingPipeline:
             samples,
             skip_encode=True,
             return_latents=return_latents,
-            filter=None,
-            add_noise=False,
+            filter=filter,
+            add_noise=add_noise,
         )
 
 

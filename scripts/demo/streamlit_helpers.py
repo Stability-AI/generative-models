@@ -4,43 +4,46 @@ import numpy as np
 import streamlit as st
 import torch
 from einops import rearrange, repeat
-from omegaconf import OmegaConf
 from PIL import Image
 from torchvision import transforms
+from typing import Optional, Tuple
 
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
-from sgm.modules.diffusionmodules.sampling import (
-    DPMPP2MSampler,
-    DPMPP2SAncestralSampler,
-    EulerAncestralSampler,
-    EulerEDMSampler,
-    HeunEDMSampler,
-    LinearMultistepSampler,
+
+from sgm.inference.api import (
+    Discretization,
+    Guider,
+    Sampler,
+    SamplingParams,
+    SamplingSpec,
+    SamplingPipeline,
+    Thresholder,
 )
 from sgm.inference.helpers import (
-    Img2ImgDiscretizationWrapper,
-    Txt2NoisyDiscretizationWrapper,
     embed_watermark,
 )
-from sgm.util import load_model_from_config
 
 
 @st.cache_resource()
-def init_st(version_dict, load_ckpt=True, load_filter=True):
+def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True):
+    global lowvram_mode
     state = dict()
     if not "model" in state:
-        config = version_dict["config"]
-        ckpt = version_dict["ckpt"]
+        config = spec.config
+        ckpt = spec.ckpt
 
-        config = OmegaConf.load(config)
-        model = load_model_from_config(
-            config, ckpt if load_ckpt else None, freeze=False
+        pipeline = SamplingPipeline(
+            model_spec=spec,
+            use_fp16=lowvram_mode,
+            device="cpu" if lowvram_mode else "cuda",
         )
 
-        state["model"] = model
+        state["spec"] = spec
+        state["model"] = pipeline
         state["ckpt"] = ckpt if load_ckpt else None
         state["config"] = config
+        state["params"] = SamplingParams()
         if load_filter:
             state["filter"] = DeepFloydDataFiltering(verbose=False)
     return state
@@ -54,23 +57,13 @@ def set_lowvram_mode(mode):
     lowvram_mode = mode
 
 
-def initial_model_load(model):
-    global lowvram_mode
-    if lowvram_mode:
-        model.model.half()
-    else:
-        model.cuda()
-    return model
-
-
 def get_unique_embedder_keys_from_conditioner(conditioner):
     return list(set([x.input_key for x in conditioner.embedders]))
 
 
-def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
-    # Hardcoded demo settings; might undergo some changes in the future
-
-    value_dict = {}
+def init_embedder_options(
+    keys, params: SamplingParams, prompt=None, negative_prompt=None
+) -> SamplingParams:
     for key in keys:
         if key == "txt":
             if prompt is None:
@@ -80,40 +73,32 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
             if negative_prompt is None:
                 negative_prompt = st.text_input("Negative prompt", "")
 
-            value_dict["prompt"] = prompt
-            value_dict["negative_prompt"] = negative_prompt
-
         if key == "original_size_as_tuple":
             orig_width = st.number_input(
                 "orig_width",
-                value=init_dict["orig_width"],
+                value=params.orig_width,
                 min_value=16,
             )
             orig_height = st.number_input(
                 "orig_height",
-                value=init_dict["orig_height"],
+                value=params.orig_height,
                 min_value=16,
             )
 
-            value_dict["orig_width"] = orig_width
-            value_dict["orig_height"] = orig_height
+            params.orig_width = int(orig_width)
+            params.orig_height = int(orig_height)
 
         if key == "crop_coords_top_left":
-            crop_coord_top = st.number_input("crop_coords_top", value=0, min_value=0)
-            crop_coord_left = st.number_input("crop_coords_left", value=0, min_value=0)
+            crop_coord_top = st.number_input(
+                "crop_coords_top", value=params.crop_coords_top, min_value=0
+            )
+            crop_coord_left = st.number_input(
+                "crop_coords_left", value=params.crop_coords_left, min_value=0
+            )
 
-            value_dict["crop_coords_top"] = crop_coord_top
-            value_dict["crop_coords_left"] = crop_coord_left
-
-        if key == "aesthetic_score":
-            value_dict["aesthetic_score"] = 6.0
-            value_dict["negative_aesthetic_score"] = 2.5
-
-        if key == "target_size_as_tuple":
-            value_dict["target_width"] = init_dict["target_width"]
-            value_dict["target_height"] = init_dict["target_height"]
-
-    return value_dict
+            params.crop_coords_top = int(crop_coord_top)
+            params.crop_coords_left = int(crop_coord_left)
+    return params
 
 
 def perform_save_locally(save_path, samples):
@@ -146,24 +131,18 @@ def show_samples(samples, outputs):
     outputs.image(grid.cpu().numpy())
 
 
-def get_guider(key):
-    guider = st.sidebar.selectbox(
-        f"Discretization #{key}",
-        [
-            "VanillaCFG",
-            "IdentityGuider",
-        ],
+def get_guider(key, params: SamplingParams) -> SamplingParams:
+    params.guider = Guider(
+        st.sidebar.selectbox(
+            f"Discretization #{key}", [member.value for member in Guider]
+        )
     )
 
-    if guider == "IdentityGuider":
-        guider_config = {
-            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
-        }
-    elif guider == "VanillaCFG":
+    if params.guider == Guider.VANILLA:
         scale = st.number_input(
-            f"cfg-scale #{key}", value=5.0, min_value=0.0, max_value=100.0
+            f"cfg-scale #{key}", value=params.scale, min_value=0.0, max_value=100.0
         )
-
+        params.scale = scale
         thresholder = st.sidebar.selectbox(
             f"Thresholder #{key}",
             [
@@ -172,173 +151,97 @@ def get_guider(key):
         )
 
         if thresholder == "None":
-            dyn_thresh_config = {
-                "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
-            }
+            params.thresholder = Thresholder.NONE
         else:
             raise NotImplementedError
-
-        guider_config = {
-            "target": "sgm.modules.diffusionmodules.guiders.VanillaCFG",
-            "params": {"scale": scale, "dyn_thresh_config": dyn_thresh_config},
-        }
-    else:
-        raise NotImplementedError
-    return guider_config
+    return params
 
 
 def init_sampling(
     key=1,
-    img2img_strength=1.0,
+    params: SamplingParams = SamplingParams(),
     specify_num_samples=True,
-    stage2strength=None,
-):
+) -> Tuple[SamplingParams, int, int]:
+    params = SamplingParams(img2img_strength=params.img2img_strength)
+
     num_rows, num_cols = 1, 1
     if specify_num_samples:
         num_cols = st.number_input(
             f"num cols #{key}", value=2, min_value=1, max_value=10
         )
 
-    steps = st.sidebar.number_input(
-        f"steps #{key}", value=40, min_value=1, max_value=1000
-    )
-    sampler = st.sidebar.selectbox(
-        f"Sampler #{key}",
-        [
-            "EulerEDMSampler",
-            "HeunEDMSampler",
-            "EulerAncestralSampler",
-            "DPMPP2SAncestralSampler",
-            "DPMPP2MSampler",
-            "LinearMultistepSampler",
-        ],
-        0,
-    )
-    discretization = st.sidebar.selectbox(
-        f"Discretization #{key}",
-        [
-            "LegacyDDPMDiscretization",
-            "EDMDiscretization",
-        ],
+    params.steps = int(
+        st.sidebar.number_input(
+            f"steps #{key}", value=params.steps, min_value=1, max_value=1000
+        )
     )
 
-    discretization_config = get_discretization(discretization, key=key)
-
-    guider_config = get_guider(key=key)
-
-    sampler = get_sampler(sampler, steps, discretization_config, guider_config, key=key)
-    if img2img_strength < 1.0:
-        st.warning(
-            f"Wrapping {sampler.__class__.__name__} with Img2ImgDiscretizationWrapper"
+    params.sampler = Sampler(
+        st.sidebar.selectbox(
+            f"Sampler #{key}",
+            [member.value for member in Sampler],
+            0,
         )
-        sampler.discretization = Img2ImgDiscretizationWrapper(
-            sampler.discretization, strength=img2img_strength
+    )
+    params.discretization = Discretization(
+        st.sidebar.selectbox(
+            f"Discretization #{key}",
+            [member.value for member in Discretization],
         )
-    if stage2strength is not None:
-        sampler.discretization = Txt2NoisyDiscretizationWrapper(
-            sampler.discretization, strength=stage2strength, original_steps=steps
+    )
+
+    params = get_discretization(params, key=key)
+
+    params = get_guider(key=key, params=params)
+
+    params = get_sampler(params, key=key)
+    return params, num_rows, num_cols
+
+
+def get_discretization(params: SamplingParams, key=1) -> SamplingParams:
+    if params.discretization == Discretization.EDM:
+        params.sigma_min = st.number_input(
+            f"sigma_min #{key}", value=params.sigma_min
+        )  # 0.0292
+        params.sigma_max = st.number_input(
+            f"sigma_max #{key}", value=params.sigma_max
+        )  # 14.6146
+        params.rho = st.number_input(f"rho #{key}", value=params.rho)
+    return params
+
+
+def get_sampler(params: SamplingParams, key=1) -> SamplingParams:
+    if params.sampler == Sampler.EULER_EDM or params.sampler == Sampler.HEUN_EDM:
+        params.s_churn = st.sidebar.number_input(
+            f"s_churn #{key}", value=params.s_churn, min_value=0.0
         )
-    return sampler, num_rows, num_cols
+        params.s_tmin = st.sidebar.number_input(
+            f"s_tmin #{key}", value=params.s_tmin, min_value=0.0
+        )
+        params.s_tmax = st.sidebar.number_input(
+            f"s_tmax #{key}", value=params.s_tmax, min_value=0.0
+        )
+        params.s_noise = st.sidebar.number_input(
+            f"s_noise #{key}", value=params.s_noise, min_value=0.0
+        )
 
-
-def get_discretization(discretization, key=1):
-    if discretization == "LegacyDDPMDiscretization":
-        discretization_config = {
-            "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
-        }
-    elif discretization == "EDMDiscretization":
-        sigma_min = st.number_input(f"sigma_min #{key}", value=0.03)  # 0.0292
-        sigma_max = st.number_input(f"sigma_max #{key}", value=14.61)  # 14.6146
-        rho = st.number_input(f"rho #{key}", value=3.0)
-        discretization_config = {
-            "target": "sgm.modules.diffusionmodules.discretizer.EDMDiscretization",
-            "params": {
-                "sigma_min": sigma_min,
-                "sigma_max": sigma_max,
-                "rho": rho,
-            },
-        }
-
-    return discretization_config
-
-
-def get_sampler(sampler_name, steps, discretization_config, guider_config, key=1):
-    if sampler_name == "EulerEDMSampler" or sampler_name == "HeunEDMSampler":
-        s_churn = st.sidebar.number_input(f"s_churn #{key}", value=0.0, min_value=0.0)
-        s_tmin = st.sidebar.number_input(f"s_tmin #{key}", value=0.0, min_value=0.0)
-        s_tmax = st.sidebar.number_input(f"s_tmax #{key}", value=999.0, min_value=0.0)
-        s_noise = st.sidebar.number_input(f"s_noise #{key}", value=1.0, min_value=0.0)
-
-        if sampler_name == "EulerEDMSampler":
-            sampler = EulerEDMSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=s_churn,
-                s_tmin=s_tmin,
-                s_tmax=s_tmax,
-                s_noise=s_noise,
-                verbose=True,
-            )
-        elif sampler_name == "HeunEDMSampler":
-            sampler = HeunEDMSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                s_churn=s_churn,
-                s_tmin=s_tmin,
-                s_tmax=s_tmax,
-                s_noise=s_noise,
-                verbose=True,
-            )
     elif (
-        sampler_name == "EulerAncestralSampler"
-        or sampler_name == "DPMPP2SAncestralSampler"
+        params.sampler == Sampler.EULER_ANCESTRAL
+        or params.sampler == Sampler.DPMPP2S_ANCESTRAL
     ):
-        s_noise = st.sidebar.number_input("s_noise", value=1.0, min_value=0.0)
-        eta = st.sidebar.number_input("eta", value=1.0, min_value=0.0)
-
-        if sampler_name == "EulerAncestralSampler":
-            sampler = EulerAncestralSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=eta,
-                s_noise=s_noise,
-                verbose=True,
-            )
-        elif sampler_name == "DPMPP2SAncestralSampler":
-            sampler = DPMPP2SAncestralSampler(
-                num_steps=steps,
-                discretization_config=discretization_config,
-                guider_config=guider_config,
-                eta=eta,
-                s_noise=s_noise,
-                verbose=True,
-            )
-    elif sampler_name == "DPMPP2MSampler":
-        sampler = DPMPP2MSampler(
-            num_steps=steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            verbose=True,
+        params.s_noise = st.sidebar.number_input(
+            "s_noise", value=params.s_noise, min_value=0.0
         )
-    elif sampler_name == "LinearMultistepSampler":
-        order = st.sidebar.number_input("order", value=4, min_value=1)
-        sampler = LinearMultistepSampler(
-            num_steps=steps,
-            discretization_config=discretization_config,
-            guider_config=guider_config,
-            order=order,
-            verbose=True,
+        params.eta = st.sidebar.number_input("eta", value=params.eta, min_value=0.0)
+
+    elif params.sampler == Sampler.LINEAR_MULTISTEP:
+        params.order = int(
+            st.sidebar.number_input("order", value=params.order, min_value=1)
         )
-    else:
-        raise ValueError(f"unknown sampler {sampler_name}!")
-
-    return sampler
+    return params
 
 
-def get_interactive_image(key=None) -> Image.Image:
+def get_interactive_image(key=None) -> Optional[Image.Image]:
     image = st.file_uploader("Input", type=["jpg", "JPEG", "png"], key=key)
     if image is not None:
         image = Image.open(image)
@@ -347,7 +250,7 @@ def get_interactive_image(key=None) -> Image.Image:
         return image
 
 
-def load_img(display=True, key=None):
+def load_img(display=True, key=None) -> torch.Tensor:
     image = get_interactive_image(key=key)
     if image is None:
         return None
