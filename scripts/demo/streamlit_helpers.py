@@ -6,7 +6,7 @@ import torch
 from einops import rearrange, repeat
 from PIL import Image
 from torchvision import transforms
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
@@ -241,14 +241,13 @@ def get_sampler(params: SamplingParams, key=1) -> SamplingParams:
     return params
 
 
-def get_interactive_image(key=None) -> Image.Image:
+def get_interactive_image(key=None) -> Optional[Image.Image]:
     image = st.file_uploader("Input", type=["jpg", "JPEG", "png"], key=key)
     if image is not None:
         image = Image.open(image)
         if not image.mode == "RGB":
             image = image.convert("RGB")
         return image
-    raise RuntimeError("No image uploaded")
 
 
 def load_img(display=True, key=None) -> torch.Tensor:
