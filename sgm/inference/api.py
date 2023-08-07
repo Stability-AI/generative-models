@@ -22,12 +22,12 @@ from typing import Optional
 
 
 class ModelArchitecture(str, Enum):
-    SD_2_1 = "stable-diffusion-v2-1"
-    SD_2_1_768 = "stable-diffusion-v2-1-768"
-    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
-    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
     SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
+    SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
+    SD_2_1 = "stable-diffusion-v2-1"
+    SD_2_1_768 = "stable-diffusion-v2-1-768"
 
 
 class Sampler(str, Enum):
@@ -181,30 +181,20 @@ class SamplingPipeline:
             model_path = pathlib.Path(__file__).parent.parent.resolve() / "checkpoints"
             if not os.path.exists(model_path):
                 # This supports development installs where checkpoints is root level of the repo
-                model_path = (
-                    pathlib.Path(__file__).parent.parent.parent.resolve()
-                    / "checkpoints"
-                )
+                model_path = pathlib.Path(__file__).parent.parent.parent.resolve() / "checkpoints"
         if config_path is None:
-            config_path = (
-                pathlib.Path(__file__).parent.parent.resolve() / "configs/inference"
-            )
+            config_path = pathlib.Path(__file__).parent.parent.resolve() / "configs/inference"
             if not os.path.exists(config_path):
                 # This supports development installs where configs is root level of the repo
                 config_path = (
-                    pathlib.Path(__file__).parent.parent.parent.resolve()
-                    / "configs/inference"
+                    pathlib.Path(__file__).parent.parent.parent.resolve() / "configs/inference"
                 )
         self.config = str(pathlib.Path(config_path) / self.specs.config)
         self.ckpt = str(pathlib.Path(model_path) / self.specs.ckpt)
         if not os.path.exists(self.config):
-            raise ValueError(
-                f"Config {self.config} not found, check model spec or config_path"
-            )
+            raise ValueError(f"Config {self.config} not found, check model spec or config_path")
         if not os.path.exists(self.ckpt):
-            raise ValueError(
-                f"Checkpoint {self.ckpt} not found, check model spec or config_path"
-            )
+            raise ValueError(f"Checkpoint {self.ckpt} not found, check model spec or config_path")
         self.device = device
         self.model = self._load_model(device=device, use_fp16=use_fp16)
 
@@ -227,6 +217,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength=None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -253,7 +244,7 @@ class SamplingPipeline:
             self.specs.factor,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
         )
 
     def image_to_image(
@@ -265,6 +256,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength=None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -289,7 +281,7 @@ class SamplingPipeline:
             samples,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
         )
 
     def wrap_discretization(
@@ -300,9 +292,7 @@ class SamplingPipeline:
         ):
             return discretization  # Already wrapped
         if image_strength is not None and image_strength < 1.0 and image_strength > 0.0:
-            discretization = Img2ImgDiscretizationWrapper(
-                discretization, strength=image_strength
-            )
+            discretization = Img2ImgDiscretizationWrapper(discretization, strength=image_strength)
 
         if (
             noise_strength is not None
@@ -327,6 +317,8 @@ class SamplingPipeline:
         ),
         samples: int = 1,
         return_latents: bool = False,
+        filter=None,
+        add_noise=False,
     ):
         sampler = get_sampler_config(params)
         value_dict = {
@@ -354,16 +346,14 @@ class SamplingPipeline:
             samples,
             skip_encode=True,
             return_latents=return_latents,
-            filter=None,
-            add_noise=False,
+            filter=filter,
+            add_noise=add_noise,
         )
 
 
 def get_guider_config(params: SamplingParams):
     if params.guider == Guider.IDENTITY:
-        guider_config = {
-            "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
-        }
+        guider_config = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
     elif params.guider == Guider.VANILLA:
         scale = params.scale
 
