@@ -200,12 +200,8 @@ def init_sampling(
 
 def get_discretization(params: SamplingParams, key=1) -> SamplingParams:
     if params.discretization == Discretization.EDM:
-        params.sigma_min = st.number_input(
-            f"sigma_min #{key}", value=params.sigma_min
-        )  # 0.0292
-        params.sigma_max = st.number_input(
-            f"sigma_max #{key}", value=params.sigma_max
-        )  # 14.6146
+        params.sigma_min = st.number_input(f"sigma_min #{key}", value=params.sigma_min)
+        params.sigma_max = st.number_input(f"sigma_max #{key}", value=params.sigma_max)
         params.rho = st.number_input(f"rho #{key}", value=params.rho)
     return params
 
