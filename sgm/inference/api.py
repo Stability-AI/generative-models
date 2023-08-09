@@ -18,7 +18,7 @@ from sgm.modules.diffusionmodules.sampling import (
     LinearMultistepSampler,
 )
 from sgm.util import load_model_from_config
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class ModelArchitecture(str, Enum):
@@ -363,7 +363,8 @@ class SamplingPipeline:
         )
 
 
-def get_guider_config(params: SamplingParams):
+def get_guider_config(params: SamplingParams) -> Dict[str, Any]:
+    guider_config: Dict[str, Any]
     if params.guider == Guider.IDENTITY:
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
@@ -389,7 +390,8 @@ def get_guider_config(params: SamplingParams):
     return guider_config
 
 
-def get_discretization_config(params: SamplingParams):
+def get_discretization_config(params: SamplingParams) -> Dict[str, Any]:
+    discretization_config: Dict[str, Any]
     if params.discretization == Discretization.LEGACY_DDPM:
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
