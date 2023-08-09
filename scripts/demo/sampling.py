@@ -71,9 +71,9 @@ def run_txt2img(
     return_latents=False,
     stage2strength=None,
 ):
-    spec: SamplingSpec = state.get("spec")
-    model: SamplingPipeline = state.get("model")
-    params: SamplingParams = state.get("params")
+    spec: SamplingSpec = state["spec"]
+    model: SamplingPipeline = state["model"]
+    params: SamplingParams = state["params"]
     if version.startswith("stable-diffusion-xl") and version.endswith("-base"):
         params.width, params.height = st.selectbox(
             "Resolution:", list(SD_XL_BASE_RATIOS.values()), 10
@@ -106,7 +106,7 @@ def run_txt2img(
             samples=int(num_samples),
             return_latents=return_latents,
             noise_strength=stage2strength,
-            filter=state.get("filter"),
+            filter=state["filter"],
         )
 
         show_samples(out, outputs)
@@ -121,8 +121,8 @@ def run_img2img(
     return_latents=False,
     stage2strength=None,
 ):
-    model: SamplingPipeline = state.get("model")
-    params: SamplingParams = state.get("params")
+    model: SamplingPipeline = state["model"]
+    params: SamplingParams = state["params"]
 
     img = load_img()
     if img is None:
@@ -152,7 +152,7 @@ def run_img2img(
             samples=int(num_samples),
             return_latents=return_latents,
             noise_strength=stage2strength,
-            filter=state.get("filter"),
+            filter=state["filter"],
         )
 
         show_samples(out, outputs)
@@ -167,8 +167,8 @@ def apply_refiner(
     negative_prompt: str,
     finish_denoising=False,
 ):
-    model: SamplingPipeline = state.get("model")
-    params: SamplingParams = state.get("params")
+    model: SamplingPipeline = state["model"]
+    params: SamplingParams = state["params"]
 
     params.orig_width = input.shape[3] * 8
     params.orig_height = input.shape[2] * 8
@@ -184,7 +184,7 @@ def apply_refiner(
         negative_prompt=negative_prompt,
         samples=num_samples,
         return_latents=False,
-        filter=state.get("filter"),
+        filter=state["filter"],
         add_noise=not finish_denoising,
     )
 
