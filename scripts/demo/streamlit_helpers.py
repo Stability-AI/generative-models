@@ -25,21 +25,25 @@ from sgm.inference.helpers import embed_watermark, CudaModelManager
 
 @st.cache_resource()
 def init_st(
-    spec: SamplingSpec, load_ckpt=True, load_filter=True, lowvram_mode=True
+    spec: SamplingSpec,
+    load_ckpt=True,
+    load_filter=True,
+    use_fp16=True,
+    enable_swap=True,
 ) -> Dict[str, Any]:
     state: Dict[str, Any] = dict()
     if not "model" in state:
         config = spec.config
         ckpt = spec.ckpt
 
-        if lowvram_mode:
+        if enable_swap:
             pipeline = SamplingPipeline(
                 model_spec=spec,
-                use_fp16=True,
+                use_fp16=use_fp16,
                 device=CudaModelManager(device="cuda", swap_device="cpu"),
             )
         else:
-            pipeline = SamplingPipeline(model_spec=spec, use_fp16=False)
+            pipeline = SamplingPipeline(model_spec=spec, use_fp16=use_fp16)
 
         state["spec"] = spec
         state["model"] = pipeline

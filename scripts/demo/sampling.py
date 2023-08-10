@@ -226,6 +226,11 @@ if __name__ == "__main__":
     mode = st.radio("Mode", ("txt2img", "img2img"), 0)
     st.write("__________________________")
 
+    st.write("### Performance Options")
+    use_fp16 = st.checkbox("Use fp16", True)
+    enable_swap = st.checkbox("Enable model swapping to CPU", False)
+    st.write("__________________________")
+
     if version_enum in sdxl_base_model_list:
         add_pipeline = st.checkbox("Load SDXL-refiner?", False)
         st.write("__________________________")
@@ -237,11 +242,12 @@ if __name__ == "__main__":
     )
     seed_everything(seed)
 
-    lowvram_mode = st.checkbox("Low vram mode", True)
-
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, str(version)))
     state = init_st(
-        model_specs[version_enum], load_filter=True, lowvram_mode=lowvram_mode
+        model_specs[version_enum],
+        load_filter=True,
+        use_fp16=use_fp16,
+        enable_swap=enable_swap,
     )
     model = state["model"]
 
