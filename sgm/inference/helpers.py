@@ -10,6 +10,7 @@ from einops import rearrange
 from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig
 from torch import autocast
+from abc import ABC, abstractmethod
 
 from sgm.util import append_dims
 
@@ -353,35 +354,67 @@ def do_img2img(
                 return samples
 
 
-@contextlib.contextmanager
-def swap_to_device(
-    model: Union[torch.nn.Module, torch.Tensor], device: Union[torch.device, str]
-):
+class BaseDeviceModelLoader(ABC):
     """
-    Context manager that swaps a model or tensor to a device, and then swaps it back to its original device
-    when the context is exited.
+    Base class for device managers. Device managers are used to manage the device used for a model.
     """
-    if isinstance(model, torch.Tensor):
-        original_device = model.device
-    else:
-        param = next(model.parameters(), None)
-        if param is not None:
-            original_device = param.device
-        else:
-            buf = next(model.buffers(), None)
-            if buf is not None:
-                original_device = buf.device
-            else:
-                # If device could not be found, do nothing
-                return
-    device = torch.device(device)
 
-    if device != original_device:
-        model.to(device)
+    @abstractmethod
+    def __init__(self, device: Union[torch.device, str]):
+        """
+        Args:
+            device (Union[torch.device, str]): The device to use for the model.
+        """
+        pass
 
-    yield
+    def load(self, model: torch.nn.Module):
+        """
+        Loads a model to the device.
+        """
+        pass
 
-    if device != original_device:
-        model.to(original_device)
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+    @contextlib.contextmanager
+    def use(self, model: torch.nn.Module):
+        """
+        Context manager that ensures a model is on the correct device during use.
+        """
+        yield
+
+
+class CudaModelLoader(BaseDeviceModelLoader):
+    """
+    Device manager that loads a model to a CUDA device, optionally swapping to CPU when not in use.
+    """
+
+    def __init__(
+        self,
+        device: Union[torch.device, str] = "cuda",
+        swap_device: Union[torch.device, str] = None,
+    ):
+        """
+        Args:
+            device (Union[torch.device, str]): The device to use for the model.
+        """
+        self.device = torch.device(device)
+        self.swap_device = (
+            torch.device(swap_device) if swap_device is not None else self.device
+        )
+
+    def load(self, model: Union[torch.nn.Module, torch.Tensor]):
+        """
+        Loads a model to the device.
+        """
+        model.to(self.swap_device)
+
+    @contextlib.contextmanager
+    def use(self, model: Union[torch.nn.Module, torch.Tensor]):
+        """
+        Context manager that ensures a model is on the correct device during use.
+        """
+        if self.device != self.swap_device:
+            model.to(self.device)
+        yield
+        if self.device != self.swap_device:
+            model.to(self.swap_device)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()

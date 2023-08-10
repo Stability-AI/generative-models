@@ -2,10 +2,11 @@ from dataclasses import dataclass, asdict
 from enum import Enum
 from omegaconf import OmegaConf
 import os
-import pathlib
 from sgm.inference.helpers import (
     do_sample,
     do_img2img,
+    BaseDeviceModelLoader,
+    CudaModelLoader,
     Img2ImgDiscretizationWrapper,
     Txt2NoisyDiscretizationWrapper,
 )
@@ -17,7 +18,7 @@ from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from sgm.util import load_model_from_config
+from sgm.util import load_model_from_config, get_configs_path, get_checkpoints_path
 import torch
 from typing import Optional, Dict, Any, Union
 
@@ -163,11 +164,10 @@ class SamplingPipeline:
         self,
         model_id: Optional[ModelArchitecture] = None,
         model_spec: Optional[SamplingSpec] = None,
-        model_path: Optional[Union[str, pathlib.Path]] = None,
-        config_path: Optional[Union[str, pathlib.Path]] = None,
-        device: Union[str, torch.device] = "cuda",
-        swap_device: Optional[Union[str, torch.device]] = None,
+        model_path: Optional[str] = None,
+        config_path: Optional[str] = None,
         use_fp16: bool = True,
+        model_loader: BaseDeviceModelLoader = CudaModelLoader(device="cuda"),
     ) -> None:
         """
         Sampling pipeline for generating images from a model.
@@ -176,9 +176,8 @@ class SamplingPipeline:
         @param model_spec: Model specification to use. If not specified, model_id must be specified.
         @param model_path: Path to model checkpoints folder.
         @param config_path: Path to model config folder.
-        @param device: Device to use for sampling.
-        @param swap_device: Device to swap models to when not in use.
         @param use_fp16: Whether to use fp16 for sampling.
+        @param model_loader: Model loader class to use. Defaults to CudaModelLoader.
         """
 
         self.model_id = model_id
@@ -192,11 +191,11 @@ class SamplingPipeline:
             raise ValueError("Either model_id or model_spec should be provided")
 
         if model_path is None:
-            model_path = self._resolve_default_path("checkpoints")
+            model_path = get_checkpoints_path()
         if config_path is None:
-            config_path = self._resolve_default_path("configs/inference")
-        self.config = str(pathlib.Path(config_path) / self.specs.config)
-        self.ckpt = str(pathlib.Path(model_path) / self.specs.ckpt)
+            config_path = get_configs_path()
+        self.config = os.path.join(config_path, "inference", self.specs.config)
+        self.ckpt = os.path.join(model_path, self.specs.ckpt)
         if not os.path.exists(self.config):
             raise ValueError(
                 f"Config {self.config} not found, check model spec or config_path"
@@ -209,19 +208,6 @@ class SamplingPipeline:
         self.swap_device = swap_device
         load_device = device if swap_device is None else swap_device
         self.model = self._load_model(device=load_device, use_fp16=use_fp16)
-
-    def _resolve_default_path(self, suffix: str) -> pathlib.Path:
-        # Resolves a path relative to the root of the module or repo
-        repo_path = pathlib.Path(__file__).parent.parent.parent.resolve() / suffix
-        module_path = pathlib.Path(__file__).parent.parent.resolve() / suffix
-        path = module_path / suffix
-        if not os.path.exists(path):
-            path = repo_path / suffix
-            if not os.path.exists(path):
-                raise ValueError(
-                    f"Default locations for {suffix} not found, please specify path"
-                )
-        return pathlib.Path(path)
 
     def _load_model(self, device="cuda", use_fp16=True):
         config = OmegaConf.load(self.config)
