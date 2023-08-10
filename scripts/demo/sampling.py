@@ -237,8 +237,12 @@ if __name__ == "__main__":
     )
     seed_everything(seed)
 
+    lowvram_mode = st.checkbox("Low vram mode", True)
+
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, str(version)))
-    state = init_st(model_specs[version_enum], load_filter=True)
+    state = init_st(
+        model_specs[version_enum], load_filter=True, lowvram_mode=lowvram_mode
+    )
     model = state["model"]
 
     is_legacy = specs.is_legacy
