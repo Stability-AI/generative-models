@@ -191,11 +191,10 @@ def init_sampling(
         )
     )
 
-    params = get_discretization(params, key=key)
+    params = get_discretization(params=params, key=key)
+    params = get_guider(params=params, key=key)
+    params = get_sampler(params=params, key=key)
 
-    params = get_guider(key=key, params=params)
-
-    params = get_sampler(params, key=key)
     return params, num_rows, num_cols
 
 

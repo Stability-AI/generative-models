@@ -165,8 +165,8 @@ class SamplingPipeline:
         model_spec: Optional[SamplingSpec] = None,
         model_path: Optional[Union[str, pathlib.Path]] = None,
         config_path: Optional[Union[str, pathlib.Path]] = None,
-        device: Union[str, torch.Device] = "cuda",
-        swap_device: Optional[Union[str, torch.Device]] = None,
+        device: Union[str, torch.device] = "cuda",
+        swap_device: Optional[Union[str, torch.device]] = None,
         use_fp16: bool = True,
     ) -> None:
         """
