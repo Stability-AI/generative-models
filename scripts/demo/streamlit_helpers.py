@@ -33,11 +33,12 @@ def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True) -> Dict[str, A
         config = spec.config
         ckpt = spec.ckpt
 
-        pipeline = SamplingPipeline(
-            model_spec=spec,
-            use_fp16=lowvram_mode,
-            device="cpu" if lowvram_mode else "cuda",
-        )
+        if lowvram_mode:
+            pipeline = SamplingPipeline(
+                model_spec=spec, use_fp16=True, device="cuda", swap_device="cpu"
+            )
+        else:
+            pipeline = SamplingPipeline(model_spec=spec, use_fp16=True, device="cuda")
 
         state["spec"] = spec
         state["model"] = pipeline
