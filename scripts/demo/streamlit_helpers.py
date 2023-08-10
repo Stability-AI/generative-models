@@ -47,6 +47,8 @@ def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True) -> Dict[str, A
         state["params"] = SamplingParams()
         if load_filter:
             state["filter"] = DeepFloydDataFiltering(verbose=False)
+        else:
+            state["filter"] = None
     return state
 
 
