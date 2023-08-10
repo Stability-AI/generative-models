@@ -25,11 +25,12 @@ from sgm.inference.helpers import embed_watermark, CudaModelManager
 
 @st.cache_resource()
 def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True) -> Dict[str, Any]:
-    global lowvram_mode
     state: Dict[str, Any] = dict()
     if not "model" in state:
         config = spec.config
         ckpt = spec.ckpt
+
+        lowvram_mode = st.checkbox("Low VRAM mode", value=False)
 
         if lowvram_mode:
             pipeline = SamplingPipeline(
@@ -50,14 +51,6 @@ def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True) -> Dict[str, A
         else:
             state["filter"] = None
     return state
-
-
-lowvram_mode = False
-
-
-def set_lowvram_mode(mode):
-    global lowvram_mode
-    lowvram_mode = mode
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
