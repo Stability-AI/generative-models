@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     st.write("### Performance Options")
     use_fp16 = st.checkbox("Use fp16", True)
-    enable_swap = st.checkbox("Enable model swapping to CPU", False)
+    enable_swap = st.checkbox("Enable model swapping to CPU", True)
     st.write("__________________________")
 
     if version_enum in sdxl_base_model_list:
