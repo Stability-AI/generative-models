@@ -91,10 +91,12 @@ class DeviceModelManager(object):
         The default model loader does not perform any swapping, so the model will
         stay on device.
         """
-        model.to(self.device)
-        yield
-        if self.device != self.swap_device:
-            model.to(self.swap_device)
+        try:
+            model.to(self.device)
+            yield
+        finally:
+            if self.device != self.swap_device:
+                model.to(self.swap_device)
 
 
 class CudaModelManager(DeviceModelManager):
