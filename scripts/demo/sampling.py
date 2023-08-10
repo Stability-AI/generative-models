@@ -19,12 +19,10 @@ from sgm.inference.helpers import (
 )
 from scripts.demo.streamlit_helpers import (
     get_interactive_image,
-    get_unique_embedder_keys_from_conditioner,
     init_embedder_options,
     init_sampling,
     init_save_locally,
     init_st,
-    perform_save_locally,
     set_lowvram_mode,
     show_samples,
 )
