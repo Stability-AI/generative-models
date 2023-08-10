@@ -205,9 +205,9 @@ class SamplingPipeline:
                 f"Checkpoint {self.ckpt} not found, check model spec or config_path"
             )
 
-        self.model_manager = device_manager
+        self.device_manager = device_manager
         self.model = self._load_model(
-            device_manager=self.model_manager, use_fp16=use_fp16
+            device_manager=self.device_manager, use_fp16=use_fp16
         )
 
     def _load_model(self, device_manager: DeviceModelManager, use_fp16=True):
@@ -229,7 +229,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength: Optional[float] = None,
-        filter: Any = None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -257,7 +257,7 @@ class SamplingPipeline:
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
             filter=filter,
-            model_manager=self.model_manager,
+            device_manager=self.device_manager,
         )
 
     def image_to_image(
@@ -269,7 +269,7 @@ class SamplingPipeline:
         samples: int = 1,
         return_latents: bool = False,
         noise_strength: Optional[float] = None,
-        filter: Any = None,
+        filter=None,
     ):
         sampler = get_sampler_config(params)
 
@@ -295,7 +295,7 @@ class SamplingPipeline:
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
             filter=filter,
-            device=self.device,
+            device_manager=self.device_manager,
         )
 
     def wrap_discretization(
@@ -364,7 +364,7 @@ class SamplingPipeline:
             return_latents=return_latents,
             filter=filter,
             add_noise=add_noise,
-            device=self.device,
+            device_manager=self.device_manager,
         )
 
 
