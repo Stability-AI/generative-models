@@ -279,7 +279,9 @@ if __name__ == "__main__":
         st.write("**Refiner Options:**")
 
         specs2 = model_specs[version2]
-        state2 = init_st(specs2, load_filter=False)
+        state2 = init_st(
+            specs2, load_filter=False, use_fp16=use_fp16, enable_swap=enable_swap
+        )
         params2 = state2["params"]
 
         params2.img2img_strength = st.number_input(
