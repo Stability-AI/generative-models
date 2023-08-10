@@ -226,9 +226,9 @@ if __name__ == "__main__":
     mode = st.radio("Mode", ("txt2img", "img2img"), 0)
     st.write("__________________________")
 
-    st.write("### Performance Options")
-    use_fp16 = st.checkbox("Use fp16", True)
-    enable_swap = st.checkbox("Enable model swapping to CPU", True)
+    st.write("**Performance Options:**")
+    use_fp16 = st.checkbox("Use fp16 (Saves VRAM)", True)
+    enable_swap = st.checkbox("Swap models to CPU (Saves VRAM, uses RAM)", True)
     st.write("__________________________")
 
     if version_enum in sdxl_base_model_list:
