@@ -36,7 +36,7 @@ def init_st(
             pipeline = SamplingPipeline(
                 model_spec=spec,
                 use_fp16=True,
-                device_manager=CudaModelManager(device="cuda", swap_device="cpu"),
+                device=CudaModelManager(device="cuda", swap_device="cpu"),
             )
         else:
             pipeline = SamplingPipeline(model_spec=spec, use_fp16=False)
