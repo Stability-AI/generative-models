@@ -24,13 +24,13 @@ from sgm.inference.helpers import embed_watermark, CudaModelManager
 
 
 @st.cache_resource()
-def init_st(spec: SamplingSpec, load_ckpt=True, load_filter=True) -> Dict[str, Any]:
+def init_st(
+    spec: SamplingSpec, load_ckpt=True, load_filter=True, lowvram_mode=True
+) -> Dict[str, Any]:
     state: Dict[str, Any] = dict()
     if not "model" in state:
         config = spec.config
         ckpt = spec.ckpt
-
-        lowvram_mode = st.checkbox("Low VRAM mode", value=False)
 
         if lowvram_mode:
             pipeline = SamplingPipeline(
