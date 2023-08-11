@@ -32,28 +32,27 @@ def init_st(
     enable_swap=True,
 ) -> Dict[str, Any]:
     state: Dict[str, Any] = dict()
-    if not "model" in state:
-        config = spec.config
-        ckpt = spec.ckpt
+    config = spec.config
+    ckpt = spec.ckpt
 
-        if enable_swap:
-            pipeline = SamplingPipeline(
-                model_spec=spec,
-                use_fp16=use_fp16,
-                device=CudaModelManager(device="cuda", swap_device="cpu"),
-            )
-        else:
-            pipeline = SamplingPipeline(model_spec=spec, use_fp16=use_fp16)
+    if enable_swap:
+        pipeline = SamplingPipeline(
+            model_spec=spec,
+            use_fp16=use_fp16,
+            device=CudaModelManager(device="cuda", swap_device="cpu"),
+        )
+    else:
+        pipeline = SamplingPipeline(model_spec=spec, use_fp16=use_fp16)
 
-        state["spec"] = spec
-        state["model"] = pipeline
-        state["ckpt"] = ckpt if load_ckpt else None
-        state["config"] = config
-        state["params"] = SamplingParams()
-        if load_filter:
-            state["filter"] = DeepFloydDataFiltering(verbose=False)
-        else:
-            state["filter"] = None
+    state["spec"] = spec
+    state["model"] = pipeline
+    state["ckpt"] = ckpt if load_ckpt else None
+    state["config"] = config
+    state["params"] = SamplingParams()
+    if load_filter:
+        state["filter"] = DeepFloydDataFiltering(verbose=False)
+    else:
+        state["filter"] = None
     return state
 
 

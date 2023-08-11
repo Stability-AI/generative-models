@@ -75,8 +75,8 @@ class SamplingParams:
     aesthetic_score: float = 6.0
     negative_aesthetic_score: float = 2.5
     img2img_strength: float = 1.0
-    orig_width: int = 1024
-    orig_height: int = 1024
+    orig_width: int = width
+    orig_height: int = height
     crop_coords_top: int = 0
     crop_coords_left: int = 0
     sigma_min: float = 0.0292
@@ -301,6 +301,8 @@ class SamplingPipeline:
         value_dict["negative_prompt"] = negative_prompt
         value_dict["target_width"] = width
         value_dict["target_height"] = height
+        value_dict["orig_width"] = width
+        value_dict["orig_height"] = height
         return do_img2img(
             image,
             self.model,
