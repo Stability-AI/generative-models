@@ -16,6 +16,10 @@
 		},
 		"ghcr.io/devcontainers-contrib/features/apt-get-packages:1": {
 			"packages": "libgl1-mesa-glx"
+		},
+		"ghcr.io/stability-ai/devcontainer-features/pytorch:1.0.1": {
+			"version": "2.0.1",
+			"cudaVersion": "cu118"
 		}
 	},
 	"customizations": {
@@ -26,8 +30,16 @@
 				"ms-python.black-formatter"
 			],
 			"settings": {
-				"editor.defaultFormatter": "ms-python.black-formatter",
-				"editor.formatOnSave": true
+				"[python]": {
+					"diffEditor.ignoreTrimWhitespace": false,
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.formatOnSave": true,
+					"editor.wordBasedSuggestions": false
+				},
+				"python.analysis.typeCheckingMode": "basic",
+				"black-formatter.args": [
+					"-l 88"
+				]
 			}
 		}
 	},
@@ -35,5 +47,6 @@
 		"--gpus",
 		"all"
 	],
-	"postCreateCommand": "git config --global --add safe.directory '*'; pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2+cu118 --index-url https://download.pytorch.org/whl/cu118;pip install -r requirements/pt2.txt;pip install -e ."	
+	"postCreateCommand": "git config --global --add safe.directory '*'",
+	"postAttachCommand": "pip install -U -r requirements/pt2.txt;pip install -U -e ."
 }
