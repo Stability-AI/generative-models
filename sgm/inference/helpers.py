@@ -67,7 +67,7 @@ class DeviceModelManager(object):
         self,
         device: Union[torch.device, str],
         swap_device: Optional[Union[torch.device, str]] = None,
-    ):
+    ) -> None:
         """
         Args:
             device (Union[torch.device, str]): The device to use for the model.
@@ -77,11 +77,11 @@ class DeviceModelManager(object):
             torch.device(swap_device) if swap_device is not None else self.device
         )
 
-    def load(self, model: torch.nn.Module):
+    def load(self, model: torch.nn.Module) -> None:
         """
-        Loads a model to the device.
+        Loads a model to the (swap) device.
         """
-        return model.to(self.device)
+        model.to(self.swap_device)
 
     def autocast(self):
         """
@@ -109,7 +109,7 @@ class DeviceModelManager(object):
 class CudaModelManager(DeviceModelManager):
     """
     Device manager that loads a model to a CUDA device, optionally swapping to CPU when not in use.
-    """
+    """    
 
     @contextlib.contextmanager
     def use(self, model: Union[torch.nn.Module, torch.Tensor]):
@@ -140,6 +140,15 @@ def perform_save_locally(save_path, samples):
         )
         base_count += 1
 
+
+def get_model_manager(device: Union[str,torch.device]) -> DeviceModelManager:
+    if isinstance(device, torch.device) or isinstance(device, str):
+        if torch.device(device).type == "cuda":
+            return CudaModelManager(device=device)
+        else:
+            return DeviceModelManager(device=device)
+    else:
+        return device
 
 class Img2ImgDiscretizationWrapper:
     """
