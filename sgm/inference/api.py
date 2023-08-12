@@ -61,9 +61,9 @@ class SamplingParams:
     Parameters for sampling.
     """
 
-    width: int
-    height: int
-    steps: int
+    width: Optional[int] = None
+    height: Optional[int] = None
+    steps: Optional[int] = None
     sampler: Sampler = Sampler.EULER_EDM
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
@@ -286,6 +286,15 @@ class SamplingPipeline:
     ):
         if params is None:
             params = self.specs.default_params
+        else:
+            # Set defaults if optional params are not specified
+            if params.width is None:
+                params.width = self.specs.default_params.width
+            if params.height is None:
+                params.height = self.specs.default_params.height
+            if params.steps is None:
+                params.steps = self.specs.default_params.steps
+
         sampler = get_sampler_config(params)
 
         sampler.discretization = wrap_discretization(
