@@ -109,7 +109,7 @@ class DeviceModelManager(object):
 class CudaModelManager(DeviceModelManager):
     """
     Device manager that loads a model to a CUDA device, optionally swapping to CPU when not in use.
-    """    
+    """
 
     @contextlib.contextmanager
     def use(self, model: Union[torch.nn.Module, torch.Tensor]):
@@ -141,14 +141,19 @@ def perform_save_locally(save_path, samples):
         base_count += 1
 
 
-def get_model_manager(device: Union[str,torch.device]) -> DeviceModelManager:
-    if isinstance(device, torch.device) or isinstance(device, str):
-        if torch.device(device).type == "cuda":
-            return CudaModelManager(device=device)
-        else:
-            return DeviceModelManager(device=device)
-    else:
+def get_model_manager(
+    device: Optional[Union[DeviceModelManager, str, torch.device]]
+) -> DeviceModelManager:
+    if isinstance(device, DeviceModelManager):
         return device
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device)
+    if device.type == "cuda":
+        return CudaModelManager(device=device)
+    else:
+        return DeviceModelManager(device=device)
+
 
 class Img2ImgDiscretizationWrapper:
     """
@@ -217,12 +222,14 @@ def do_sample(
     batch2model_input: Optional[List] = None,
     return_latents=False,
     filter=None,
-    device_manager: DeviceModelManager = DeviceModelManager("cuda"),
+    device: Optional[Union[DeviceModelManager, str, torch.device]] = None,
 ):
     if force_uc_zero_embeddings is None:
         force_uc_zero_embeddings = []
     if batch2model_input is None:
         batch2model_input = []
+
+    device_manager = get_model_manager(device=device)
 
     with torch.no_grad():
         with device_manager.autocast():
@@ -367,8 +374,9 @@ def do_img2img(
     skip_encode=False,
     filter=None,
     add_noise=True,
-    device_manager=DeviceModelManager("cuda"),
+    device: Optional[Union[DeviceModelManager, str, torch.device]] = None,
 ):
+    device_manager = get_model_manager(device)
     with torch.no_grad():
         with device_manager.autocast():
             with model.ema_scope():
