@@ -130,7 +130,7 @@ def show_samples(samples, outputs):
     outputs.image(grid.cpu().numpy())
 
 
-def get_guider(key, params: SamplingParams) -> SamplingParams:
+def get_guider(params: SamplingParams, key=1) -> SamplingParams:
     params.guider = Guider(
         st.sidebar.selectbox(
             f"Discretization #{key}", [member.value for member in Guider]
@@ -157,8 +157,8 @@ def get_guider(key, params: SamplingParams) -> SamplingParams:
 
 
 def init_sampling(
+    params: SamplingParams,
     key=1,
-    params: SamplingParams = SamplingParams(),
     specify_num_samples=True,
 ) -> Tuple[SamplingParams, int, int]:
     params = SamplingParams(img2img_strength=params.img2img_strength)

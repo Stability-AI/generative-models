@@ -88,14 +88,14 @@ def run_txt2img(
     model: SamplingPipeline = state["model"]
     params: SamplingParams = state["params"]
     if version.startswith("stable-diffusion-xl") and version.endswith("-base"):
-        params.width, params.height = st.selectbox(
+        width, height = st.selectbox(
             "Resolution:", list(SD_XL_BASE_RATIOS.values()), 10
         )
     else:
-        params.height = int(
+        height = int(
             st.number_input("H", value=spec.height, min_value=64, max_value=2048)
         )
-        params.width = int(
+        width = int(
             st.number_input("W", value=spec.width, min_value=64, max_value=2048)
         )
 
@@ -107,6 +107,8 @@ def run_txt2img(
     )
     params, num_rows, num_cols = init_sampling(params=params)
     num_samples = num_rows * num_cols
+    params.height = height
+    params.width = width
 
     if st.button("Sample"):
         st.write(f"**Model I:** {version}")
@@ -289,8 +291,8 @@ if __name__ == "__main__":
         )
 
         params2, *_ = init_sampling(
-            key=2,
             params=state2["params"],
+            key=2,
             specify_num_samples=False,
         )
         st.write("__________________________")
