@@ -27,7 +27,7 @@ class TestInference:
     @fixture(
         scope="class",
         params=[
-            [ModelArchitecture.SDXL_V1_BASE, ModelArchitecture.SDXL_V1_REFINER],
+            [ModelArchitecture.SDXL_V1_0_BASE, ModelArchitecture.SDXL_V1_0_REFINER],
             [ModelArchitecture.SDXL_V0_9_BASE, ModelArchitecture.SDXL_V0_9_REFINER],
         ],
         ids=["SDXL_V1", "SDXL_V0_9"],

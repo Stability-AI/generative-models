@@ -24,8 +24,8 @@ from typing import Optional, Dict, Any, Union
 
 
 class ModelArchitecture(str, Enum):
-    SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
-    SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SDXL_V1_0_BASE = "stable-diffusion-xl-v1-base"
+    SDXL_V1_0_REFINER = "stable-diffusion-xl-v1-refiner"
     SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
     SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
     SD_2_1 = "stable-diffusion-v2-1"
@@ -59,24 +59,21 @@ class Thresholder(str, Enum):
 class SamplingParams:
     """
     Parameters for sampling.
-    The defaults here are derived from user preference testing.
-    They will be subject to change in the future, likely pulled
-    from model specs instead of global defaults.
     """
 
-    width: int = 1024
-    height: int = 1024
-    steps: int = 40
+    width: int
+    height: int
+    steps: int
     sampler: Sampler = Sampler.EULER_EDM
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
     thresholder: Thresholder = Thresholder.NONE
-    scale: float = 5.0
+    scale: float
     aesthetic_score: float = 6.0
     negative_aesthetic_score: float = 2.5
     img2img_strength: float = 1.0
-    orig_width: int = width
-    orig_height: int = height
+    orig_width: int = 1024
+    orig_height: int = 1024
     crop_coords_top: int = 0
     crop_coords_left: int = 0
     sigma_min: float = 0.0292
@@ -100,8 +97,10 @@ class SamplingSpec:
     config: str
     ckpt: str
     is_guided: bool
+    default_params: SamplingParams
 
 
+# The defaults here are derived from user preference testing.
 model_specs = {
     ModelArchitecture.SD_2_1: SamplingSpec(
         height=512,
@@ -112,6 +111,12 @@ model_specs = {
         config="sd_2_1.yaml",
         ckpt="v2-1_512-ema-pruned.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=512,
+            height=512,
+            steps=40,
+            scale=7.0,
+        ),
     ),
     ModelArchitecture.SD_2_1_768: SamplingSpec(
         height=768,
@@ -122,6 +127,12 @@ model_specs = {
         config="sd_2_1_768.yaml",
         ckpt="v2-1_768-ema-pruned.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=768,
+            height=768,
+            steps=40,
+            scale=7.0,
+        ),
     ),
     ModelArchitecture.SDXL_V0_9_BASE: SamplingSpec(
         height=1024,
@@ -132,6 +143,7 @@ model_specs = {
         config="sd_xl_base.yaml",
         ckpt="sd_xl_base_0.9.safetensors",
         is_guided=True,
+        default_params=SamplingParams(width=1024, height=1024, steps=40, scale=5.0),
     ),
     ModelArchitecture.SDXL_V0_9_REFINER: SamplingSpec(
         height=1024,
@@ -142,8 +154,11 @@ model_specs = {
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_0.9.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=1024, height=1024, steps=40, scale=5.0, img2img_strength=0.15
+        ),
     ),
-    ModelArchitecture.SDXL_V1_BASE: SamplingSpec(
+    ModelArchitecture.SDXL_V1_0_BASE: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -152,8 +167,9 @@ model_specs = {
         config="sd_xl_base.yaml",
         ckpt="sd_xl_base_1.0.safetensors",
         is_guided=True,
+        default_params=SamplingParams(width=1024, height=1024, steps=40, scale=5.0),
     ),
-    ModelArchitecture.SDXL_V1_REFINER: SamplingSpec(
+    ModelArchitecture.SDXL_V1_0_REFINER: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -162,8 +178,37 @@ model_specs = {
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=1024, height=1024, steps=40, scale=5.0, img2img_strength=0.15
+        ),
     ),
 }
+
+
+def wrap_discretization(
+    discretization, image_strength=None, noise_strength=None, steps=None
+):
+    if isinstance(discretization, Img2ImgDiscretizationWrapper) or isinstance(
+        discretization, Txt2NoisyDiscretizationWrapper
+    ):
+        return discretization  # Already wrapped
+    if image_strength is not None and image_strength < 1.0 and image_strength > 0.0:
+        discretization = Img2ImgDiscretizationWrapper(
+            discretization, strength=image_strength
+        )
+
+    if (
+        noise_strength is not None
+        and noise_strength < 1.0
+        and noise_strength > 0.0
+        and steps is not None
+    ):
+        discretization = Txt2NoisyDiscretizationWrapper(
+            discretization,
+            strength=noise_strength,
+            original_steps=steps,
+        )
+    return discretization
 
 
 class SamplingPipeline:
@@ -231,17 +276,19 @@ class SamplingPipeline:
 
     def text_to_image(
         self,
-        params: SamplingParams,
         prompt: str,
+        params: Optional[SamplingParams] = None,
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
         noise_strength: Optional[float] = None,
         filter=None,
     ):
+        if params is None:
+            params = self.specs.default_params
         sampler = get_sampler_config(params)
 
-        sampler.discretization = self.wrap_discretization(
+        sampler.discretization = wrap_discretization(
             sampler.discretization,
             image_strength=None,
             noise_strength=noise_strength,
@@ -270,18 +317,20 @@ class SamplingPipeline:
 
     def image_to_image(
         self,
-        params: SamplingParams,
         image: torch.Tensor,
         prompt: str,
+        params: Optional[SamplingParams] = None,
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
         noise_strength: Optional[float] = None,
         filter=None,
     ):
+        if params is None:
+            params = self.specs.default_params
         sampler = get_sampler_config(params)
 
-        sampler.discretization = self.wrap_discretization(
+        sampler.discretization = wrap_discretization(
             sampler.discretization,
             image_strength=params.img2img_strength,
             noise_strength=noise_strength,
@@ -308,44 +357,20 @@ class SamplingPipeline:
             device=self.device_manager,
         )
 
-    def wrap_discretization(
-        self, discretization, image_strength=None, noise_strength=None, steps=None
-    ):
-        if isinstance(discretization, Img2ImgDiscretizationWrapper) or isinstance(
-            discretization, Txt2NoisyDiscretizationWrapper
-        ):
-            return discretization  # Already wrapped
-        if image_strength is not None and image_strength < 1.0 and image_strength > 0.0:
-            discretization = Img2ImgDiscretizationWrapper(
-                discretization, strength=image_strength
-            )
-
-        if (
-            noise_strength is not None
-            and noise_strength < 1.0
-            and noise_strength > 0.0
-            and steps is not None
-        ):
-            discretization = Txt2NoisyDiscretizationWrapper(
-                discretization,
-                strength=noise_strength,
-                original_steps=steps,
-            )
-        return discretization
-
     def refiner(
         self,
         image: torch.Tensor,
         prompt: str,
         negative_prompt: str = "",
-        params: SamplingParams = SamplingParams(
-            sampler=Sampler.EULER_EDM, steps=40, img2img_strength=0.15
-        ),
+        params: Optional[SamplingParams] = None,
         samples: int = 1,
         return_latents: bool = False,
         filter: Any = None,
         add_noise: bool = False,
     ):
+        if params is None:
+            params = self.specs.default_params
+
         sampler = get_sampler_config(params)
         value_dict = {
             "orig_width": image.shape[3] * 8,
