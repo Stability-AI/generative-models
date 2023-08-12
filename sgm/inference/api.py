@@ -394,7 +394,7 @@ class SamplingPipeline:
             "negative_aesthetic_score": 2.5,
         }
 
-        sampler.discretization = self.wrap_discretization(
+        sampler.discretization = wrap_discretization(
             sampler.discretization, image_strength=params.img2img_strength
         )
 
