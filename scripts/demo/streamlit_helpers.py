@@ -132,9 +132,7 @@ def show_samples(samples, outputs):
 
 def get_guider(params: SamplingParams, key=1) -> SamplingParams:
     params.guider = Guider(
-        st.sidebar.selectbox(
-            f"Discretization #{key}", [member.value for member in Guider]
-        )
+        st.sidebar.selectbox(f"Discretization #{key}", [member.value for member in Guider])
     )
 
     if params.guider == Guider.VANILLA:
@@ -161,18 +159,12 @@ def init_sampling(
     key=1,
     specify_num_samples=True,
 ) -> Tuple[SamplingParams, int, int]:
-    params = SamplingParams(img2img_strength=params.img2img_strength)
-
     num_rows, num_cols = 1, 1
     if specify_num_samples:
-        num_cols = st.number_input(
-            f"num cols #{key}", value=2, min_value=1, max_value=10
-        )
+        num_cols = st.number_input(f"num cols #{key}", value=2, min_value=1, max_value=10)
 
     params.steps = int(
-        st.sidebar.number_input(
-            f"steps #{key}", value=params.steps, min_value=1, max_value=1000
-        )
+        st.sidebar.number_input(f"steps #{key}", value=params.steps, min_value=1, max_value=1000)
     )
 
     params.sampler = Sampler(
@@ -220,15 +212,11 @@ def get_sampler(params: SamplingParams, key=1) -> SamplingParams:
         )
 
     elif params.sampler in (Sampler.EULER_ANCESTRAL, Sampler.DPMPP2S_ANCESTRAL):
-        params.s_noise = st.sidebar.number_input(
-            "s_noise", value=params.s_noise, min_value=0.0
-        )
+        params.s_noise = st.sidebar.number_input("s_noise", value=params.s_noise, min_value=0.0)
         params.eta = st.sidebar.number_input("eta", value=params.eta, min_value=0.0)
 
     elif params.sampler == Sampler.LINEAR_MULTISTEP:
-        params.order = int(
-            st.sidebar.number_input("order", value=params.order, min_value=1)
-        )
+        params.order = int(st.sidebar.number_input("order", value=params.order, min_value=1))
     return params
 
 
