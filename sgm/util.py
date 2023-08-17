@@ -230,6 +230,24 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
     return model
 
 
+def get_checkpoints_path() -> str:
+    """
+    Get the `checkpoints` directory.
+    This could be in the root of the repository for a working copy,
+    or in the cwd for other use cases.
+    """
+    this_dir = os.path.dirname(__file__)
+    candidates = (
+        os.path.join(this_dir, "checkpoints"),
+        os.path.join(os.getcwd(), "checkpoints"),
+    )
+    for candidate in candidates:
+        candidate = os.path.abspath(candidate)
+        if os.path.isdir(candidate):
+            return candidate
+    raise FileNotFoundError(f"Could not find SGM checkpoints in {candidates}")
+
+
 def get_configs_path() -> str:
     """
     Get the `configs` directory.

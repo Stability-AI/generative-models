@@ -1,11 +1,14 @@
 from dataclasses import dataclass, asdict
 from enum import Enum
 from omegaconf import OmegaConf
-import pathlib
+import os
 from sgm.inference.helpers import (
     do_sample,
     do_img2img,
+    DeviceModelManager,
+    get_model_manager,
     Img2ImgDiscretizationWrapper,
+    Txt2NoisyDiscretizationWrapper,
 )
 from sgm.modules.diffusionmodules.sampling import (
     EulerEDMSampler,
@@ -15,17 +18,18 @@ from sgm.modules.diffusionmodules.sampling import (
     DPMPP2MSampler,
     LinearMultistepSampler,
 )
-from sgm.util import load_model_from_config
-from typing import Optional
+from sgm.util import load_model_from_config, get_configs_path, get_checkpoints_path
+import torch
+from typing import Optional, Dict, Any, Union
 
 
 class ModelArchitecture(str, Enum):
-    SD_2_1 = "stable-diffusion-v2-1"
-    SD_2_1_768 = "stable-diffusion-v2-1-768"
+    SDXL_V1_0_BASE = "stable-diffusion-xl-v1-base"
+    SDXL_V1_0_REFINER = "stable-diffusion-xl-v1-refiner"
     SDXL_V0_9_BASE = "stable-diffusion-xl-v0-9-base"
     SDXL_V0_9_REFINER = "stable-diffusion-xl-v0-9-refiner"
-    SDXL_V1_BASE = "stable-diffusion-xl-v1-base"
-    SDXL_V1_REFINER = "stable-diffusion-xl-v1-refiner"
+    SD_2_1 = "stable-diffusion-v2-1"
+    SD_2_1_768 = "stable-diffusion-v2-1-768"
 
 
 class Sampler(str, Enum):
@@ -53,16 +57,20 @@ class Thresholder(str, Enum):
 
 @dataclass
 class SamplingParams:
-    width: int = 1024
-    height: int = 1024
-    steps: int = 50
-    sampler: Sampler = Sampler.DPMPP2M
+    """
+    Parameters for sampling.
+    """
+
+    width: Optional[int] = None
+    height: Optional[int] = None
+    steps: Optional[int] = None
+    sampler: Sampler = Sampler.EULER_EDM
     discretization: Discretization = Discretization.LEGACY_DDPM
     guider: Guider = Guider.VANILLA
     thresholder: Thresholder = Thresholder.NONE
-    scale: float = 6.0
-    aesthetic_score: float = 5.0
-    negative_aesthetic_score: float = 5.0
+    scale: float = 5.0
+    aesthetic_score: float = 6.0
+    negative_aesthetic_score: float = 2.5
     img2img_strength: float = 1.0
     orig_width: int = 1024
     orig_height: int = 1024
@@ -89,8 +97,10 @@ class SamplingSpec:
     config: str
     ckpt: str
     is_guided: bool
+    default_params: SamplingParams
 
 
+# The defaults here are derived from user preference testing.
 model_specs = {
     ModelArchitecture.SD_2_1: SamplingSpec(
         height=512,
@@ -101,6 +111,12 @@ model_specs = {
         config="sd_2_1.yaml",
         ckpt="v2-1_512-ema-pruned.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=512,
+            height=512,
+            steps=40,
+            scale=7.0,
+        ),
     ),
     ModelArchitecture.SD_2_1_768: SamplingSpec(
         height=768,
@@ -111,6 +127,12 @@ model_specs = {
         config="sd_2_1_768.yaml",
         ckpt="v2-1_768-ema-pruned.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=768,
+            height=768,
+            steps=40,
+            scale=7.0,
+        ),
     ),
     ModelArchitecture.SDXL_V0_9_BASE: SamplingSpec(
         height=1024,
@@ -121,6 +143,7 @@ model_specs = {
         config="sd_xl_base.yaml",
         ckpt="sd_xl_base_0.9.safetensors",
         is_guided=True,
+        default_params=SamplingParams(width=1024, height=1024, steps=40, scale=5.0),
     ),
     ModelArchitecture.SDXL_V0_9_REFINER: SamplingSpec(
         height=1024,
@@ -131,8 +154,11 @@ model_specs = {
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_0.9.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=1024, height=1024, steps=40, scale=5.0, img2img_strength=0.15
+        ),
     ),
-    ModelArchitecture.SDXL_V1_BASE: SamplingSpec(
+    ModelArchitecture.SDXL_V1_0_BASE: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -141,8 +167,9 @@ model_specs = {
         config="sd_xl_base.yaml",
         ckpt="sd_xl_base_1.0.safetensors",
         is_guided=True,
+        default_params=SamplingParams(width=1024, height=1024, steps=40, scale=5.0),
     ),
-    ModelArchitecture.SDXL_V1_REFINER: SamplingSpec(
+    ModelArchitecture.SDXL_V1_0_REFINER: SamplingSpec(
         height=1024,
         width=1024,
         channels=4,
@@ -151,34 +178,97 @@ model_specs = {
         config="sd_xl_refiner.yaml",
         ckpt="sd_xl_refiner_1.0.safetensors",
         is_guided=True,
+        default_params=SamplingParams(
+            width=1024, height=1024, steps=40, scale=5.0, img2img_strength=0.15
+        ),
     ),
 }
+
+
+def wrap_discretization(
+    discretization, image_strength=None, noise_strength=None, steps=None
+):
+    if isinstance(discretization, Img2ImgDiscretizationWrapper) or isinstance(
+        discretization, Txt2NoisyDiscretizationWrapper
+    ):
+        return discretization  # Already wrapped
+    if image_strength is not None and image_strength < 1.0 and image_strength > 0.0:
+        discretization = Img2ImgDiscretizationWrapper(
+            discretization, strength=image_strength
+        )
+
+    if (
+        noise_strength is not None
+        and noise_strength < 1.0
+        and noise_strength > 0.0
+        and steps is not None
+    ):
+        discretization = Txt2NoisyDiscretizationWrapper(
+            discretization,
+            strength=noise_strength,
+            original_steps=steps,
+        )
+    return discretization
 
 
 class SamplingPipeline:
     def __init__(
         self,
-        model_id: ModelArchitecture,
-        model_path="checkpoints",
-        config_path="configs/inference",
-        device="cuda",
-        use_fp16=True,
+        model_id: Optional[ModelArchitecture] = None,
+        model_spec: Optional[SamplingSpec] = None,
+        model_path: Optional[str] = None,
+        config_path: Optional[str] = None,
+        use_fp16: bool = True,
+        device: Optional[Union[DeviceModelManager, str, torch.device]] = None,
     ) -> None:
-        if model_id not in model_specs:
-            raise ValueError(f"Model {model_id} not supported")
-        self.model_id = model_id
-        self.specs = model_specs[self.model_id]
-        self.config = str(pathlib.Path(config_path, self.specs.config))
-        self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
-        self.device = device
-        self.model = self._load_model(device=device, use_fp16=use_fp16)
+        """
+        Sampling pipeline for generating images from a model.
 
-    def _load_model(self, device="cuda", use_fp16=True):
+        @param model_id: Model architecture to use. If not specified, model_spec must be specified.
+        @param model_spec: Model specification to use. If not specified, model_id must be specified.
+        @param model_path: Path to model checkpoints folder.
+        @param config_path: Path to model config folder.
+        @param use_fp16: Whether to use fp16 for sampling.
+        @param device: Device manager to use with this pipeline. If a string or torch.device is passed, a device  manager will be created based on device type if possible.
+        """
+
+        self.model_id = model_id
+        if model_spec is not None:
+            self.specs = model_spec
+        elif model_id is not None:
+            if model_id not in model_specs:
+                raise ValueError(f"Model {model_id} not supported")
+            self.specs = model_specs[model_id]
+        else:
+            raise ValueError("Either model_id or model_spec should be provided")
+
+        if model_path is None:
+            model_path = get_checkpoints_path()
+        if config_path is None:
+            config_path = get_configs_path()
+        self.config = os.path.join(config_path, "inference", self.specs.config)
+        self.ckpt = os.path.join(model_path, self.specs.ckpt)
+        if not os.path.exists(self.config):
+            raise ValueError(
+                f"Config {self.config} not found, check model spec or config_path"
+            )
+        if not os.path.exists(self.ckpt):
+            raise ValueError(
+                f"Checkpoint {self.ckpt} not found, check model spec or config_path"
+            )
+
+        self.device_manager = get_model_manager(device)
+
+        self.model = self._load_model(
+            device_manager=self.device_manager, use_fp16=use_fp16
+        )
+
+    def _load_model(self, device_manager: DeviceModelManager, use_fp16=True):
         config = OmegaConf.load(self.config)
         model = load_model_from_config(config, self.ckpt)
         if model is None:
             raise ValueError(f"Model {self.model_id} could not be loaded")
-        model.to(device)
+        device_manager.load(model)
         if use_fp16:
             model.conditioner.half()
             model.model.half()
@@ -186,13 +276,34 @@ class SamplingPipeline:
 
     def text_to_image(
         self,
-        params: SamplingParams,
         prompt: str,
+        params: Optional[SamplingParams] = None,
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
+        noise_strength: Optional[float] = None,
+        filter=None,
     ):
+        if params is None:
+            params = self.specs.default_params
+        else:
+            # Set defaults if optional params are not specified
+            if params.width is None:
+                params.width = self.specs.default_params.width
+            if params.height is None:
+                params.height = self.specs.default_params.height
+            if params.steps is None:
+                params.steps = self.specs.default_params.steps
+
         sampler = get_sampler_config(params)
+
+        sampler.discretization = wrap_discretization(
+            sampler.discretization,
+            image_strength=None,
+            noise_strength=noise_strength,
+            steps=params.steps,
+        )
+
         value_dict = asdict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
@@ -209,31 +320,40 @@ class SamplingPipeline:
             self.specs.factor,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
+            device=self.device_manager,
         )
 
     def image_to_image(
         self,
-        params: SamplingParams,
-        image,
+        image: torch.Tensor,
         prompt: str,
+        params: Optional[SamplingParams] = None,
         negative_prompt: str = "",
         samples: int = 1,
         return_latents: bool = False,
+        noise_strength: Optional[float] = None,
+        filter=None,
     ):
+        if params is None:
+            params = self.specs.default_params
         sampler = get_sampler_config(params)
 
-        if params.img2img_strength < 1.0:
-            sampler.discretization = Img2ImgDiscretizationWrapper(
-                sampler.discretization,
-                strength=params.img2img_strength,
-            )
+        sampler.discretization = wrap_discretization(
+            sampler.discretization,
+            image_strength=params.img2img_strength,
+            noise_strength=noise_strength,
+            steps=params.steps,
+        )
+
         height, width = image.shape[2], image.shape[3]
         value_dict = asdict(params)
         value_dict["prompt"] = prompt
         value_dict["negative_prompt"] = negative_prompt
         value_dict["target_width"] = width
         value_dict["target_height"] = height
+        value_dict["orig_width"] = width
+        value_dict["orig_height"] = height
         return do_img2img(
             image,
             self.model,
@@ -242,18 +362,24 @@ class SamplingPipeline:
             samples,
             force_uc_zero_embeddings=["txt"] if not self.specs.is_legacy else [],
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
+            device=self.device_manager,
         )
 
     def refiner(
         self,
-        params: SamplingParams,
-        image,
+        image: torch.Tensor,
         prompt: str,
-        negative_prompt: Optional[str] = None,
+        negative_prompt: str = "",
+        params: Optional[SamplingParams] = None,
         samples: int = 1,
         return_latents: bool = False,
+        filter: Any = None,
+        add_noise: bool = False,
     ):
+        if params is None:
+            params = self.specs.default_params
+
         sampler = get_sampler_config(params)
         value_dict = {
             "orig_width": image.shape[3] * 8,
@@ -268,6 +394,10 @@ class SamplingPipeline:
             "negative_aesthetic_score": 2.5,
         }
 
+        sampler.discretization = wrap_discretization(
+            sampler.discretization, image_strength=params.img2img_strength
+        )
+
         return do_img2img(
             image,
             self.model,
@@ -276,11 +406,14 @@ class SamplingPipeline:
             samples,
             skip_encode=True,
             return_latents=return_latents,
-            filter=None,
+            filter=filter,
+            add_noise=add_noise,
+            device=self.device_manager,
         )
 
 
-def get_guider_config(params: SamplingParams):
+def get_guider_config(params: SamplingParams) -> Dict[str, Any]:
+    guider_config: Dict[str, Any]
     if params.guider == Guider.IDENTITY:
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
@@ -306,7 +439,8 @@ def get_guider_config(params: SamplingParams):
     return guider_config
 
 
-def get_discretization_config(params: SamplingParams):
+def get_discretization_config(params: SamplingParams) -> Dict[str, Any]:
+    discretization_config: Dict[str, Any]
     if params.discretization == Discretization.LEGACY_DDPM:
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",

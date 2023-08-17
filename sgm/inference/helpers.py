@@ -1,3 +1,4 @@
+import contextlib
 import os
 from typing import Union, List, Optional
 
@@ -8,7 +9,6 @@ from PIL import Image
 from einops import rearrange
 from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig
-from torch import autocast
 
 from sgm.util import append_dims
 
@@ -58,6 +58,73 @@ WATERMARK_BITS = [int(bit) for bit in bin(WATERMARK_MESSAGE)[2:]]
 embed_watermark = WatermarkEmbedder(WATERMARK_BITS)
 
 
+class DeviceModelManager(object):
+    """
+    Default model loading class, should work for all device classes.
+    """
+
+    def __init__(
+        self,
+        device: Union[torch.device, str],
+        swap_device: Optional[Union[torch.device, str]] = None,
+    ) -> None:
+        """
+        Args:
+            device (Union[torch.device, str]): The device to use for the model.
+        """
+        self.device = torch.device(device)
+        self.swap_device = (
+            torch.device(swap_device) if swap_device is not None else self.device
+        )
+
+    def load(self, model: torch.nn.Module) -> None:
+        """
+        Loads a model to the (swap) device.
+        """
+        model.to(self.swap_device)
+
+    def autocast(self):
+        """
+        Context manager that enables autocast for the device if supported.
+        """
+        if self.device.type not in ("cuda", "cpu"):
+            return contextlib.nullcontext()
+        return torch.autocast(self.device.type)
+
+    @contextlib.contextmanager
+    def use(self, model: torch.nn.Module):
+        """
+        Context manager that ensures a model is on the correct device during use.
+        The default model loader does not perform any swapping, so the model will
+        stay on device.
+        """
+        try:
+            model.to(self.device)
+            yield
+        finally:
+            if self.device != self.swap_device:
+                model.to(self.swap_device)
+
+
+class CudaModelManager(DeviceModelManager):
+    """
+    Device manager that loads a model to a CUDA device, optionally swapping to CPU when not in use.
+    """
+
+    @contextlib.contextmanager
+    def use(self, model: Union[torch.nn.Module, torch.Tensor]):
+        """
+        Context manager that ensures a model is on the correct device during use.
+        If a swap device was provided, this will move the model to it after use and clear cache.
+        """
+        model.to(self.device)
+        yield
+        if self.device != self.swap_device:
+            model.to(self.swap_device)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+
 def get_unique_embedder_keys_from_conditioner(conditioner):
     return list({x.input_key for x in conditioner.embedders})
 
@@ -72,6 +139,20 @@ def perform_save_locally(save_path, samples):
             os.path.join(save_path, f"{base_count:09}.png")
         )
         base_count += 1
+
+
+def get_model_manager(
+    device: Optional[Union[DeviceModelManager, str, torch.device]]
+) -> DeviceModelManager:
+    if isinstance(device, DeviceModelManager):
+        return device
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device(device)
+    if device.type == "cuda":
+        return CudaModelManager(device=device)
+    else:
+        return DeviceModelManager(device=device)
 
 
 class Img2ImgDiscretizationWrapper:
@@ -98,6 +179,36 @@ class Img2ImgDiscretizationWrapper:
         return sigmas
 
 
+class Txt2NoisyDiscretizationWrapper:
+    """
+    wraps a discretizer, and prunes the sigmas
+    params:
+        strength: float between 0.0 and 1.0. 0.0 means full sampling (all sigmas are returned)
+    """
+
+    def __init__(self, discretization, strength: float = 0.0, original_steps=None):
+        self.discretization = discretization
+        self.strength = strength
+        self.original_steps = original_steps
+        assert 0.0 <= self.strength <= 1.0
+
+    def __call__(self, *args, **kwargs):
+        # sigmas start large first, and decrease then
+        sigmas = self.discretization(*args, **kwargs)
+        print(f"sigmas after discretization, before pruning img2img: ", sigmas)
+        sigmas = torch.flip(sigmas, (0,))
+        if self.original_steps is None:
+            steps = len(sigmas)
+        else:
+            steps = self.original_steps + 1
+        prune_index = max(min(int(self.strength * steps) - 1, steps - 1), 0)
+        sigmas = sigmas[prune_index:]
+        print("prune index:", prune_index)
+        sigmas = torch.flip(sigmas, (0,))
+        print(f"sigmas after pruning: ", sigmas)
+        return sigmas
+
+
 def do_sample(
     model,
     sampler,
@@ -111,39 +222,45 @@ def do_sample(
     batch2model_input: Optional[List] = None,
     return_latents=False,
     filter=None,
-    device="cuda",
+    device: Optional[Union[DeviceModelManager, str, torch.device]] = None,
 ):
     if force_uc_zero_embeddings is None:
         force_uc_zero_embeddings = []
     if batch2model_input is None:
         batch2model_input = []
 
+    device_manager = get_model_manager(device=device)
+
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with device_manager.autocast():
             with model.ema_scope():
                 num_samples = [num_samples]
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    num_samples,
-                )
-                for key in batch:
-                    if isinstance(batch[key], torch.Tensor):
-                        print(key, batch[key].shape)
-                    elif isinstance(batch[key], list):
-                        print(key, [len(l) for l in batch[key]])
-                    else:
-                        print(key, batch[key])
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
+                with device_manager.use(model.conditioner):
+                    batch, batch_uc = get_batch(
+                        get_unique_embedder_keys_from_conditioner(model.conditioner),
+                        value_dict,
+                        num_samples,
+                    )
+                    for key in batch:
+                        if isinstance(batch[key], torch.Tensor):
+                            print(key, batch[key].shape)
+                        elif isinstance(batch[key], list):
+                            print(key, [len(l) for l in batch[key]])
+                        else:
+                            print(key, batch[key])
+                    c, uc = model.conditioner.get_unconditional_conditioning(
+                        batch,
+                        batch_uc=batch_uc,
+                        force_uc_zero_embeddings=force_uc_zero_embeddings,
+                    )
 
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
-                            lambda y: y[k][: math.prod(num_samples)].to(device), (c, uc)
+                            lambda y: y[k][: math.prod(num_samples)].to(
+                                device_manager.device
+                            ),
+                            (c, uc),
                         )
 
                 additional_model_inputs = {}
@@ -151,16 +268,20 @@ def do_sample(
                     additional_model_inputs[k] = batch[k]
 
                 shape = (math.prod(num_samples), C, H // F, W // F)
-                randn = torch.randn(shape).to(device)
+                randn = torch.randn(shape).to(device_manager.device)
 
                 def denoiser(input, sigma, c):
                     return model.denoiser(
                         model.model, input, sigma, c, **additional_model_inputs
                     )
 
-                samples_z = sampler(denoiser, randn, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                with device_manager.use(model.denoiser):
+                    with device_manager.use(model.model):
+                        samples_z = sampler(denoiser, randn, cond=c, uc=uc)
+
+                with device_manager.use(model.first_stage_model):
+                    samples_x = model.decode_first_stage(samples_z)
+                    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
                     samples = filter(samples)
@@ -252,32 +373,40 @@ def do_img2img(
     return_latents=False,
     skip_encode=False,
     filter=None,
-    device="cuda",
+    add_noise=True,
+    device: Optional[Union[DeviceModelManager, str, torch.device]] = None,
 ):
+    device_manager = get_model_manager(device)
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with device_manager.autocast():
             with model.ema_scope():
-                batch, batch_uc = get_batch(
-                    get_unique_embedder_keys_from_conditioner(model.conditioner),
-                    value_dict,
-                    [num_samples],
-                )
-                c, uc = model.conditioner.get_unconditional_conditioning(
-                    batch,
-                    batch_uc=batch_uc,
-                    force_uc_zero_embeddings=force_uc_zero_embeddings,
-                )
+                with device_manager.use(model.conditioner):
+                    batch, batch_uc = get_batch(
+                        get_unique_embedder_keys_from_conditioner(model.conditioner),
+                        value_dict,
+                        [num_samples],
+                    )
+                    c, uc = model.conditioner.get_unconditional_conditioning(
+                        batch,
+                        batch_uc=batch_uc,
+                        force_uc_zero_embeddings=force_uc_zero_embeddings,
+                    )
 
                 for k in c:
-                    c[k], uc[k] = map(lambda y: y[k][:num_samples].to(device), (c, uc))
+                    c[k], uc[k] = map(
+                        lambda y: y[k][:num_samples].to(device_manager.device), (c, uc)
+                    )
 
                 for k in additional_kwargs:
                     c[k] = uc[k] = additional_kwargs[k]
                 if skip_encode:
                     z = img
                 else:
-                    z = model.encode_first_stage(img)
+                    with device_manager.use(model.first_stage_model):
+                        z = model.encode_first_stage(img)
+
                 noise = torch.randn_like(z)
+
                 sigmas = sampler.discretization(sampler.num_steps)
                 sigma = sigmas[0].to(z.device)
 
@@ -285,17 +414,24 @@ def do_img2img(
                     noise = noise + offset_noise_level * append_dims(
                         torch.randn(z.shape[0], device=z.device), z.ndim
                     )
-                noised_z = z + noise * append_dims(sigma, z.ndim)
-                noised_z = noised_z / torch.sqrt(
-                    1.0 + sigmas[0] ** 2.0
-                )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                if add_noise:
+                    noised_z = z + noise * append_dims(sigma, z.ndim).cuda()
+                    noised_z = noised_z / torch.sqrt(
+                        1.0 + sigmas[0] ** 2.0
+                    )  # Note: hardcoded to DDPM-like scaling. need to generalize later.
+                else:
+                    noised_z = z / torch.sqrt(1.0 + sigmas[0] ** 2.0)
 
                 def denoiser(x, sigma, c):
                     return model.denoiser(model.model, x, sigma, c)
 
-                samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
-                samples_x = model.decode_first_stage(samples_z)
-                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                with device_manager.use(model.denoiser):
+                    with device_manager.use(model.model):
+                        samples_z = sampler(denoiser, noised_z, cond=c, uc=uc)
+
+                with device_manager.use(model.first_stage_model):
+                    samples_x = model.decode_first_stage(samples_z)
+                    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 if filter is not None:
                     samples = filter(samples)
