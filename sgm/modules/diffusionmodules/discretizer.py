@@ -26,7 +26,7 @@ class Discretization:
 
 
 class EDMDiscretization(Discretization):
-    def __init__(self, sigma_min=0.02, sigma_max=80.0, rho=7.0):
+    def __init__(self, sigma_min=0.002, sigma_max=80.0, rho=7.0):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
         self.rho = rho
