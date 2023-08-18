@@ -226,7 +226,6 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
         for param in model.parameters():
             param.requires_grad = False
 
-    model.eval()
     return model
 
 

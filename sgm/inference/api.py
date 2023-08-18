@@ -176,6 +176,7 @@ class SamplingPipeline:
     def _load_model(self, device="cuda", use_fp16=True):
         config = OmegaConf.load(self.config)
         model = load_model_from_config(config, self.ckpt)
+        model.eval()
         if model is None:
             raise ValueError(f"Model {self.model_id} could not be loaded")
         model.to(device)
