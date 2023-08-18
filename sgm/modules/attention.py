@@ -442,22 +442,8 @@ class BasicTransformerBlock(nn.Module):
     def forward(
         self, x, context=None, additional_tokens=None, n_times_crossframe_attn_in_self=0
     ):
-        kwargs = {"x": x}
-
-        if context is not None:
-            kwargs.update({"context": context})
-
-        if additional_tokens is not None:
-            kwargs.update({"additional_tokens": additional_tokens})
-
-        if n_times_crossframe_attn_in_self:
-            kwargs.update(
-                {"n_times_crossframe_attn_in_self": n_times_crossframe_attn_in_self}
-            )
-
-        # return mixed_checkpoint(self._forward, kwargs, self.parameters(), self.checkpoint)
         return checkpoint(
-            self._forward, (x, context), self.parameters(), self.checkpoint
+            self._forward, (x, context, additional_tokens, n_times_crossframe_attn_in_self), self.parameters(), self.checkpoint
         )
 
     def _forward(
