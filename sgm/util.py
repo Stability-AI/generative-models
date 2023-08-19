@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import importlib
 import os
@@ -9,6 +11,10 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
 from safetensors.torch import load_file as load_safetensors
+
+
+def get_default_device_name() -> str:
+    return os.environ.get("SGM_DEFAULT_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 
 
 def disabled_train(self, mode=True):
@@ -199,19 +205,25 @@ def append_dims(x, target_dims):
     return x[(...,) + (None,) * dims_to_append]
 
 
-def load_model_from_config(config, ckpt, verbose=True, freeze=True):
-    print(f"Loading model from {ckpt}")
-    if ckpt.endswith("ckpt"):
-        pl_sd = torch.load(ckpt, map_location="cpu")
-        if "global_step" in pl_sd:
-            print(f"Global Step: {pl_sd['global_step']}")
-        sd = pl_sd["state_dict"]
-    elif ckpt.endswith("safetensors"):
-        sd = load_safetensors(ckpt)
-    else:
-        raise NotImplementedError
-
+def load_model_from_config(
+    config,
+    ckpt: str | None,
+    verbose=True,
+    freeze=True,
+    device="cpu",
+):
     model = instantiate_from_config(config.model)
+    if ckpt:
+        print(f"Loading model from {ckpt}")
+        if ckpt.endswith("ckpt"):
+            pl_sd = torch.load(ckpt, map_location=device)
+            if verbose and "global_step" in pl_sd:
+                print(f"Global Step: {pl_sd['global_step']}")
+            sd = pl_sd["state_dict"]
+        elif ckpt.endswith("safetensors"):
+            sd = load_safetensors(ckpt, device=device)
+        else:
+            raise NotImplementedError
 
     m, u = model.load_state_dict(sd, strict=False)
 
@@ -226,7 +238,6 @@ def load_model_from_config(config, ckpt, verbose=True, freeze=True):
         for param in model.parameters():
             param.requires_grad = False
 
-    model.eval()
     return model
 
 
