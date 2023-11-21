@@ -21,8 +21,6 @@ model:
       params:
         num_idx: 1000
 
-        weighting_config:
-          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
         scaling_config:
           target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
         discretization_config:
@@ -32,7 +30,6 @@ model:
       target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         use_checkpoint: True
-        use_fp16: True
         in_channels: 4
         out_channels: 4
         model_channels: 256
@@ -42,7 +39,6 @@ model:
         num_head_channels: 64
         num_classes: sequential
         adm_in_channels: 1024
-        use_spatial_transformer: true
         transformer_depth: 1
         context_dim: 1024
         spatial_transformer_attn_type: softmax-xformers
@@ -51,32 +47,31 @@ model:
       target: sgm.modules.GeneralConditioner
       params:
         emb_models:
-          # crossattn cond
           - is_trainable: True
             input_key: cls
             ucg_rate: 0.2
             target: sgm.modules.encoders.modules.ClassEmbedder
             params:
-              add_sequence_dim: True  # will be used through crossattn then
+              add_sequence_dim: True
               embed_dim: 1024
               n_classes: 1000
-          # vector cond
+
           - is_trainable: False
             ucg_rate: 0.2
             input_key: original_size_as_tuple
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
-          # vector cond
+              outdim: 256
+
           - is_trainable: False
             input_key: crop_coords_top_left
             ucg_rate: 0.2
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
+              outdim: 256
 
     first_stage_config:
-      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
+      target: sgm.models.autoencoder.AutoencoderKL
       params:
         ckpt_path: CKPT_PATH
         embed_dim: 4
@@ -98,7 +93,9 @@ model:
 
     loss_fn_config:
       target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
-      params:
+      params:        
+        loss_weighting_config:
+          target: sgm.modules.diffusionmodules.loss_weighting.EpsWeighting
         sigma_sampler_config:
           target: sgm.modules.diffusionmodules.sigma_sampling.DiscreteSampling
           params:
@@ -127,18 +124,18 @@ data:
       datapipeline:
         urls:
           # USER: adapt this path the root of your custom dataset
-          - "DATA_PATH"
+          - DATA_PATH
         pipeline_config:
           shardshuffle: 10000
           sample_shuffle: 10000 # USER: you might wanna adapt depending on your available RAM
 
         decoders:
-          - "pil"
+          - pil
 
         postprocessors:
           - target: sdata.mappers.TorchVisionImageTransforms
             params:
-              key: 'jpg' # USER: you might wanna adapt this for your custom dataset
+              key: jpg # USER: you might wanna adapt this for your custom dataset
               transforms:
                 - target: torchvision.transforms.Resize
                   params:

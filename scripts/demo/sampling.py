@@ -253,7 +253,10 @@ if __name__ == "__main__":
     st.title("Stable Diffusion")
     version = st.selectbox("Model Version", list(VERSION2SPECS.keys()), 0)
     version_dict = VERSION2SPECS[version]
-    mode = st.radio("Mode", ("txt2img", "img2img"), 0)
+    if st.checkbox("Load Model"):
+        mode = st.radio("Mode", ("txt2img", "img2img"), 0)
+    else:
+        mode = "skip"
     st.write("__________________________")
 
     set_lowvram_mode(st.checkbox("Low vram mode", True))
@@ -269,10 +272,11 @@ if __name__ == "__main__":
 
     save_locally, save_path = init_save_locally(os.path.join(SAVE_PATH, version))
 
-    state = init_st(version_dict, load_filter=True)
-    if state["msg"]:
-        st.info(state["msg"])
-    model = state["model"]
+    if mode != "skip":
+        state = init_st(version_dict, load_filter=True)
+        if state["msg"]:
+            st.info(state["msg"])
+        model = state["model"]
 
     is_legacy = version_dict["is_legacy"]
 
@@ -333,6 +337,8 @@ if __name__ == "__main__":
             filter=state.get("filter"),
             stage2strength=stage2strength,
         )
+    elif mode == "skip":
+        out = None
     else:
         raise ValueError(f"unknown mode {mode}")
     if isinstance(out, (tuple, list)):

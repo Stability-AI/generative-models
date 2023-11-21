@@ -1,10 +1,10 @@
-import torch
 import einops
-from torch.backends.cuda import SDPBackend
+import torch
 import torch.nn.functional as F
 import torch.utils.benchmark as benchmark
+from torch.backends.cuda import SDPBackend
 
-from sgm.modules.attention import SpatialTransformer, BasicTransformerBlock
+from sgm.modules.attention import BasicTransformerBlock, SpatialTransformer
 
 
 def benchmark_attn():

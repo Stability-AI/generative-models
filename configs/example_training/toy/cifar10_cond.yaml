@@ -5,10 +5,6 @@ model:
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
       params:
-        weighting_config:
-          target: sgm.modules.diffusionmodules.denoiser_weighting.EDMWeighting
-          params:
-            sigma_data: 1.0
         scaling_config:
           target: sgm.modules.diffusionmodules.denoiser_scaling.EDMScaling
           params:
@@ -17,7 +13,6 @@ model:
     network_config:
       target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
-        use_checkpoint: True
         in_channels: 3
         out_channels: 3
         model_channels: 32
@@ -46,6 +41,10 @@ model:
     loss_fn_config:
       target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
       params:
+        loss_weighting_config:
+          target: sgm.modules.diffusionmodules.loss_weighting.EDMWeighting
+          params:
+            sigma_data: 1.0
         sigma_sampler_config:
           target: sgm.modules.diffusionmodules.sigma_sampling.EDMSampling
 
