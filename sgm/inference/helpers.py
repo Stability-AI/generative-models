@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 from typing import List, Optional, Union
@@ -11,6 +12,8 @@ from PIL import Image
 from torch import autocast
 
 from sgm.util import append_dims
+
+logpy = logging.getLogger(__name__)
 
 
 class WatermarkEmbedder:
@@ -229,7 +232,7 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
 
 def get_input_image_tensor(image: Image.Image, device="cuda"):
     w, h = image.size
-    print(f"loaded input image of size ({w}, {h})")
+    logpy.info(f"loaded input image of size ({w}, {h})")
     width, height = map(
         lambda x: x - x % 64, (w, h)
     )  # resize to integer multiple of 64
