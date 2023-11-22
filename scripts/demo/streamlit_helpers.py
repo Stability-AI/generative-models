@@ -767,7 +767,7 @@ def do_img2img(
                 if filter is not None:
                     samples = filter(samples)
 
-                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")  # noqa: F821
                 outputs.image(grid.cpu().numpy())
                 if return_latents:
                     return samples, samples_z
