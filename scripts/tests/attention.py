@@ -51,7 +51,7 @@ def benchmark_attn():
         dtype=dtype,
     )
 
-    print(f"q/k/v shape:", query.shape, key.shape, value.shape)
+    print("q/k/v shape:", query.shape, key.shape, value.shape)
 
     # Lets explore the speed of each of the 3 implementations
     from torch.backends.cuda import SDPBackend, sdp_kernel

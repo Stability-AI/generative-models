@@ -7,7 +7,7 @@ from pytorch_lightning import LightningDataModule
 
 try:
     from sdata import create_dataset, create_dummy_dataset, create_loader
-except ImportError as e:
+except ImportError:
     print("#" * 100)
     print("Datasets not yet available")
     print("to enable, we need to add stable-datasets as a submodule")

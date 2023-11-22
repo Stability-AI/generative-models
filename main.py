@@ -648,7 +648,7 @@ if __name__ == "__main__":
 
         ckpt_resume_path = opt.resume_from_checkpoint
 
-        if not "devices" in trainer_config and trainer_config["accelerator"] != "gpu":
+        if "devices" not in trainer_config and trainer_config["accelerator"] != "gpu":
             del trainer_config["accelerator"]
             cpu = True
         else:
@@ -814,7 +814,7 @@ if __name__ == "__main__":
         trainer_kwargs["callbacks"] = [
             instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg
         ]
-        if not "plugins" in trainer_kwargs:
+        if "plugins" not in trainer_kwargs:
             trainer_kwargs["plugins"] = list()
 
         # cmd line trainer args (which are in trainer_opt) have always priority over config-trainer-args (which are in trainer_kwargs)

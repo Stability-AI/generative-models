@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
         if st.checkbox("Overwrite fps in mp4 generator", False):
             saving_fps = st.number_input(
-                f"saving video at fps:", value=value_dict["fps"], min_value=1
+                "saving video at fps:", value=value_dict["fps"], min_value=1
             )
         else:
             saving_fps = value_dict["fps"]

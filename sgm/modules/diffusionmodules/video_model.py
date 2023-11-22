@@ -4,8 +4,6 @@ import torch as th
 import torch.nn as nn
 from einops import rearrange
 
-from .openaimodel import ResBlock, Timestep, TimestepEmbedSequential, Downsample, Upsample
-from .util import AlphaBlender
 from ...modules.diffusionmodules.util import (
     conv_nd,
     linear,
@@ -15,6 +13,14 @@ from ...modules.diffusionmodules.util import (
 )
 from ...modules.video_attention import SpatialVideoTransformer
 from ...util import default
+from .openaimodel import (
+    Downsample,
+    ResBlock,
+    Timestep,
+    TimestepEmbedSequential,
+    Upsample,
+)
+from .util import AlphaBlender
 
 
 class VideoResBlock(ResBlock):

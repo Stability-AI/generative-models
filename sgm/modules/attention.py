@@ -200,7 +200,7 @@ class SelfAttention(nn.Module):
             attn = self.attn_drop(attn)
             x = (attn @ v).transpose(1, 2).reshape(B, L, C)
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         x = self.proj(x)
         x = self.proj_drop(x)
