@@ -9,7 +9,6 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from einops import rearrange
-from packaging import version
 
 from ..modules.autoencoding.regularizers import AbstractRegularizer
 from ..modules.ema import LitEma
@@ -43,8 +42,7 @@ class AbstractAutoencoder(pl.LightningModule):
             self.model_ema = LitEma(self, decay=ema_decay)
             logpy.info(f"Keeping EMAs of {len(list(self.model_ema.buffers()))}.")
 
-        if version.parse(torch.__version__) >= version.parse("2.0.0"):
-            self.automatic_optimization = False
+        self.automatic_optimization = False  # pytorch lightning
 
     def apply_ckpt(self, ckpt: Union[None, str, dict]):
         if ckpt is None:
