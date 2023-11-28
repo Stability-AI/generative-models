@@ -99,9 +99,9 @@ This is assuming you have navigated to the `generative-models` root after clonin
 
 ```shell
 # install required packages from pypi
-python3 -m venv .pt2
-source .pt2/bin/activate
-pip3 install -r requirements/pt2.txt
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
 ```
 
 #### 3. Install `sgm`
