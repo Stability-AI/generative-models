@@ -3,12 +3,22 @@
 ![sample1](assets/000.jpg)
 
 ## News
+**November 28, 2023**
+
+- We are releasing SDXL-Turbo, a lightning fast text-to image model.
+  Alongside the model, we release a [technical report](https://stability.ai/research/adversarial-diffusion-distillation)
+    - Usage:
+        - Follow the installation instructions or update the existing environment with `pip install streamlit-keyup`.
+        - Download the [weights](https://huggingface.co/stabilityai/sdxl-turbo) and place them in the `checkpoints/` directory.
+        - Run `streamlit run scripts/demo/turbo.py`.
+
+  ![tile](assets/turbo_tile.png)
+
 
 **November 21, 2023**
-
 - We are releasing Stable Video Diffusion, an image-to-video model, for research purposes:
     - [SVD](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid): This model was trained to generate 14
-      frames at resolution 576x1024 given a context frame of the same size. 
+      frames at resolution 576x1024 given a context frame of the same size.
       We use the standard image encoder from SD 2.1, but replace the decoder with a temporally-aware `deflickering decoder`.
     - [SVD-XT](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt): Same architecture as `SVD` but finetuned
       for 25 frame generation.
