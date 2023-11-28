@@ -1,0 +1,43 @@
+# Dockerfile for compiling requirements.txt
+# See top level Makefile for more details on how to use this file.
+
+ARG CUDA_DOCKER_VERSION=11.8.0
+ARG CUDA_UBUNTU_VERSION=ubuntu22.04
+FROM nvidia/cuda:${CUDA_DOCKER_VERSION}-devel-${CUDA_UBUNTU_VERSION} as build
+
+WORKDIR /app
+
+RUN apt-get update # 2021-11-28
+RUN apt-get -y install python3-pip python3-venv
+RUN apt-get -y install git
+
+RUN pip install -U pip
+RUN pip install wheel pip-tools
+
+COPY requirements.in /app/requirements.in
+COPY requirements.txt /app/requirements.txt
+COPY Makefile /app/Makefile
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/pip-tools \
+	make .venv
+
+RUN cp requirements.txt /tmp/requirements.txt
+
+# Layer to test inference
+FROM nvidia/cuda:${CUDA_DOCKER_VERSION}-devel-${CUDA_UBUNTU_VERSION} as test-inference
+
+RUN apt-get update # 2021-11-28
+RUN apt-get -y install python3-pip python3-venv
+COPY --from=build /app/.venv /app/.venv
+COPY Makefile /app/Makefile
+RUN make test-inference
+
+# Final layer
+FROM nvidia/cuda:${CUDA_DOCKER_VERSION}-runtime-${CUDA_UBUNTU_VERSION} as final
+
+WORKDIR /app
+
+RUN apt-get update # 2021-11-28
+RUN apt-get -y install python3-pip python3-venv
+COPY --from=build /app/.venv /app/.venv
+COPY --from=build /tmp/requirements.txt /tmp/requirements.txt
