@@ -3,8 +3,7 @@
 *.py[cod]
 
 # envs
-.pt13
-.pt2
+.venv
 
 # directories
 /checkpoints
