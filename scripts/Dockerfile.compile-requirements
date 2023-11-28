@@ -1,0 +1,14 @@
+# Dockerfile for compiling requirements.txt
+# See top level Makefile for more details on how to use this file.
+FROM python:3.10
+
+WORKDIR /app
+
+RUN pip install -U pip
+RUN pip install wheel pip-tools
+
+COPY requirements.in /app/requirements.in
+COPY requirements.txt /app/requirements.txt
+COPY Makefile /app/Makefile
+RUN make .venv
+RUN cp -r requirements.txt /tmp/requirements.txt
