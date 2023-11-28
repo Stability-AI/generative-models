@@ -40,4 +40,4 @@ WORKDIR /app
 RUN apt-get update # 2021-11-28
 RUN apt-get -y install python3-pip python3-venv
 COPY --from=build /app/.venv /app/.venv
-COPY --from=build /tmp/requirements.txt /app/requirements.txt
+COPY --from=build /tmp/requirements.txt /tmp/requirements.txt

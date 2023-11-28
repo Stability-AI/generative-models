@@ -55,3 +55,6 @@ test-inference-docker: ## Run inference tests (in a docker container)
 .PHONY: clean
 clean: ## Remove the virtual environment
 	@rm -rf .venv
+
+.DELETE_ON_ERROR: ## Configure make to delete the target of a rule if it has an error
+
