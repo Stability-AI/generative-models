@@ -6,15 +6,15 @@ ifeq ($(UNAME_S), Darwin)
 	REQUIREMENTS_FILE=requirements-macos.txt
 endif
 
-.venv: requirements.in ## Create a virtual environment and install dependencies
+.venv: requirements/requirements.in ## Create a virtual environment and install dependencies
 	python3 -m venv --clear .venv
 	.venv/bin/pip install wheel pip-tools
-	.venv/bin/pip-compile requirements.in --output-file=$(REQUIREMENTS_FILE)
+	.venv/bin/pip-compile requirements/requirements.in --output-file=requirements/$(REQUIREMENTS_FILE)
 	.venv/bin/pip install -r $(REQUIREMENTS_FILE)
 
 .PHONY: compile-requirements
 compile-requirements: .venv ## Compile requirements.in to requirements.txt
-		.venv/bin/pip-compile requirements.in --output-file=$(REQUIREMENTS_FILE)
+		.venv/bin/pip-compile requirements/requirements.in --output-file=requirements/$(REQUIREMENTS_FILE)
 
 .PHONY: compile-requirements-docker
 compile-requirements-docker: ## Compile requirements.in to requirements.txt (in a docker container)
@@ -27,9 +27,10 @@ compile-requirements-docker: ## Compile requirements.in to requirements.txt (in 
 		.
 	# Run the docker image (to copy the requirements.txt file out)
 	docker run --platform=linux/amd64 \
+		--gpus all \
 		-v $(PWD):/app \
 		-t sd-compile-requirements \
-		cp /tmp/requirements.txt $(REQUIREMENTS_FILE)
+		cp /tmp/requirements.txt requirements/$(REQUIREMENTS_FILE)
 
 .PHONY: test
 test: test-inference ## Run tests

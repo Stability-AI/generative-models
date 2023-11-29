@@ -14,14 +14,14 @@ RUN apt-get -y install git
 RUN pip install -U pip
 RUN pip install wheel pip-tools
 
-COPY requirements.in /app/requirements.in
-COPY requirements.txt /app/requirements.txt
+COPY requirements/ /app/requirements/
 COPY Makefile /app/Makefile
+
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=cache,target=/root/.cache/pip-tools \
 	make .venv
 
-RUN cp requirements.txt /tmp/requirements.txt
+RUN cp requirements/requirements.txt /tmp/requirements.txt
 
 # Layer to test inference
 FROM nvidia/cuda:${CUDA_DOCKER_VERSION}-devel-${CUDA_UBUNTU_VERSION} as test-inference

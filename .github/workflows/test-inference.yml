@@ -2,9 +2,7 @@ name: Test inference
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+  push: {}
 
 jobs:
   test:
