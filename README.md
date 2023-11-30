@@ -95,7 +95,7 @@ now `DiffusionEngine`) has been cleaned up:
 #### 1. Clone the repo
 
 ```shell
-git clone git@github.com:Stability-AI/generative-models.git
+git clone https://github.com/Stability-AI/generative-models.git
 cd generative-models
 ```
 
