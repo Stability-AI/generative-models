@@ -3,8 +3,10 @@
 ![sample1](assets/000.jpg)
 
 ## News
-**November 28, 2023**
+**November 30, 2023**
+- Following the launch of SDXL-Turbo, we are releasing [SD-Turbo](https://huggingface.co/stabilityai/sd-turbo).
 
+**November 28, 2023**
 - We are releasing SDXL-Turbo, a lightning fast text-to image model.
   Alongside the model, we release a [technical report](https://stability.ai/research/adversarial-diffusion-distillation)
     - Usage:

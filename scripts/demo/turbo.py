@@ -12,6 +12,15 @@ VERSION2SPECS = {
         "config": "configs/inference/sd_xl_base.yaml",
         "ckpt": "checkpoints/sd_xl_turbo_1.0.safetensors",
     },
+    "SD-Turbo": {
+        "H": 512,
+        "W": 512,
+        "C": 4,
+        "f": 8,
+        "is_legacy": False,
+        "config": "configs/inference/sd_2_1.yaml",
+        "ckpt": "checkpoints/sd_turbo.safetensors",
+    },
 }
 
 
