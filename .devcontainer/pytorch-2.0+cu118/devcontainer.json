@@ -1,0 +1,52 @@
+{
+	"name": "Python 3",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.10-bullseye",
+	"features": {
+		"ghcr.io/devcontainers/features/nvidia-cuda:1": {
+			"cudaVersion": "11.8"
+		},
+		"ghcr.io/devcontainers-contrib/features/hatch:2": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers-contrib/features/pipx-package:1": {
+			"package": "black",
+			"version": "latest",
+			"injections": "pylint pytest",
+			"interpreter": "python3"
+		},
+		"ghcr.io/devcontainers-contrib/features/apt-get-packages:1": {
+			"packages": "libgl1-mesa-glx"
+		},
+		"ghcr.io/stability-ai/devcontainer-features/pytorch:1.0.1": {
+			"version": "2.0.1",
+			"cudaVersion": "cu118"
+		}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter"
+			],
+			"settings": {
+				"[python]": {
+					"diffEditor.ignoreTrimWhitespace": false,
+					"editor.defaultFormatter": "ms-python.black-formatter",
+					"editor.formatOnSave": true,
+					"editor.wordBasedSuggestions": false
+				},
+				"python.analysis.typeCheckingMode": "basic",
+				"black-formatter.args": [
+					"-l 88"
+				]
+			}
+		}
+	},
+	"runArgs": [
+		"--gpus",
+		"all"
+	],
+	"postCreateCommand": "git config --global --add safe.directory '*'",
+	"postAttachCommand": "pip install -U -r requirements/pt2.txt;pip install -U -e ."
+}
