@@ -1,8 +1,19 @@
 import os
 
+import streamlit as st
+import torch
 from pytorch_lightning import seed_everything
 
-from scripts.demo.streamlit_helpers import *
+from scripts.demo.streamlit_helpers import (
+    do_sample,
+    get_unique_embedder_keys_from_conditioner,
+    init_embedder_options,
+    init_sampling,
+    init_save_locally,
+    init_st,
+    load_img_for_prediction,
+    save_video_as_grid_and_mp4,
+)
 
 SAVE_PATH = "outputs/demo/vid/"
 
@@ -89,7 +100,6 @@ VERSION2SPECS = {
     },
 }
 
-
 if __name__ == "__main__":
     st.title("Stable Video Diffusion")
     version = st.selectbox(
@@ -165,7 +175,7 @@ if __name__ == "__main__":
 
         if st.checkbox("Overwrite fps in mp4 generator", False):
             saving_fps = st.number_input(
-                f"saving video at fps:", value=value_dict["fps"], min_value=1
+                "saving video at fps:", value=value_dict["fps"], min_value=1
             )
         else:
             saving_fps = value_dict["fps"]

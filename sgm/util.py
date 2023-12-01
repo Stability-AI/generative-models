@@ -28,7 +28,7 @@ def get_string_from_tuple(s):
                 return t[0]
             else:
                 pass
-    except:
+    except Exception:
         pass
     return s
 
@@ -166,7 +166,7 @@ def count_params(model, verbose=False):
 
 
 def instantiate_from_config(config):
-    if not "target" in config:
+    if "target" not in config:
         if config == "__is_first_stage__":
             return None
         elif config == "__is_unconditional__":

@@ -5,14 +5,15 @@ from typing import Optional
 
 from omegaconf import OmegaConf
 
-from sgm.inference.helpers import (Img2ImgDiscretizationWrapper, do_img2img,
-                                   do_sample)
-from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
-                                                   DPMPP2SAncestralSampler,
-                                                   EulerAncestralSampler,
-                                                   EulerEDMSampler,
-                                                   HeunEDMSampler,
-                                                   LinearMultistepSampler)
+from sgm.inference.helpers import Img2ImgDiscretizationWrapper, do_img2img, do_sample
+from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
+    EulerEDMSampler,
+    HeunEDMSampler,
+    LinearMultistepSampler,
+)
 from sgm.util import load_model_from_config
 
 
@@ -325,7 +326,6 @@ def get_discretization_config(params: SamplingParams):
 def get_sampler_config(params: SamplingParams):
     discretization_config = get_discretization_config(params)
     guider_config = get_guider_config(params)
-    sampler = None
     if params.sampler == Sampler.EULER_EDM:
         return EulerEDMSampler(
             num_steps=params.steps,

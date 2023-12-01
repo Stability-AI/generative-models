@@ -11,17 +11,28 @@ import torch.nn as nn
 from einops import rearrange, repeat
 from omegaconf import ListConfig
 from torch.utils.checkpoint import checkpoint
-from transformers import (ByT5Tokenizer, CLIPTextModel, CLIPTokenizer,
-                          T5EncoderModel, T5Tokenizer)
+from transformers import (
+    ByT5Tokenizer,
+    CLIPTextModel,
+    CLIPTokenizer,
+    T5EncoderModel,
+    T5Tokenizer,
+)
 
 from ...modules.autoencoding.regularizers import DiagonalGaussianRegularizer
 from ...modules.diffusionmodules.model import Encoder
 from ...modules.diffusionmodules.openaimodel import Timestep
-from ...modules.diffusionmodules.util import (extract_into_tensor,
-                                              make_beta_schedule)
+from ...modules.diffusionmodules.util import extract_into_tensor, make_beta_schedule
 from ...modules.distributions.distributions import DiagonalGaussianDistribution
-from ...util import (append_dims, autocast, count_params, default,
-                     disabled_train, expand_dims_like, instantiate_from_config)
+from ...util import (
+    append_dims,
+    autocast,
+    count_params,
+    default,
+    disabled_train,
+    expand_dims_like,
+    instantiate_from_config,
+)
 
 
 class AbstractEmbModel(nn.Module):

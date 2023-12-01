@@ -13,8 +13,7 @@ from omegaconf import OmegaConf
 from PIL import Image
 from torchvision.transforms import ToTensor
 
-from scripts.util.detection.nsfw_and_watermark_dectection import \
-    DeepFloydDataFiltering
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
 

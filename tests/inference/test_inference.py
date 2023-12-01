@@ -1,18 +1,19 @@
-import numpy
-from PIL import Image
-import pytest
-from pytest import fixture
-import torch
 from typing import Tuple
 
+import numpy
+import pytest
+import torch
+from PIL import Image
+from pytest import fixture
+
+import sgm.inference.helpers as helpers
 from sgm.inference.api import (
-    model_specs,
+    ModelArchitecture,
+    Sampler,
     SamplingParams,
     SamplingPipeline,
-    Sampler,
-    ModelArchitecture,
+    model_specs,
 )
-import sgm.inference.helpers as helpers
 
 
 @pytest.mark.inference

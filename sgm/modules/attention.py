@@ -51,11 +51,9 @@ try:
     import xformers.ops
 
     XFORMERS_IS_AVAILABLE = True
-except:
+except Exception:
     XFORMERS_IS_AVAILABLE = False
     logpy.warn("no module 'xformers'. Processing without...")
-
-# from .diffusionmodules.util import mixed_checkpoint as checkpoint
 
 
 def exists(val):
@@ -200,7 +198,7 @@ class SelfAttention(nn.Module):
             attn = self.attn_drop(attn)
             x = (attn @ v).transpose(1, 2).reshape(B, L, C)
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         x = self.proj(x)
         x = self.proj_drop(x)

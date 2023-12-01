@@ -45,7 +45,7 @@ except ImportError as e:
                 bits = embed.decode(cv2Image)
                 return self.reconstruct(bits)
 
-    except:
+    except Exception:
         raise e
 
 
