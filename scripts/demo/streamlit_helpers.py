@@ -432,14 +432,6 @@ def get_sampler(sampler_name, steps, discretization_config, guider_config, key=1
     return sampler
 
 
-def get_interactive_image() -> Image.Image:
-    image = st.file_uploader("Input", type=["jpg", "JPEG", "png"])
-    if image is not None:
-        image = Image.open(image)
-        if not image.mode == "RGB":
-            image = image.convert("RGB")
-        return image
-
 
 def load_img(
     display: bool = True,
