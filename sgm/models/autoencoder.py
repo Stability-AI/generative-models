@@ -163,7 +163,7 @@ class AutoencodingEngine(AbstractAutoencoder):
 
         if ckpt_path is not None:
             assert ckpt_engine is None, "Can't set ckpt_engine and ckpt_path"
-            logpy.warn("Checkpoint path is deprecated, use `checkpoint_egnine` instead")
+            logpy.warning("Checkpoint path is deprecated, use `checkpoint_egnine` instead")
         self.apply_ckpt(default(ckpt_path, ckpt_engine))
         self.additional_decode_keys = set(default(additional_decode_keys, []))
 
@@ -355,7 +355,7 @@ class AutoencodingEngine(AbstractAutoencoder):
                         pattern_params.append(param)
                         num_params += param.numel()
                 if len(pattern_params) == 0:
-                    logpy.warn(f"Did not find parameters for pattern {pattern_}")
+                    logpy.warning(f"Did not find parameters for pattern {pattern_}")
                 params.extend(pattern_params)
             groups.append({"params": params, **args})
         return groups, num_params
@@ -529,7 +529,7 @@ class AutoencoderLegacyVQ(AutoencodingEngineLegacy):
         **kwargs,
     ):
         if "lossconfig" in kwargs:
-            logpy.warn(f"Parameter `lossconfig` is deprecated, use `loss_config`.")
+            logpy.warning(f"Parameter `lossconfig` is deprecated, use `loss_config`.")
             kwargs["loss_config"] = kwargs.pop("lossconfig")
         super().__init__(
             regularizer_config={
