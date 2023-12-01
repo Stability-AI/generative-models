@@ -80,6 +80,9 @@ class GetWatermarkMatch:
         self.num_bits = len(self.watermark)
         self.decoder = WatermarkDecoder("bits", self.num_bits)
 
+    def decode_and_match(self, x):
+        return np.sum(self.decoder.decode(x, "dwtDct") == self.watermark, axis=-1)
+
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """
         Detects the number of matching bits the predefined watermark with one
@@ -96,10 +99,10 @@ class GetWatermarkMatch:
             x = x[None, ...]
 
         bs = x.shape[0]
-        detected = np.empty((bs, self.num_bits), dtype=bool)
-        for k in range(bs):
-            detected[k] = self.decoder.decode(x[k], "dwtDct")
-        result = np.sum(detected == self.watermark, axis=-1)
+        with ThreadPoolExecutor() as executor:
+            results = list(executor.map(self.decode_and_match, x))
+
+        result = np.array(results)
         if squeeze:
             return result[0]
         else:
