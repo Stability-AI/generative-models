@@ -1,5 +1,5 @@
 # Generative Models by Stability AI
-
+//Iqbal
 ![sample1](assets/000.jpg)
 
 ## News
