@@ -187,13 +187,12 @@ def get_parser(**parser_kwargs):
         default=False,  # TODO: later default to True
         help="log to wandb",
     )
-    if version.parse(torch.__version__) >= version.parse("2.0.0"):
-        parser.add_argument(
-            "--resume_from_checkpoint",
-            type=str,
-            default=None,
-            help="single checkpoint file to resume from",
-        )
+    parser.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default=None,
+        help="single checkpoint file to resume from",
+    )
     default_args = default_trainer_args()
     for key in default_args:
         parser.add_argument("--" + key, default=default_args[key])
@@ -618,7 +617,6 @@ if __name__ == "__main__":
 
     # move before model init, in case a torch.compile(...) is called somewhere
     if opt.enable_tf32:
-        # pt_version = version.parse(torch.__version__)
         torch.backends.cuda.matmul.allow_tf32 = True
         torch.backends.cudnn.allow_tf32 = True
         print(f"Enabling TF32 for PyTorch {torch.__version__}")

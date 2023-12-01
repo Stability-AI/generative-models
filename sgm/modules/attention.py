@@ -9,42 +9,31 @@ from einops import rearrange, repeat
 from packaging import version
 from torch import nn
 from torch.utils.checkpoint import checkpoint
+from torch.backends.cuda import SDPBackend, sdp_kernel
 
 logpy = logging.getLogger(__name__)
 
-if version.parse(torch.__version__) >= version.parse("2.0.0"):
-    SDP_IS_AVAILABLE = True
-    from torch.backends.cuda import SDPBackend, sdp_kernel
+SDP_IS_AVAILABLE = True
 
-    BACKEND_MAP = {
-        SDPBackend.MATH: {
-            "enable_math": True,
-            "enable_flash": False,
-            "enable_mem_efficient": False,
-        },
-        SDPBackend.FLASH_ATTENTION: {
-            "enable_math": False,
-            "enable_flash": True,
-            "enable_mem_efficient": False,
-        },
-        SDPBackend.EFFICIENT_ATTENTION: {
-            "enable_math": False,
-            "enable_flash": False,
-            "enable_mem_efficient": True,
-        },
-        None: {"enable_math": True, "enable_flash": True, "enable_mem_efficient": True},
-    }
-else:
-    from contextlib import nullcontext
 
-    SDP_IS_AVAILABLE = False
-    sdp_kernel = nullcontext
-    BACKEND_MAP = {}
-    logpy.warn(
-        f"No SDP backend available, likely because you are running in pytorch "
-        f"versions < 2.0. In fact, you are using PyTorch {torch.__version__}. "
-        f"You might want to consider upgrading."
-    )
+BACKEND_MAP = {
+    SDPBackend.MATH: {
+        "enable_math": True,
+        "enable_flash": False,
+        "enable_mem_efficient": False,
+    },
+    SDPBackend.FLASH_ATTENTION: {
+        "enable_math": False,
+        "enable_flash": True,
+        "enable_mem_efficient": False,
+    },
+    SDPBackend.EFFICIENT_ATTENTION: {
+        "enable_math": False,
+        "enable_flash": False,
+        "enable_mem_efficient": True,
+    },
+    None: {"enable_math": True, "enable_flash": True, "enable_mem_efficient": True},
+}
 
 try:
     import xformers
@@ -476,10 +465,8 @@ class BasicTransformerBlock(nn.Module):
         assert attn_mode in self.ATTENTION_MODES
         if attn_mode != "softmax" and not XFORMERS_IS_AVAILABLE:
             logpy.warn(
-                f"Attention mode '{attn_mode}' is not available. Falling "
-                f"back to native attention. This is not a problem in "
-                f"Pytorch >= 2.0. FYI, you are running with PyTorch "
-                f"version {torch.__version__}."
+                f"Attention mode '{attn_mode}' is not available. "
+                f"Falling back to native attention."
             )
             attn_mode = "softmax"
         elif attn_mode == "softmax" and not SDP_IS_AVAILABLE:
@@ -495,10 +482,7 @@ class BasicTransformerBlock(nn.Module):
                 logpy.info("Falling back to xformers efficient attention.")
                 attn_mode = "softmax-xformers"
         attn_cls = self.ATTENTION_MODES[attn_mode]
-        if version.parse(torch.__version__) >= version.parse("2.0.0"):
-            assert sdp_backend is None or isinstance(sdp_backend, SDPBackend)
-        else:
-            assert sdp_backend is None
+        assert sdp_backend is None or isinstance(sdp_backend, SDPBackend)
         self.disable_self_attn = disable_self_attn
         self.attn1 = attn_cls(
             query_dim=dim,
