@@ -104,10 +104,10 @@ if __name__ == "__main__":
         mode = "skip"
 
     H = st.sidebar.number_input(
-        "H", value=version_dict["H"], min_value=64, max_value=2048
+        "H", value=version_dict["H"], min_value=256, max_value=2048
     )
     W = st.sidebar.number_input(
-        "W", value=version_dict["W"], min_value=64, max_value=2048
+        "W", value=version_dict["W"], min_value=256, max_value=2048
     )
     T = st.sidebar.number_input(
         "T", value=version_dict["T"], min_value=0, max_value=128
