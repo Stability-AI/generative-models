@@ -196,7 +196,7 @@ def get_parser(**parser_kwargs):
         )
     default_args = default_trainer_args()
     for key in default_args:
-        parser.add_argument("--" + key, default=default_args[key])
+        parser.add_argument(f"--{key}", default=default_args[key])
     return parser
 
 
@@ -582,7 +582,7 @@ if __name__ == "__main__":
         nowname = _tmp[-1]
     else:
         if opt.name:
-            name = "_" + opt.name
+            name = f"_{opt.name}"
         elif opt.base:
             if opt.no_base_name:
                 name = ""
@@ -600,7 +600,7 @@ if __name__ == "__main__":
                     ]  # cut away the first one (we assert all configs are in "configs")
                     cfg_name = os.path.splitext(os.path.split(opt.base[0])[-1])[0]
                     cfg_name = "-".join(cfg_path) + f"-{cfg_name}"
-                name = "_" + cfg_name
+                name = f"_{cfg_name}"
         else:
             name = ""
         if not opt.no_date:
