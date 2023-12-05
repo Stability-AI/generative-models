@@ -1,6 +1,6 @@
 import math
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 import pytorch_lightning as pl
 import torch
@@ -12,8 +12,15 @@ from ..modules import UNCONDITIONAL_CONFIG
 from ..modules.autoencoding.temporal_ae import VideoDecoder
 from ..modules.diffusionmodules.wrappers import OPENAIUNETWRAPPER
 from ..modules.ema import LitEma
-from ..util import (default, disabled_train, get_obj_from_str,
-                    instantiate_from_config, log_txt_as_img)
+from ..util import (
+    default,
+    disabled_train,
+    get_default_device_name,
+    get_obj_from_str,
+    instantiate_from_config,
+    log_txt_as_img,
+    safe_autocast,
+)
 
 
 class DiffusionEngine(pl.LightningModule):
@@ -114,6 +121,12 @@ class DiffusionEngine(pl.LightningModule):
         # image tensors should be scaled to -1 ... 1 and in bchw format
         return batch[self.input_key]
 
+    def _first_stage_autocast_context(self):
+        return safe_autocast(
+            device=get_default_device_name(),
+            enabled=not self.disable_first_stage_autocast,
+        )
+
     @torch.no_grad()
     def decode_first_stage(self, z):
         z = 1.0 / self.scale_factor * z
@@ -121,7 +134,7 @@ class DiffusionEngine(pl.LightningModule):
 
         n_rounds = math.ceil(z.shape[0] / n_samples)
         all_out = []
-        with torch.autocast("cuda", enabled=not self.disable_first_stage_autocast):
+        with self._first_stage_autocast_context():
             for n in range(n_rounds):
                 if isinstance(self.first_stage_model.decoder, VideoDecoder):
                     kwargs = {"timesteps": len(z[n * n_samples : (n + 1) * n_samples])}
@@ -139,7 +152,7 @@ class DiffusionEngine(pl.LightningModule):
         n_samples = default(self.en_and_decode_n_samples_a_time, x.shape[0])
         n_rounds = math.ceil(x.shape[0] / n_samples)
         all_out = []
-        with torch.autocast("cuda", enabled=not self.disable_first_stage_autocast):
+        with self._first_stage_autocast_context():
             for n in range(n_rounds):
                 out = self.first_stage_model.encode(
                     x[n * n_samples : (n + 1) * n_samples]

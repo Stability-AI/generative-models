@@ -4,13 +4,12 @@ from typing import List, Optional, Union
 
 import numpy as np
 import torch
+from PIL import Image
 from einops import rearrange
 from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig
-from PIL import Image
-from torch import autocast
 
-from sgm.util import append_dims
+from sgm.util import append_dims, safe_autocast, get_default_device_name
 
 
 class WatermarkEmbedder:
@@ -111,21 +110,24 @@ def do_sample(
     batch2model_input: Optional[List] = None,
     return_latents=False,
     filter=None,
-    device="cuda",
+    device: Optional[str] = None,
 ):
+    if not device:
+        device = get_default_device_name()
     if force_uc_zero_embeddings is None:
         force_uc_zero_embeddings = []
     if batch2model_input is None:
         batch2model_input = []
 
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with safe_autocast(device):
             with model.ema_scope():
                 num_samples = [num_samples]
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
                     num_samples,
+                    device=device,
                 )
                 for key in batch:
                     if isinstance(batch[key], torch.Tensor):
@@ -170,7 +172,13 @@ def do_sample(
                 return samples
 
 
-def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
+def get_batch(
+    keys,
+    value_dict,
+    N: Union[List, ListConfig],
+    *,
+    device: str,
+):
     # Hardcoded demo setups; might undergo some changes in the future
 
     batch = {}
@@ -227,7 +235,9 @@ def get_batch(keys, value_dict, N: Union[List, ListConfig], device="cuda"):
     return batch, batch_uc
 
 
-def get_input_image_tensor(image: Image.Image, device="cuda"):
+def get_input_image_tensor(image: Image.Image, device: Optional[str] = None):
+    if not device:
+        device = get_default_device_name()
     w, h = image.size
     print(f"loaded input image of size ({w}, {h})")
     width, height = map(
@@ -252,15 +262,18 @@ def do_img2img(
     return_latents=False,
     skip_encode=False,
     filter=None,
-    device="cuda",
+    device: Optional[str] = None,
 ):
+    if not device:
+        device = get_default_device_name()
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with safe_autocast(device):
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
                     [num_samples],
+                    device=device,
                 )
                 c, uc = model.conditioner.get_unconditional_conditioning(
                     batch,

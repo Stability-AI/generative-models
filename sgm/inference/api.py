@@ -13,7 +13,7 @@ from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
                                                    EulerEDMSampler,
                                                    HeunEDMSampler,
                                                    LinearMultistepSampler)
-from sgm.util import load_model_from_config
+from sgm.util import load_model_from_config, get_default_device_name
 
 
 class ModelArchitecture(str, Enum):
@@ -158,7 +158,7 @@ class SamplingPipeline:
         model_id: ModelArchitecture,
         model_path="checkpoints",
         config_path="configs/inference",
-        device="cuda",
+        device: Optional[str] = None,
         use_fp16=True,
     ) -> None:
         if model_id not in model_specs:
@@ -167,10 +167,10 @@ class SamplingPipeline:
         self.specs = model_specs[self.model_id]
         self.config = str(pathlib.Path(config_path, self.specs.config))
         self.ckpt = str(pathlib.Path(model_path, self.specs.ckpt))
-        self.device = device
+        self.device = device or get_default_device_name()
         self.model = self._load_model(device=device, use_fp16=use_fp16)
 
-    def _load_model(self, device="cuda", use_fp16=True):
+    def _load_model(self, *, device, use_fp16=True):
         config = OmegaConf.load(self.config)
         model = load_model_from_config(config, self.ckpt)
         if model is None:
