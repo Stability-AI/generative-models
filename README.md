@@ -3,6 +3,9 @@
 ![sample1](assets/000.jpg)
 
 ## News
+**December 17, 2023**
+- Try out the Stable Video Diffusion Gradio demo on Hugging Face [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/resolve/main/open-in-hf-spaces-sm.svg)](https://huggingface.co/spaces/multimodalart/stable-video-diffusion)
+
 **November 30, 2023**
 - Following the launch of SDXL-Turbo, we are releasing [SD-Turbo](https://huggingface.co/stabilityai/sd-turbo).
 
