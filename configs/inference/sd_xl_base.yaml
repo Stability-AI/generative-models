@@ -9,8 +9,6 @@ model:
       params:
         num_idx: 1000
 
-        weighting_config:
-          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
         scaling_config:
           target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
         discretization_config:
@@ -29,25 +27,22 @@ model:
         num_res_blocks: 2
         channel_mult: [1, 2, 4]
         num_head_channels: 64
-        use_spatial_transformer: True
         use_linear_in_transformer: True
-        transformer_depth: [1, 2, 10]  # note: the first is unused (due to attn_res starting at 2) 32, 16, 8 --> 64, 32, 16
+        transformer_depth: [1, 2, 10]
         context_dim: 2048
         spatial_transformer_attn_type: softmax-xformers
-        legacy: False
 
     conditioner_config:
       target: sgm.modules.GeneralConditioner
       params:
         emb_models:
-          # crossattn cond
           - is_trainable: False
             input_key: txt
             target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
             params:
               layer: hidden
               layer_idx: 11
-          # crossattn and vector cond
+
           - is_trainable: False
             input_key: txt
             target: sgm.modules.encoders.modules.FrozenOpenCLIPEmbedder2
@@ -58,27 +53,27 @@ model:
               layer: penultimate
               always_return_pooled: True
               legacy: False
-          # vector cond
+
           - is_trainable: False
             input_key: original_size_as_tuple
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
-          # vector cond
+              outdim: 256
+
           - is_trainable: False
             input_key: crop_coords_top_left
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
-          # vector cond
+              outdim: 256
+
           - is_trainable: False
             input_key: target_size_as_tuple
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
+              outdim: 256
 
     first_stage_config:
-      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
+      target: sgm.models.autoencoder.AutoencoderKL
       params:
         embed_dim: 4
         monitor: val/rec_loss

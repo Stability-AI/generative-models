@@ -7,8 +7,6 @@ model:
       params:
         num_idx: 1000
 
-        weighting_config:
-          target: sgm.modules.diffusionmodules.denoiser_weighting.EDMWeighting
         scaling_config:
           target: sgm.modules.diffusionmodules.denoiser_scaling.EDMScaling
         discretization_config:
@@ -17,13 +15,12 @@ model:
     network_config:
       target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
-        use_checkpoint: True
         in_channels: 1
         out_channels: 1
         model_channels: 32
-        attention_resolutions: [ ]
+        attention_resolutions: []
         num_res_blocks: 4
-        channel_mult: [ 1, 2, 2 ]
+        channel_mult: [1, 2, 2]
         num_head_channels: 32
         num_classes: sequential
         adm_in_channels: 128
@@ -33,7 +30,7 @@ model:
       params:
         emb_models:
           - is_trainable: True
-            input_key: "cls"
+            input_key: cls
             ucg_rate: 0.2
             target: sgm.modules.encoders.modules.ClassEmbedder
             params:
@@ -46,6 +43,8 @@ model:
     loss_fn_config:
       target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
       params:
+        loss_weighting_config:
+          target: sgm.modules.diffusionmodules.loss_weighting.EDMWeighting
         sigma_sampler_config:
           target: sgm.modules.diffusionmodules.sigma_sampling.DiscreteSampling
           params:

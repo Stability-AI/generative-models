@@ -10,19 +10,17 @@ model:
     scheduler_config:
       target: sgm.lr_scheduler.LambdaLinearScheduler
       params:
-        warm_up_steps: [ 10000 ]
-        cycle_lengths: [ 10000000000000 ]
-        f_start: [ 1.e-6 ]
-        f_max: [ 1. ]
-        f_min: [ 1. ]
+        warm_up_steps: [10000]
+        cycle_lengths: [10000000000000]
+        f_start: [1.e-6]
+        f_max: [1.]
+        f_min: [1.]
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.DiscreteDenoiser
       params:
         num_idx: 1000
 
-        weighting_config:
-          target: sgm.modules.diffusionmodules.denoiser_weighting.EpsWeighting
         scaling_config:
           target: sgm.modules.diffusionmodules.denoiser_scaling.EpsScaling
         discretization_config:
@@ -32,18 +30,16 @@ model:
       target: sgm.modules.diffusionmodules.openaimodel.UNetModel
       params:
         use_checkpoint: True
-        use_fp16: True
         in_channels: 4
         out_channels: 4
         model_channels: 320
-        attention_resolutions: [ 1, 2, 4 ]
+        attention_resolutions: [1, 2, 4]
         num_res_blocks: 2
-        channel_mult: [ 1, 2, 4, 4 ]
+        channel_mult: [1, 2, 4, 4]
         num_head_channels: 64
         num_classes: sequential
         adm_in_channels: 1792
         num_heads: 1
-        use_spatial_transformer: true
         transformer_depth: 1
         context_dim: 768
         spatial_transformer_attn_type: softmax-xformers
@@ -52,7 +48,6 @@ model:
       target: sgm.modules.GeneralConditioner
       params:
         emb_models:
-          # crossattn cond
           - is_trainable: True
             input_key: txt
             ucg_rate: 0.1
@@ -60,23 +55,23 @@ model:
             target: sgm.modules.encoders.modules.FrozenCLIPEmbedder
             params:
               always_return_pooled: True
-          # vector cond
+
           - is_trainable: False
             ucg_rate: 0.1
             input_key: original_size_as_tuple
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
-          # vector cond
+              outdim: 256
+
           - is_trainable: False
             input_key: crop_coords_top_left
             ucg_rate: 0.1
             target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
             params:
-              outdim: 256  # multiplied by two
+              outdim: 256
 
     first_stage_config:
-      target: sgm.models.autoencoder.AutoencoderKLInferenceWrapper
+      target: sgm.models.autoencoder.AutoencoderKL
       params:
         ckpt_path: CKPT_PATH
         embed_dim: 4
@@ -99,6 +94,8 @@ model:
     loss_fn_config:
       target: sgm.modules.diffusionmodules.loss.StandardDiffusionLoss
       params:
+        loss_weighting_config:
+          target: sgm.modules.diffusionmodules.loss_weighting.EpsWeighting
         sigma_sampler_config:
           target: sgm.modules.diffusionmodules.sigma_sampling.DiscreteSampling
           params:
@@ -127,18 +124,18 @@ data:
       datapipeline:
         urls:
           # USER: adapt this path the root of your custom dataset
-          - "DATA_PATH"
+          - DATA_PATH
         pipeline_config:
           shardshuffle: 10000
           sample_shuffle: 10000 # USER: you might wanna adapt depending on your available RAM
 
         decoders:
-          - "pil"
+          - pil
 
         postprocessors:
           - target: sdata.mappers.TorchVisionImageTransforms
             params:
-              key: 'jpg' # USER: you might wanna adapt this for your custom dataset
+              key: jpg # USER: you might wanna adapt this for your custom dataset
               transforms:
                 - target: torchvision.transforms.Resize
                   params:
