@@ -1,5 +1,9 @@
-import math
+# Adding this at the very top of app.py to make 'generative-models' directory discoverable
+import sys
 import os
+sys.path.append(os.path.join(os.path.dirname(__file__), 'generative-models'))
+
+import math
 from glob import glob
 from pathlib import Path
 from typing import Optional
@@ -17,47 +21,46 @@ from scripts.util.detection.nsfw_and_watermark_dectection import \
     DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
+from scripts.sampling.simple_video_sample import load_model, get_unique_embedder_keys_from_conditioner, get_batch
 
 import gradio as gr
 import uuid
 import random
 from huggingface_hub import hf_hub_download
 
-hf_hub_download(repo_id="stabilityai/stable-video-diffusion-img2vid-xt", filename="svd_xt.safetensors", local_dir="checkpoints") 
+# To download all svd models
+#hf_hub_download(repo_id="stabilityai/stable-video-diffusion-img2vid-xt", filename="svd_xt.safetensors", local_dir="checkpoints") 
+#hf_hub_download(repo_id="stabilityai/stable-video-diffusion-img2vid", filename="svd.safetensors", local_dir="checkpoints") 
+#hf_hub_download(repo_id="stabilityai/stable-video-diffusion-img2vid-xt-1-1", filename="svd_xt_1_1.safetensors", local_dir="checkpoints") 
 
-version = "svd_xt"
+
+# Define the repo, local directory and filename
+repo_id="stabilityai/stable-video-diffusion-img2vid-xt-1-1" # replace with "stabilityai/stable-video-diffusion-img2vid-xt" or "stabilityai/stable-video-diffusion-img2vid" for other models  
+filename = "svd_xt_1_1.safetensors"  # replace with "svd_xt.safetensors" or "svd.safetensors" for other models 
+local_dir = "checkpoints"
+local_file_path = os.path.join(local_dir, filename)
+
+# Check if the file already exists
+if not os.path.exists(local_file_path):
+    # If the file doesn't exist, download it
+    hf_hub_download(
+        repo_id=repo_id, 
+        filename=filename,
+        local_dir=local_dir  
+    )
+    print("File downloaded.")
+else:
+    print("File already exists. No need to download.")
+
+
+version = "svd_xt_1_1" # replace with 'svd_xt' or 'svd' for other models 
 device = "cuda"
 max_64_bit_int = 2**63 - 1
 
-def load_model(
-    config: str,
-    device: str,
-    num_frames: int,
-    num_steps: int,
-):
-    config = OmegaConf.load(config)
-    if device == "cuda":
-        config.model.params.conditioner_config.params.emb_models[
-            0
-        ].params.open_clip_embedding_config.params.init_device = device
-
-    config.model.params.sampler_config.params.num_steps = num_steps
-    config.model.params.sampler_config.params.guider_config.params.num_frames = (
-        num_frames
-    )
-    if device == "cuda":
-        with torch.device(device):
-            model = instantiate_from_config(config.model).to(device).eval()
-    else:
-        model = instantiate_from_config(config.model).to(device).eval()
-
-    filter = DeepFloydDataFiltering(verbose=False, device=device)
-    return model, filter
-
-if version == "svd_xt":
+if version == "svd_xt_1_1":
     num_frames = 25
     num_steps = 30
-    model_config = "scripts/sampling/configs/svd_xt.yaml"
+    model_config = "scripts/sampling/configs/svd_xt_1_1.yaml"
 else:
     raise ValueError(f"Version {version} does not exist.")
 
@@ -74,7 +77,7 @@ def sample(
     randomize_seed: bool = True,
     motion_bucket_id: int = 127,
     fps_id: int = 6,
-    version: str = "svd_xt",
+    version: str = "svd_xt_1_1",
     cond_aug: float = 0.02,
     decoding_t: int = 7,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
@@ -85,6 +88,7 @@ def sample(
     Simple script to generate a single sample conditioned on an image `input_path` or multiple images, one for each
     image file in folder `input_path`. If you run out of VRAM, try decreasing `decoding_t`.
     """
+    fps_id = int(fps_id ) #casting float slider values to int)
     if(randomize_seed):
         seed = random.randint(0, max_64_bit_int)
         
@@ -222,49 +226,6 @@ def sample(
         
         return video_path, seed
 
-def get_unique_embedder_keys_from_conditioner(conditioner):
-    return list(set([x.input_key for x in conditioner.embedders]))
-
-
-def get_batch(keys, value_dict, N, T, device):
-    batch = {}
-    batch_uc = {}
-
-    for key in keys:
-        if key == "fps_id":
-            batch[key] = (
-                torch.tensor([value_dict["fps_id"]])
-                .to(device)
-                .repeat(int(math.prod(N)))
-            )
-        elif key == "motion_bucket_id":
-            batch[key] = (
-                torch.tensor([value_dict["motion_bucket_id"]])
-                .to(device)
-                .repeat(int(math.prod(N)))
-            )
-        elif key == "cond_aug":
-            batch[key] = repeat(
-                torch.tensor([value_dict["cond_aug"]]).to(device),
-                "1 -> b",
-                b=math.prod(N),
-            )
-        elif key == "cond_frames":
-            batch[key] = repeat(value_dict["cond_frames"], "1 ... -> b ...", b=N[0])
-        elif key == "cond_frames_without_noise":
-            batch[key] = repeat(
-                value_dict["cond_frames_without_noise"], "1 ... -> b ...", b=N[0]
-            )
-        else:
-            batch[key] = value_dict[key]
-
-    if T is not None:
-        batch["num_video_frames"] = T
-
-    for key in batch.keys():
-        if key not in batch_uc and isinstance(batch[key], torch.Tensor):
-            batch_uc[key] = torch.clone(batch[key])
-    return batch, batch_uc
 
 def resize_image(image_path, output_size=(1024, 576)):
     image = Image.open(image_path)
