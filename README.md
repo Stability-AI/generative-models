@@ -24,6 +24,7 @@
       We use the standard image encoder from SD 2.1, but replace the decoder with a temporally-aware `deflickering decoder`.
     - [SVD-XT](https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt): Same architecture as `SVD` but finetuned
       for 25 frame generation.
+    - You can run the community-build gradio demo locally by running `python -m scripts.demo.gradio_app`.  
     - We provide a streamlit demo `scripts/demo/video_sampling.py` and a standalone python script `scripts/sampling/simple_video_sample.py` for inference of both models.
     - Alongside the model, we release a [technical report](https://stability.ai/research/stable-video-diffusion-scaling-latent-video-diffusion-models-to-large-datasets).
 
