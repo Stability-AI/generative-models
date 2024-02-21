@@ -402,7 +402,6 @@ class ImageLogger(Callback):
             # batch_idx > 5 and
             self.max_images > 0
         ):
-            logger = type(pl_module.logger)
             is_train = pl_module.training
             if is_train:
                 pl_module.eval()
@@ -648,7 +647,7 @@ if __name__ == "__main__":
 
         ckpt_resume_path = opt.resume_from_checkpoint
 
-        if not "devices" in trainer_config and trainer_config["accelerator"] != "gpu":
+        if "devices" not in trainer_config and trainer_config["accelerator"] != "gpu":
             del trainer_config["accelerator"]
             cpu = True
         else:
@@ -691,7 +690,7 @@ if __name__ == "__main__":
             # TODO change once leaving "swiffer" config directory
             try:
                 group_name = nowname.split(now)[-1].split("-")[1]
-            except:
+            except Exception:
                 group_name = nowname
             default_logger_cfg["params"]["group"] = group_name
             init_wandb(
@@ -814,7 +813,7 @@ if __name__ == "__main__":
         trainer_kwargs["callbacks"] = [
             instantiate_from_config(callbacks_cfg[k]) for k in callbacks_cfg
         ]
-        if not "plugins" in trainer_kwargs:
+        if "plugins" not in trainer_kwargs:
             trainer_kwargs["plugins"] = list()
 
         # cmd line trainer args (which are in trainer_opt) have always priority over config-trainer-args (which are in trainer_kwargs)
@@ -839,7 +838,7 @@ if __name__ == "__main__":
                 print(
                     f"{k}, {data.datasets[k].__class__.__name__}, {len(data.datasets[k])}"
                 )
-        except:
+        except Exception:
             print("datasets not yet initialized.")
 
         # configure learning rate

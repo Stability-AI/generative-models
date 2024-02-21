@@ -13,8 +13,12 @@ from packaging import version
 
 from ..modules.autoencoding.regularizers import AbstractRegularizer
 from ..modules.ema import LitEma
-from ..util import (default, get_nested_attribute, get_obj_from_str,
-                    instantiate_from_config)
+from ..util import (
+    default,
+    get_nested_attribute,
+    get_obj_from_str,
+    instantiate_from_config,
+)
 
 logpy = logging.getLogger(__name__)
 
@@ -529,7 +533,7 @@ class AutoencoderLegacyVQ(AutoencodingEngineLegacy):
         **kwargs,
     ):
         if "lossconfig" in kwargs:
-            logpy.warn(f"Parameter `lossconfig` is deprecated, use `loss_config`.")
+            logpy.warn("Parameter `lossconfig` is deprecated, use `loss_config`.")
             kwargs["loss_config"] = kwargs.pop("lossconfig")
         super().__init__(
             regularizer_config={

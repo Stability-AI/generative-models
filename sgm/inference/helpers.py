@@ -89,12 +89,12 @@ class Img2ImgDiscretizationWrapper:
     def __call__(self, *args, **kwargs):
         # sigmas start large first, and decrease then
         sigmas = self.discretization(*args, **kwargs)
-        print(f"sigmas after discretization, before pruning img2img: ", sigmas)
+        print("sigmas after discretization, before pruning img2img: ", sigmas)
         sigmas = torch.flip(sigmas, (0,))
         sigmas = sigmas[: max(int(self.strength * len(sigmas)), 1)]
         print("prune index:", max(int(self.strength * len(sigmas)), 1))
         sigmas = torch.flip(sigmas, (0,))
-        print(f"sigmas after pruning: ", sigmas)
+        print("sigmas after pruning: ", sigmas)
         return sigmas
 
 
@@ -119,7 +119,7 @@ def do_sample(
         batch2model_input = []
 
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with autocast(device):
             with model.ema_scope():
                 num_samples = [num_samples]
                 batch, batch_uc = get_batch(
@@ -131,7 +131,7 @@ def do_sample(
                     if isinstance(batch[key], torch.Tensor):
                         print(key, batch[key].shape)
                     elif isinstance(batch[key], list):
-                        print(key, [len(l) for l in batch[key]])
+                        print(key, [len(lst) for lst in batch[key]])
                     else:
                         print(key, batch[key])
                 c, uc = model.conditioner.get_unconditional_conditioning(
@@ -255,7 +255,7 @@ def do_img2img(
     device="cuda",
 ):
     with torch.no_grad():
-        with autocast(device) as precision_scope:
+        with autocast(device):
             with model.ema_scope():
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),

@@ -91,6 +91,11 @@ now `DiffusionEngine`) has been cleaned up:
       training (`sgm/modules/diffusionmodules/sigma_sampling.py`).
 - Autoencoding models have also been cleaned up.
 
+### Style
+
+* The repo is formatted with [Black](https://github.com/psf/black) and linted with [Ruff](https://beta.ruff.rs/).
+  * You can easily have these run on every commit by installing [`pre-commit`](https://pre-commit.com/) (`pip install pre-commit`) and running `pre-commit install` in the repo root.
+
 ## Installation:
 
 <a name="installation"></a>

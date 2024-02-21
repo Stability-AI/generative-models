@@ -8,10 +8,8 @@ import cv2
 import numpy as np
 import streamlit as st
 import torch
-import torch.nn as nn
 import torchvision.transforms as TT
 from einops import rearrange, repeat
-from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig, OmegaConf
 from PIL import Image
 from safetensors.torch import load_file as load_safetensors
@@ -19,26 +17,28 @@ from torch import autocast
 from torchvision import transforms
 from torchvision.utils import make_grid, save_image
 
-from scripts.demo.discretization import (Img2ImgDiscretizationWrapper,
-                                         Txt2NoisyDiscretizationWrapper)
-from scripts.util.detection.nsfw_and_watermark_dectection import \
-    DeepFloydDataFiltering
+from scripts.demo.discretization import (
+    Img2ImgDiscretizationWrapper,
+    Txt2NoisyDiscretizationWrapper,
+)
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
-from sgm.modules.diffusionmodules.guiders import (LinearPredictionGuider,
-                                                  VanillaCFG)
-from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
-                                                   DPMPP2SAncestralSampler,
-                                                   EulerAncestralSampler,
-                                                   EulerEDMSampler,
-                                                   HeunEDMSampler,
-                                                   LinearMultistepSampler)
+from sgm.modules.diffusionmodules.guiders import LinearPredictionGuider, VanillaCFG
+from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
+    EulerEDMSampler,
+    HeunEDMSampler,
+    LinearMultistepSampler,
+)
 from sgm.util import append_dims, default, instantiate_from_config
 
 
 @st.cache_resource()
 def init_st(version_dict, load_ckpt=True, load_filter=True):
     state = dict()
-    if not "model" in state:
+    if "model" not in state:
         config = version_dict["config"]
         ckpt = version_dict["ckpt"]
 
@@ -253,7 +253,7 @@ def get_guider(options, key):
             min_value=1.0,
         )
         min_scale = st.number_input(
-            f"min guidance scale",
+            "min guidance scale",
             value=options.get("min_cfg", 1.0),
             min_value=1.0,
             max_value=10.0,
@@ -430,15 +430,6 @@ def get_sampler(sampler_name, steps, discretization_config, guider_config, key=1
         raise ValueError(f"unknown sampler {sampler_name}!")
 
     return sampler
-
-
-def get_interactive_image() -> Image.Image:
-    image = st.file_uploader("Input", type=["jpg", "JPEG", "png"])
-    if image is not None:
-        image = Image.open(image)
-        if not image.mode == "RGB":
-            image = image.convert("RGB")
-        return image
 
 
 def load_img(
@@ -776,7 +767,7 @@ def do_img2img(
                 if filter is not None:
                     samples = filter(samples)
 
-                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
+                grid = rearrange(grid, "n b c h w -> (n h) (b w) c")  # noqa: F821
                 outputs.image(grid.cpu().numpy())
                 if return_latents:
                     return samples, samples_z

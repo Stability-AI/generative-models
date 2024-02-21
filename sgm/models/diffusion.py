@@ -12,8 +12,13 @@ from ..modules import UNCONDITIONAL_CONFIG
 from ..modules.autoencoding.temporal_ae import VideoDecoder
 from ..modules.diffusionmodules.wrappers import OPENAIUNETWRAPPER
 from ..modules.ema import LitEma
-from ..util import (default, disabled_train, get_obj_from_str,
-                    instantiate_from_config, log_txt_as_img)
+from ..util import (
+    default,
+    disabled_train,
+    get_obj_from_str,
+    instantiate_from_config,
+    log_txt_as_img,
+)
 
 
 class DiffusionEngine(pl.LightningModule):
@@ -245,9 +250,9 @@ class DiffusionEngine(pl.LightningModule):
     ):
         randn = torch.randn(batch_size, *shape).to(self.device)
 
-        denoiser = lambda input, sigma, c: self.denoiser(
-            self.model, input, sigma, c, **kwargs
-        )
+        def denoiser(input, sigma, c):
+            return self.denoiser(self.model, input, sigma, c, **kwargs)
+
         samples = self.sampler(denoiser, randn, cond, uc=uc)
         return samples
 

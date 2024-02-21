@@ -1,11 +1,25 @@
-from functools import partial
 from typing import List, Optional, Union
 
+import torch as th
+import torch.nn as nn
 from einops import rearrange
 
-from ...modules.diffusionmodules.openaimodel import *
+from ...modules.diffusionmodules.util import (
+    conv_nd,
+    linear,
+    normalization,
+    timestep_embedding,
+    zero_module,
+)
 from ...modules.video_attention import SpatialVideoTransformer
 from ...util import default
+from .openaimodel import (
+    Downsample,
+    ResBlock,
+    Timestep,
+    TimestepEmbedSequential,
+    Upsample,
+)
 from .util import AlphaBlender
 
 
