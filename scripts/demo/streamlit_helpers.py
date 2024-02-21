@@ -233,57 +233,16 @@ def get_guider(options, key):
             "target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"
         }
     elif guider == "VanillaCFG":
-        scale_schedule = st.sidebar.selectbox(
-            f"Scale schedule #{key}",
-            ["Identity", "Oscillating"],
+        scale = st.number_input(
+            f"cfg-scale #{key}",
+            value=options.get("cfg", 5.0),
+            min_value=0.0,
         )
-
-        if scale_schedule == "Identity":
-            scale = st.number_input(
-                f"cfg-scale #{key}",
-                value=options.get("cfg", 5.0),
-                min_value=0.0,
-            )
-
-            scale_schedule_config = {
-                "target": "sgm.modules.diffusionmodules.guiders.IdentitySchedule",
-                "params": {"scale": scale},
-            }
-
-        elif scale_schedule == "Oscillating":
-            small_scale = st.number_input(
-                f"small cfg-scale #{key}",
-                value=4.0,
-                min_value=0.0,
-            )
-
-            large_scale = st.number_input(
-                f"large cfg-scale #{key}",
-                value=16.0,
-                min_value=0.0,
-            )
-
-            sigma_cutoff = st.number_input(
-                f"sigma cutoff #{key}",
-                value=1.0,
-                min_value=0.0,
-            )
-
-            scale_schedule_config = {
-                "target": "sgm.modules.diffusionmodules.guiders.OscillatingSchedule",
-                "params": {
-                    "small_scale": small_scale,
-                    "large_scale": large_scale,
-                    "sigma_cutoff": sigma_cutoff,
-                },
-            }
-        else:
-            raise NotImplementedError
 
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.VanillaCFG",
             "params": {
-                "scale_schedule_config": scale_schedule_config,
+                "scale": scale,
                 **additional_guider_kwargs,
             },
         }
