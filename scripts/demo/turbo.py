@@ -1,5 +1,6 @@
-from streamlit_helpers import *
 from st_keyup import st_keyup
+from streamlit_helpers import *
+
 from sgm.modules.diffusionmodules.sampling import EulerAncestralSampler
 
 VERSION2SPECS = {
@@ -193,7 +194,7 @@ if __name__ == "__main__":
 
     with head_cols[2]:
         n_steps = st.number_input(label="number of steps", min_value=1, max_value=4)
-    
+
     sampler = SubstepSampler(
         n_sample_steps=1,
         num_steps=1000,
@@ -203,8 +204,12 @@ if __name__ == "__main__":
         ),
     )
     sampler.n_sample_steps = n_steps
-    default_prompt = "A cinematic shot of a baby racoon wearing an intricate italian priest robe."
-    prompt = st_keyup("Enter a value", value=default_prompt, debounce=300, key="interactive_text")
+    default_prompt = (
+        "A cinematic shot of a baby racoon wearing an intricate italian priest robe."
+    )
+    prompt = st_keyup(
+        "Enter a value", value=default_prompt, debounce=300, key="interactive_text"
+    )
 
     cols = st.columns([1, 5, 1])
     if mode != "skip":
@@ -217,7 +222,13 @@ if __name__ == "__main__":
 
         sampler.noise_sampler = SeededNoise(seed=st.session_state.seed)
         out = sample(
-            model, sampler, H=512, W=512, seed=st.session_state.seed, prompt=prompt, filter=state.get("filter")
+            model,
+            sampler,
+            H=512,
+            W=512,
+            seed=st.session_state.seed,
+            prompt=prompt,
+            filter=state.get("filter"),
         )
         with cols[1]:
             st.image(out[0])

@@ -1,7 +1,8 @@
 import torch
 
 from ..modules.attention import *
-from ..modules.diffusionmodules.util import AlphaBlender, linear, timestep_embedding
+from ..modules.diffusionmodules.util import (AlphaBlender, linear,
+                                             timestep_embedding)
 
 
 class TimeMixSequential(nn.Sequential):
