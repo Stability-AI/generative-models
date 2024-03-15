@@ -29,3 +29,8 @@ class DiscreteSampling:
             torch.randint(0, self.num_idx, (n_samples,)),
         )
         return self.idx_to_sigma(idx)
+
+
+class ZeroSampler:
+    def __call__(self, n_samples: int, rand=None) -> torch.Tensor:
+        return torch.zeros_like(default(rand, torch.randn((n_samples,)))) + 1.0e-5
