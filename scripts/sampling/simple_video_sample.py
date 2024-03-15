@@ -94,7 +94,7 @@ def sample(
             output_folder, "outputs/simple_video_sample/sv3d_u_image_decoder/"
         )
         model_config = "scripts/sampling/configs/sv3d_u_image_decoder.yaml"
-        cond_aug = 0.0
+        cond_aug = 1e-5
     elif version == "sv3d_p":
         num_frames = 21
         num_steps = default(num_steps, 50)
@@ -102,7 +102,7 @@ def sample(
             output_folder, "outputs/simple_video_sample/sv3d_p_image_decoder/"
         )
         model_config = "scripts/sampling/configs/sv3d_p_image_decoder.yaml"
-        cond_aug = 0.0
+        cond_aug = 1e-5
         if isinstance(elevations_deg, float) or isinstance(elevations_deg, int):
             elevations_deg = [elevations_deg] * num_frames
         polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
@@ -220,14 +220,13 @@ def sample(
 
         value_dict = {}
         value_dict["cond_frames_without_noise"] = image
+        value_dict["motion_bucket_id"] = motion_bucket_id
+        value_dict["fps_id"] = fps_id
+        value_dict["cond_aug"] = cond_aug
+        value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
         if version == "sv3d_p":
             value_dict["polars_rad"] = polars_rad
             value_dict["azimuths_rad"] = azimuths_rad
-        elif "sv3d" not in version:
-            value_dict["motion_bucket_id"] = motion_bucket_id
-            value_dict["fps_id"] = fps_id
-            value_dict["cond_aug"] = cond_aug
-            value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
 
         with torch.no_grad():
             with torch.autocast(device):
@@ -358,6 +357,7 @@ def load_model(
             0
         ].params.open_clip_embedding_config.params.init_device = device
 
+    config.model.params.sampler_config.params.verbose = True
     config.model.params.sampler_config.params.num_steps = num_steps
     config.model.params.sampler_config.params.guider_config.params.num_frames = (
         num_frames
