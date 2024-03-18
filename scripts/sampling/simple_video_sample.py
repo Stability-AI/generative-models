@@ -13,38 +13,21 @@ import io
 
 import cv2
 import numpy as np
-import requests
 import torch
 from einops import rearrange, repeat
 from fire import Fire
 from omegaconf import OmegaConf
 from PIL import Image
+from rembg import remove
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
 from torchvision.transforms import ToTensor
 
 
-def remove_bg_stable_PIL(PIL_img, MYAPIKEY=""):
-    img_byte_arr = io.BytesIO()
-    PIL_img.save(img_byte_arr, format="PNG")
-    img_byte_arr.seek(0)
-    response = requests.post(
-        f"https://dev.apiv2.stability.ai/v2alpha/generation/stable-image/remove-background",
-        headers={"authorization": f"Bearer sk-{MYAPIKEY}"},
-        files={"image": io.BufferedReader(img_byte_arr)},
-        data={"output_format": "png"},
-    )
-    if response.status_code == 200:
-        return Image.open(io.BytesIO(response.content))
-    else:
-        print("ERROR: Could not remove background!! " + str(response.json()))
-        return PIL_img
-
-
 def sample(
     input_path: str = "assets/test_image.png",  # Can either be image file or folder with image files
-    num_frames: Optional[int] = None,
+    num_frames: Optional[int] = None,  # 21 for SV3D
     num_steps: Optional[int] = None,
     version: str = "svd",
     fps_id: int = 6,
@@ -149,7 +132,7 @@ def sample(
             else:
                 # remove bg
                 image.thumbnail([768, 768], Image.Resampling.LANCZOS)
-                image = remove_bg_stable_PIL(image)
+                image = remove(image.convert("RGBA"), alpha_matting=True)
 
             # resize object in frame
             image_arr = np.array(image)
@@ -357,7 +340,6 @@ def load_model(
             0
         ].params.open_clip_embedding_config.params.init_device = device
 
-    config.model.params.sampler_config.params.verbose = True
     config.model.params.sampler_config.params.num_steps = num_steps
     config.model.params.sampler_config.params.guider_config.params.num_frames = (
         num_frames
