@@ -3,7 +3,7 @@ model:
   params:
     scale_factor: 0.18215
     disable_first_stage_autocast: True
-    ckpt_path: checkpoints/sv3d_p.safetensors
+    ckpt_path: checkpoints/sv3d_p_image_decoder.safetensors
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
@@ -42,7 +42,7 @@ model:
           target: sgm.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder
           params:
             n_cond_frames: 1
-            n_copies: 21
+            n_copies: 1
             open_clip_embedding_config:
               target: sgm.modules.encoders.modules.FrozenOpenCLIPImageEmbedder
               params:
@@ -54,7 +54,7 @@ model:
           params:
             disable_encoder_autocast: True
             n_cond_frames: 1
-            n_copies: 21
+            n_copies: 1
             is_ae: True
             encoder_config:
               target: sgm.models.autoencoder.AutoencoderKLModeOnly
@@ -101,6 +101,8 @@ model:
           target: torch.nn.Identity
         regularizer_config:
           target: sgm.modules.autoencoding.regularizers.DiagonalGaussianRegularizer
+        encoder_config:
+          target: torch.nn.Identity
         decoder_config:
           target: sgm.modules.diffusionmodules.model.Decoder
           params:
@@ -115,8 +117,6 @@ model:
             num_res_blocks: 2
             attn_resolutions: [ ]
             dropout: 0.0
-        encoder_config:
-          target: torch.nn.Identity
 
     sampler_config:
       target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler

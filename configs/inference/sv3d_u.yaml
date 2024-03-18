@@ -3,7 +3,6 @@ model:
   params:
     scale_factor: 0.18215
     disable_first_stage_autocast: True
-    ckpt_path: checkpoints/sv3d_u_image_decoder.safetensors
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
@@ -37,8 +36,8 @@ model:
       target: sgm.modules.GeneralConditioner
       params:
         emb_models:
-        - is_trainable: False
-          input_key: cond_frames_without_noise
+        - input_key: cond_frames_without_noise
+          is_trainable: False
           target: sgm.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder
           params:
             n_cond_frames: 1
@@ -92,29 +91,17 @@ model:
         encoder_config:
           target: torch.nn.Identity
         decoder_config:
-          target: sgm.modules.diffusionmodules.model.Decoder
+          target: sgm.modules.autoencoding.temporal_ae.VideoDecoder
           params:
-            attn_type: vanilla-xformers
+            attn_type: vanilla
             double_z: True
             z_channels: 4
             resolution: 256
             in_channels: 3
             out_ch: 3
             ch: 128
-            ch_mult: [ 1, 2, 4, 4 ]
+            ch_mult: [1, 2, 4, 4]
             num_res_blocks: 2
-            attn_resolutions: [ ]
+            attn_resolutions: []
             dropout: 0.0
-
-    sampler_config:
-      target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler
-      params:
-        discretization_config:
-          target: sgm.modules.diffusionmodules.discretizer.EDMDiscretization
-          params:
-            sigma_max: 700.0
-
-        guider_config:
-          target: sgm.modules.diffusionmodules.guiders.TrianglePredictionGuider
-          params:
-            max_scale: 2.5
+            video_kernel_size: [3, 1, 1]

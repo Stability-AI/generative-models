@@ -3,7 +3,7 @@ model:
   params:
     scale_factor: 0.18215
     disable_first_stage_autocast: True
-    ckpt_path: checkpoints/sv3d_u_image_decoder.safetensors
+    ckpt_path: checkpoints/sv3d_u.safetensors
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
@@ -92,19 +92,20 @@ model:
         encoder_config:
           target: torch.nn.Identity
         decoder_config:
-          target: sgm.modules.diffusionmodules.model.Decoder
+          target: sgm.modules.autoencoding.temporal_ae.VideoDecoder
           params:
-            attn_type: vanilla-xformers
+            attn_type: vanilla
             double_z: True
             z_channels: 4
             resolution: 256
             in_channels: 3
             out_ch: 3
             ch: 128
-            ch_mult: [ 1, 2, 4, 4 ]
+            ch_mult: [1, 2, 4, 4]
             num_res_blocks: 2
-            attn_resolutions: [ ]
+            attn_resolutions: []
             dropout: 0.0
+            video_kernel_size: [3, 1, 1]
 
     sampler_config:
       target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler

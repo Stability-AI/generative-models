@@ -3,7 +3,6 @@ model:
   params:
     scale_factor: 0.18215
     disable_first_stage_autocast: True
-    ckpt_path: checkpoints/sv3d_u_image_decoder.safetensors
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
@@ -37,8 +36,8 @@ model:
       target: sgm.modules.GeneralConditioner
       params:
         emb_models:
-        - is_trainable: False
-          input_key: cond_frames_without_noise
+        - input_key: cond_frames_without_noise
+          is_trainable: False
           target: sgm.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder
           params:
             n_cond_frames: 1
@@ -105,16 +104,3 @@ model:
             num_res_blocks: 2
             attn_resolutions: [ ]
             dropout: 0.0
-
-    sampler_config:
-      target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler
-      params:
-        discretization_config:
-          target: sgm.modules.diffusionmodules.discretizer.EDMDiscretization
-          params:
-            sigma_max: 700.0
-
-        guider_config:
-          target: sgm.modules.diffusionmodules.guiders.TrianglePredictionGuider
-          params:
-            max_scale: 2.5

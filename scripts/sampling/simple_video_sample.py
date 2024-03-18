@@ -13,11 +13,10 @@ from fire import Fire
 from omegaconf import OmegaConf
 from PIL import Image
 from rembg import remove
-from torchvision.transforms import ToTensor
-
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
+from torchvision.transforms import ToTensor
 
 
 def sample(
@@ -29,12 +28,13 @@ def sample(
     motion_bucket_id: int = 127,
     cond_aug: float = 0.02,
     seed: int = 23,
-    decoding_t: int = 7,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
+    decoding_t: int = 14,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     output_folder: Optional[str] = None,
     elevations_deg: Optional[float | List[float]] = 10.0,  # For SV3D
     azimuths_deg: Optional[float | List[float]] = None,  # For SV3D
     image_frame_ratio: Optional[float] = None,
+    verbose: Optional[bool] = False,
 ):
     """
     Simple script to generate a single sample conditioned on an image `input_path` or multiple images, one for each
@@ -51,6 +51,24 @@ def sample(
         num_steps = default(num_steps, 30)
         output_folder = default(output_folder, "outputs/simple_video_sample/svd_xt/")
         model_config = "scripts/sampling/configs/svd_xt.yaml"
+    elif version == "sv3d_u":
+        num_frames = 21
+        num_steps = default(num_steps, 50)
+        output_folder = default(output_folder, "outputs/simple_video_sample/sv3d_u/")
+        model_config = "scripts/sampling/configs/sv3d_u.yaml"
+        cond_aug = 1e-5
+    elif version == "sv3d_p":
+        num_frames = 21
+        num_steps = default(num_steps, 50)
+        output_folder = default(output_folder, "outputs/simple_video_sample/sv3d_p/")
+        model_config = "scripts/sampling/configs/sv3d_p.yaml"
+        cond_aug = 1e-5
+        if isinstance(elevations_deg, float) or isinstance(elevations_deg, int):
+            elevations_deg = [elevations_deg] * num_frames
+        polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
+        if azimuths_deg is None:
+            azimuths_deg = np.linspace(0, 360, num_frames + 1)[1:] % 360
+        azimuths_rad = [np.deg2rad(a) for a in azimuths_deg]
     elif version == "svd_image_decoder":
         num_frames = default(num_frames, 14)
         num_steps = default(num_steps, 25)
@@ -65,7 +83,7 @@ def sample(
             output_folder, "outputs/simple_video_sample/svd_xt_image_decoder/"
         )
         model_config = "scripts/sampling/configs/svd_xt_image_decoder.yaml"
-    elif version == "sv3d_u":
+    elif version == "sv3d_u_image_decoder":
         num_frames = 21
         num_steps = default(num_steps, 50)
         output_folder = default(
@@ -73,7 +91,7 @@ def sample(
         )
         model_config = "scripts/sampling/configs/sv3d_u_image_decoder.yaml"
         cond_aug = 1e-5
-    elif version == "sv3d_p":
+    elif version == "sv3d_p_image_decoder":
         num_frames = 21
         num_steps = default(num_steps, 50)
         output_folder = default(
@@ -95,6 +113,7 @@ def sample(
         device,
         num_frames,
         num_steps,
+        verbose,
     )
     torch.manual_seed(seed)
 
@@ -201,7 +220,7 @@ def sample(
         value_dict["fps_id"] = fps_id
         value_dict["cond_aug"] = cond_aug
         value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
-        if version == "sv3d_p":
+        if "sv3d_p" in version:
             value_dict["polars_rad"] = polars_rad
             value_dict["azimuths_rad"] = azimuths_rad
 
@@ -223,8 +242,7 @@ def sample(
                     ],
                 )
 
-                repeat_conds = [] if "sv3d" in version else ["crossattn", "concat"]
-                for k in repeat_conds:
+                for k in ["crossattn", "concat"]:
                     uc[k] = repeat(uc[k], "b ... -> b t ...", t=num_frames)
                     uc[k] = rearrange(uc[k], "b t ... -> (b t) ...", t=num_frames)
                     c[k] = repeat(c[k], "b ... -> b t ...", t=num_frames)
@@ -317,6 +335,7 @@ def load_model(
     device: str,
     num_frames: int,
     num_steps: int,
+    verbose: bool = False,
 ):
     config = OmegaConf.load(config)
     if device == "cuda":
@@ -324,6 +343,7 @@ def load_model(
             0
         ].params.open_clip_embedding_config.params.init_device = device
 
+    config.model.params.sampler_config.params.verbose = verbose
     config.model.params.sampler_config.params.num_steps = num_steps
     config.model.params.sampler_config.params.guider_config.params.num_frames = (
         num_frames
