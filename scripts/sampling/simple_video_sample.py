@@ -1,9 +1,11 @@
 import math
 import os
+import sys
 from glob import glob
 from pathlib import Path
 from typing import List, Optional
 
+sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../")))
 import cv2
 import imageio
 import numpy as np

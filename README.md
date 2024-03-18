@@ -10,7 +10,13 @@
     - SV3D_u: This variant generates orbital videos based on single image inputs without camera conditioning..
     - SV3D_p: Extending the capability of SVD3_u, this variant accommodates both single images and orbital views allowing for the creation of 3D video along specified camera paths.
     - We extend the streamlit demo `scripts/demo/video_sampling.py` and the standalone python script `scripts/sampling/simple_video_sample.py` for inference of both models.
-    - Please check our [tech report](https://sv3d.github.io/static/paper.pdf) and [video summary](https://youtu.be/Zqw4-1LcfWg) for more details.
+    - Please check our [project page](https://sv3d.github.io), [tech report](https://sv3d.github.io/static/paper.pdf) and [video summary](https://youtu.be/Zqw4-1LcfWg) for more details.
+
+To run SV3D on a single image:
+`python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p`
+
+To run SVD or SV3D on a streamlit server:
+`streamlit run scripts/demo/video_sampling.py`
 
   ![tile](assets/sv3d.gif)
 
