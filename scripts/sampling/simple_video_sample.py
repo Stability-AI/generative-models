@@ -1,17 +1,11 @@
 import math
 import os
-import sys
 from glob import glob
 from pathlib import Path
 from typing import List, Optional
 
-import imageio
-
-sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../")))
-
-import io
-
 import cv2
+import imageio
 import numpy as np
 import torch
 from einops import rearrange, repeat
@@ -19,10 +13,11 @@ from fire import Fire
 from omegaconf import OmegaConf
 from PIL import Image
 from rembg import remove
+from torchvision.transforms import ToTensor
+
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
-from torchvision.transforms import ToTensor
 
 
 def sample(
@@ -125,7 +120,6 @@ def sample(
 
     for input_img_path in all_img_paths:
         if "sv3d" in version:
-
             image = Image.open(input_img_path)
             if image.mode == "RGBA":
                 pass
@@ -263,13 +257,6 @@ def sample(
                     os.path.join(output_folder, f"{base_count:06d}.jpg"), input_image
                 )
 
-                video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
-                # writer = cv2.VideoWriter(
-                #     video_path,
-                #     cv2.VideoWriter_fourcc(*"MP4V"),
-                #     fps_id + 1,
-                #     (samples.shape[-1], samples.shape[-2]),
-                # )
                 samples = embed_watermark(samples)
                 samples = filter(samples)
                 vid = (
@@ -278,10 +265,7 @@ def sample(
                     .numpy()
                     .astype(np.uint8)
                 )
-                # for frame in vid:
-                #     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                #     writer.write(frame)
-                # writer.release()
+                video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
                 imageio.mimwrite(video_path, vid)
 
 
