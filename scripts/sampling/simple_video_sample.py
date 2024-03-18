@@ -34,7 +34,7 @@ def sample(
     device: str = "cuda",
     output_folder: Optional[str] = None,
     elevations_deg: Optional[float | List[float]] = 10.0,  # For SV3D
-    azimuths_deg: Optional[float | List[float]] = None,  # For SV3D
+    azimuths_deg: Optional[List[float]] = None,  # For SV3D
     image_frame_ratio: Optional[float] = None,
     verbose: Optional[bool] = False,
 ):
@@ -81,10 +81,17 @@ def sample(
         cond_aug = 1e-5
         if isinstance(elevations_deg, float) or isinstance(elevations_deg, int):
             elevations_deg = [elevations_deg] * num_frames
+        assert (
+            len(elevations_deg) == num_frames
+        ), f"Please provide 1 value, or a list of {num_frames} values for elevations_deg! Given {len(elevations_deg)}"
         polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
         if azimuths_deg is None:
             azimuths_deg = np.linspace(0, 360, num_frames + 1)[1:] % 360
-        azimuths_rad = [np.deg2rad(a) for a in azimuths_deg]
+        assert (
+            len(azimuths_deg) == num_frames
+        ), f"Please provide a list of {num_frames} values for azimuths_deg! Given {len(azimuths_deg)}"
+        azimuths_rad = [np.deg2rad((a - azimuths_deg[-1]) % 360) for a in azimuths_deg]
+        azimuths_rad[:-1].sort()
     else:
         raise ValueError(f"Version {version} does not exist.")
 
