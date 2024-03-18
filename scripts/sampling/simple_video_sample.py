@@ -84,7 +84,8 @@ def sample(
         polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
         if azimuths_deg is None:
             azimuths_deg = np.linspace(0, 360, num_frames + 1)[1:] % 360
-        azimuths_rad = [np.deg2rad(a) for a in azimuths_deg]
+        azimuths_rad = [np.deg2rad((a - azimuths_deg[-1]) % 360) for a in azimuths_deg]
+        azimuths_rad[:-1].sort()
     else:
         raise ValueError(f"Version {version} does not exist.")
 

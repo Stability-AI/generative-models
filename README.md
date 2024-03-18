@@ -16,9 +16,10 @@ To run SV3D_u on a single image:
 - Download `sv3d_u.safetensors` from https://huggingface.co/stabilityai/sv3d to `checkpoints/sv3d_u.safetensors`
 - Run `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_u`
 
-Additionally for SV3D_p,
-- Specify sequences of 21 elevations and 21 azimuths (in degrees) to `elevations_deg` ([-90, 90]), and `azimuths_deg` [0, 360] in sorted order from 0 to 360. For example:
-`python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg [<list of 21 elevations in degrees>] --azimuths_deg [<list of 21 azimuths in degrees>]`
+To run SV3D_u on a single image:
+- Download `sv3d_p.safetensors` from https://huggingface.co/stabilityai/sv3d to `checkpoints/sv3d_p.safetensors`
+1. Generate static orbit at a specified elevation eg. 10 : `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg 10.0`
+2. Generate dynamic orbit at a specified elevations and azimuths: specify sequences of 21 elevations (in degrees) to `elevations_deg` ([-90, 90]), and 21 azimuths (in degrees) to `azimuths_deg` [0, 360] in sorted order from 0 to 360. For example: `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg [<list of 21 elevations in degrees>] --azimuths_deg [<list of 21 azimuths in degrees>]`
 
 To run SVD or SV3D on a streamlit server:
 `streamlit run scripts/demo/video_sampling.py`
