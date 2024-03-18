@@ -3,7 +3,7 @@ model:
   params:
     scale_factor: 0.18215
     disable_first_stage_autocast: True
-    ckpt_path: checkpoints/sv3d_p_image_decoder.safetensors
+    ckpt_path: checkpoints/sv3d_p.safetensors
 
     denoiser_config:
       target: sgm.modules.diffusionmodules.denoiser.Denoiser
