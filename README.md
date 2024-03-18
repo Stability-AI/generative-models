@@ -12,7 +12,6 @@
     - We extend the streamlit demo `scripts/demo/video_sampling.py` and the standalone python script `scripts/sampling/simple_video_sample.py` for inference of both models.
     - Please check our [project page](https://sv3d.github.io), [tech report](https://sv3d.github.io/static/paper.pdf) and [video summary](https://youtu.be/Zqw4-1LcfWg) for more details.
 
-<<<<<<< HEAD
 To run SV3D_u on a single image:
 - Download `sv3d_u.safetensors` from https://huggingface.co/stabilityai/sv3d to `checkpoints/sv3d_u.safetensors`
 - Run `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_u`
@@ -20,10 +19,6 @@ To run SV3D_u on a single image:
 Additionally for SV3D_p,
 - Specify sequences of 21 elevations and 21 azimuths (in degrees) to `elevations_deg` ([-90, 90]), and `azimuths_deg` [0, 360] in sorted order from 0 to 360. For example:
 `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg [<list of 21 elevations in degrees>] --azimuths_deg [<list of 21 azimuths in degrees>]`
-=======
-To run SV3D on a single image:
-`python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p`
->>>>>>> main
 
 To run SVD or SV3D on a streamlit server:
 `streamlit run scripts/demo/video_sampling.py`
