@@ -1,27 +1,29 @@
 import math
 import os
+import sys
 from glob import glob
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
+sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../")))
 import cv2
+import imageio
 import numpy as np
 import torch
 from einops import rearrange, repeat
 from fire import Fire
 from omegaconf import OmegaConf
 from PIL import Image
-from torchvision.transforms import ToTensor
-
-from scripts.util.detection.nsfw_and_watermark_dectection import \
-    DeepFloydDataFiltering
+from rembg import remove
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
+from torchvision.transforms import ToTensor
 
 
 def sample(
     input_path: str = "assets/test_image.png",  # Can either be image file or folder with image files
-    num_frames: Optional[int] = None,
+    num_frames: Optional[int] = None,  # 21 for SV3D
     num_steps: Optional[int] = None,
     version: str = "svd",
     fps_id: int = 6,
@@ -31,6 +33,10 @@ def sample(
     decoding_t: int = 14,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     output_folder: Optional[str] = None,
+    elevations_deg: Optional[float | List[float]] = 10.0,  # For SV3D
+    azimuths_deg: Optional[float | List[float]] = None,  # For SV3D
+    image_frame_ratio: Optional[float] = None,
+    verbose: Optional[bool] = False,
 ):
     """
     Simple script to generate a single sample conditioned on an image `input_path` or multiple images, one for each
@@ -61,6 +67,24 @@ def sample(
             output_folder, "outputs/simple_video_sample/svd_xt_image_decoder/"
         )
         model_config = "scripts/sampling/configs/svd_xt_image_decoder.yaml"
+    elif version == "sv3d_u":
+        num_frames = 21
+        num_steps = default(num_steps, 50)
+        output_folder = default(output_folder, "outputs/simple_video_sample/sv3d_u/")
+        model_config = "scripts/sampling/configs/sv3d_u.yaml"
+        cond_aug = 1e-5
+    elif version == "sv3d_p":
+        num_frames = 21
+        num_steps = default(num_steps, 50)
+        output_folder = default(output_folder, "outputs/simple_video_sample/sv3d_p/")
+        model_config = "scripts/sampling/configs/sv3d_p.yaml"
+        cond_aug = 1e-5
+        if isinstance(elevations_deg, float) or isinstance(elevations_deg, int):
+            elevations_deg = [elevations_deg] * num_frames
+        polars_rad = [np.deg2rad(90 - e) for e in elevations_deg]
+        if azimuths_deg is None:
+            azimuths_deg = np.linspace(0, 360, num_frames + 1)[1:] % 360
+        azimuths_rad = [np.deg2rad(a) for a in azimuths_deg]
     else:
         raise ValueError(f"Version {version} does not exist.")
 
@@ -69,6 +93,7 @@ def sample(
         device,
         num_frames,
         num_steps,
+        verbose,
     )
     torch.manual_seed(seed)
 
@@ -93,20 +118,56 @@ def sample(
         raise ValueError
 
     for input_img_path in all_img_paths:
-        with Image.open(input_img_path) as image:
+        if "sv3d" in version:
+            image = Image.open(input_img_path)
             if image.mode == "RGBA":
-                image = image.convert("RGB")
-            w, h = image.size
+                pass
+            else:
+                # remove bg
+                image.thumbnail([768, 768], Image.Resampling.LANCZOS)
+                image = remove(image.convert("RGBA"), alpha_matting=True)
 
-            if h % 64 != 0 or w % 64 != 0:
-                width, height = map(lambda x: x - x % 64, (w, h))
-                image = image.resize((width, height))
-                print(
-                    f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
-                )
+            # resize object in frame
+            image_arr = np.array(image)
+            in_w, in_h = image_arr.shape[:2]
+            ret, mask = cv2.threshold(
+                np.array(image.split()[-1]), 0, 255, cv2.THRESH_BINARY
+            )
+            x, y, w, h = cv2.boundingRect(mask)
+            max_size = max(w, h)
+            side_len = (
+                int(max_size / image_frame_ratio)
+                if image_frame_ratio is not None
+                else in_w
+            )
+            padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
+            center = side_len // 2
+            padded_image[
+                center - h // 2 : center - h // 2 + h,
+                center - w // 2 : center - w // 2 + w,
+            ] = image_arr[y : y + h, x : x + w]
+            # resize frame to 576x576
+            rgba = Image.fromarray(padded_image).resize((576, 576), Image.LANCZOS)
+            # white bg
+            rgba_arr = np.array(rgba) / 255.0
+            rgb = rgba_arr[..., :3] * rgba_arr[..., -1:] + (1 - rgba_arr[..., -1:])
+            input_image = Image.fromarray((rgb * 255).astype(np.uint8))
 
-            image = ToTensor()(image)
-            image = image * 2.0 - 1.0
+        else:
+            with Image.open(input_img_path) as image:
+                if image.mode == "RGBA":
+                    input_image = image.convert("RGB")
+                w, h = image.size
+
+                if h % 64 != 0 or w % 64 != 0:
+                    width, height = map(lambda x: x - x % 64, (w, h))
+                    input_image = input_image.resize((width, height))
+                    print(
+                        f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
+                    )
+
+        image = ToTensor()(input_image)
+        image = image * 2.0 - 1.0
 
         image = image.unsqueeze(0).to(device)
         H, W = image.shape[2:]
@@ -114,9 +175,13 @@ def sample(
         F = 8
         C = 4
         shape = (num_frames, C, H // F, W // F)
-        if (H, W) != (576, 1024):
+        if (H, W) != (576, 1024) and "sv3d" not in version:
             print(
                 "WARNING: The conditioning frame you provided is not 576x1024. This leads to suboptimal performance as model was only trained on 576x1024. Consider increasing `cond_aug`."
+            )
+        if (H, W) != (576, 576) and "sv3d" in version:
+            print(
+                "WARNING: The conditioning frame you provided is not 576x576. This leads to suboptimal performance as model was only trained on 576x576."
             )
         if motion_bucket_id > 255:
             print(
@@ -130,12 +195,14 @@ def sample(
             print("WARNING: Large fps value! This may lead to suboptimal performance.")
 
         value_dict = {}
+        value_dict["cond_frames_without_noise"] = image
         value_dict["motion_bucket_id"] = motion_bucket_id
         value_dict["fps_id"] = fps_id
         value_dict["cond_aug"] = cond_aug
-        value_dict["cond_frames_without_noise"] = image
         value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
-        value_dict["cond_aug"] = cond_aug
+        if "sv3d_p" in version:
+            value_dict["polars_rad"] = polars_rad
+            value_dict["azimuths_rad"] = azimuths_rad
 
         with torch.no_grad():
             with torch.autocast(device):
@@ -177,16 +244,15 @@ def sample(
                 samples_z = model.sampler(denoiser, randn, cond=c, uc=uc)
                 model.en_and_decode_n_samples_a_time = decoding_t
                 samples_x = model.decode_first_stage(samples_z)
+                if "sv3d" in version:
+                    samples_x[-1:] = value_dict["cond_frames_without_noise"]
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
 
                 os.makedirs(output_folder, exist_ok=True)
                 base_count = len(glob(os.path.join(output_folder, "*.mp4")))
-                video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
-                writer = cv2.VideoWriter(
-                    video_path,
-                    cv2.VideoWriter_fourcc(*"MP4V"),
-                    fps_id + 1,
-                    (samples.shape[-1], samples.shape[-2]),
+
+                imageio.imwrite(
+                    os.path.join(output_folder, f"{base_count:06d}.jpg"), input_image
                 )
 
                 samples = embed_watermark(samples)
@@ -197,10 +263,8 @@ def sample(
                     .numpy()
                     .astype(np.uint8)
                 )
-                for frame in vid:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    writer.write(frame)
-                writer.release()
+                video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
+                imageio.mimwrite(video_path, vid)
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
@@ -230,12 +294,10 @@ def get_batch(keys, value_dict, N, T, device):
                 "1 -> b",
                 b=math.prod(N),
             )
-        elif key == "cond_frames":
-            batch[key] = repeat(value_dict["cond_frames"], "1 ... -> b ...", b=N[0])
-        elif key == "cond_frames_without_noise":
-            batch[key] = repeat(
-                value_dict["cond_frames_without_noise"], "1 ... -> b ...", b=N[0]
-            )
+        elif key == "cond_frames" or key == "cond_frames_without_noise":
+            batch[key] = repeat(value_dict[key], "1 ... -> b ...", b=N[0])
+        elif key == "polars_rad" or key == "azimuths_rad":
+            batch[key] = torch.tensor(value_dict[key]).to(device).repeat(N[0])
         else:
             batch[key] = value_dict[key]
 
@@ -253,6 +315,7 @@ def load_model(
     device: str,
     num_frames: int,
     num_steps: int,
+    verbose: bool = False,
 ):
     config = OmegaConf.load(config)
     if device == "cuda":
@@ -260,6 +323,7 @@ def load_model(
             0
         ].params.open_clip_embedding_config.params.init_device = device
 
+    config.model.params.sampler_config.params.verbose = verbose
     config.model.params.sampler_config.params.num_steps = num_steps
     config.model.params.sampler_config.params.guider_config.params.num_frames = (
         num_frames

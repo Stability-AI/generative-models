@@ -5,6 +5,7 @@ from glob import glob
 from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
+import imageio
 import numpy as np
 import streamlit as st
 import torch
@@ -15,24 +16,29 @@ from imwatermark import WatermarkEncoder
 from omegaconf import ListConfig, OmegaConf
 from PIL import Image
 from safetensors.torch import load_file as load_safetensors
+from scripts.demo.discretization import (
+    Img2ImgDiscretizationWrapper,
+    Txt2NoisyDiscretizationWrapper,
+)
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
+from sgm.inference.helpers import embed_watermark
+from sgm.modules.diffusionmodules.guiders import (
+    LinearPredictionGuider,
+    TrianglePredictionGuider,
+    VanillaCFG,
+)
+from sgm.modules.diffusionmodules.sampling import (
+    DPMPP2MSampler,
+    DPMPP2SAncestralSampler,
+    EulerAncestralSampler,
+    EulerEDMSampler,
+    HeunEDMSampler,
+    LinearMultistepSampler,
+)
+from sgm.util import append_dims, default, instantiate_from_config
 from torch import autocast
 from torchvision import transforms
 from torchvision.utils import make_grid, save_image
-
-from scripts.demo.discretization import (Img2ImgDiscretizationWrapper,
-                                         Txt2NoisyDiscretizationWrapper)
-from scripts.util.detection.nsfw_and_watermark_dectection import \
-    DeepFloydDataFiltering
-from sgm.inference.helpers import embed_watermark
-from sgm.modules.diffusionmodules.guiders import (LinearPredictionGuider,
-                                                  VanillaCFG)
-from sgm.modules.diffusionmodules.sampling import (DPMPP2MSampler,
-                                                   DPMPP2SAncestralSampler,
-                                                   EulerAncestralSampler,
-                                                   EulerEDMSampler,
-                                                   HeunEDMSampler,
-                                                   LinearMultistepSampler)
-from sgm.util import append_dims, default, instantiate_from_config
 
 
 @st.cache_resource()
@@ -222,6 +228,7 @@ def get_guider(options, key):
             "VanillaCFG",
             "IdentityGuider",
             "LinearPredictionGuider",
+            "TrianglePredictionGuider",
         ],
         options.get("guider", 0),
     )
@@ -252,7 +259,7 @@ def get_guider(options, key):
             value=options.get("cfg", 1.5),
             min_value=1.0,
         )
-        min_scale = st.number_input(
+        min_scale = st.sidebar.number_input(
             f"min guidance scale",
             value=options.get("min_cfg", 1.0),
             min_value=1.0,
@@ -261,6 +268,29 @@ def get_guider(options, key):
 
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.LinearPredictionGuider",
+            "params": {
+                "max_scale": max_scale,
+                "min_scale": min_scale,
+                "num_frames": options["num_frames"],
+                **additional_guider_kwargs,
+            },
+        }
+    elif guider == "TrianglePredictionGuider":
+        max_scale = st.number_input(
+            f"max-cfg-scale #{key}",
+            value=options.get("cfg", 2.5),
+            min_value=1.0,
+            max_value=10.0,
+        )
+        min_scale = st.sidebar.number_input(
+            f"min guidance scale",
+            value=options.get("min_cfg", 1.0),
+            min_value=1.0,
+            max_value=10.0,
+        )
+
+        guider_config = {
+            "target": "sgm.modules.diffusionmodules.guiders.TrianglePredictionGuider",
             "params": {
                 "max_scale": max_scale,
                 "min_scale": min_scale,
@@ -288,8 +318,8 @@ def init_sampling(
             f"num cols #{key}", value=num_cols, min_value=1, max_value=10
         )
 
-    steps = st.sidebar.number_input(
-        f"steps #{key}", value=options.get("num_steps", 40), min_value=1, max_value=1000
+    steps = st.number_input(
+        f"steps #{key}", value=options.get("num_steps", 50), min_value=1, max_value=1000
     )
     sampler = st.sidebar.selectbox(
         f"Sampler #{key}",
@@ -337,13 +367,13 @@ def get_discretization(discretization, options, key=1):
             "target": "sgm.modules.diffusionmodules.discretizer.LegacyDDPMDiscretization",
         }
     elif discretization == "EDMDiscretization":
-        sigma_min = st.number_input(
+        sigma_min = st.sidebar.number_input(
             f"sigma_min #{key}", value=options.get("sigma_min", 0.03)
         )  # 0.0292
-        sigma_max = st.number_input(
+        sigma_max = st.sidebar.number_input(
             f"sigma_max #{key}", value=options.get("sigma_max", 14.61)
         )  # 14.6146
-        rho = st.number_input(f"rho #{key}", value=options.get("rho", 3.0))
+        rho = st.sidebar.number_input(f"rho #{key}", value=options.get("rho", 3.0))
         discretization_config = {
             "target": "sgm.modules.diffusionmodules.discretizer.EDMDiscretization",
             "params": {
@@ -542,7 +572,12 @@ def do_sample(
                         assert T is not None
 
                         if isinstance(
-                            sampler.guider, (VanillaCFG, LinearPredictionGuider)
+                            sampler.guider,
+                            (
+                                VanillaCFG,
+                                LinearPredictionGuider,
+                                TrianglePredictionGuider,
+                            ),
                         ):
                             additional_model_inputs[k] = torch.zeros(
                                 num_samples[0] * 2, num_samples[1]
@@ -677,6 +712,12 @@ def get_batch(
         elif key == "cond_frames_without_noise":
             batch[key] = repeat(
                 value_dict["cond_frames_without_noise"], "1 ... -> b ...", b=N[0]
+            )
+        elif key == "polars_rad":
+            batch[key] = torch.tensor(value_dict["polars_rad"]).to(device).repeat(N[0])
+        elif key == "azimuths_rad":
+            batch[key] = (
+                torch.tensor(value_dict["azimuths_rad"]).to(device).repeat(N[0])
             )
         else:
             batch[key] = value_dict[key]
@@ -827,8 +868,13 @@ def load_img_for_prediction(
         st.image(image)
     w, h = image.size
 
-    image = np.array(image).transpose(2, 0, 1)
-    image = torch.from_numpy(image).to(dtype=torch.float32) / 255.0
+    image = np.array(image).astype(np.float32) / 255
+    if image.shape[-1] == 4:
+        rgb, alpha = image[:, :, :3], image[:, :, 3:]
+        image = rgb * alpha + (1 - alpha)
+
+    image = image.transpose(2, 0, 1)
+    image = torch.from_numpy(image).to(dtype=torch.float32)
     image = image.unsqueeze(0)
 
     rfs = get_resizing_factor((H, W), (h, w))
@@ -860,28 +906,16 @@ def save_video_as_grid_and_mp4(
         save_image(vid, fp=os.path.join(save_path, f"{base_count:06d}.png"), nrow=4)
 
         video_path = os.path.join(save_path, f"{base_count:06d}.mp4")
-
-        writer = cv2.VideoWriter(
-            video_path,
-            cv2.VideoWriter_fourcc(*"MP4V"),
-            fps,
-            (vid.shape[-1], vid.shape[-2]),
-        )
-
         vid = (
             (rearrange(vid, "t c h w -> t h w c") * 255).cpu().numpy().astype(np.uint8)
         )
-        for frame in vid:
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            writer.write(frame)
-
-        writer.release()
+        imageio.mimwrite(video_path, vid, fps=fps)
 
         video_path_h264 = video_path[:-4] + "_h264.mp4"
-        os.system(f"ffmpeg -i {video_path} -c:v libx264 {video_path_h264}")
-
+        os.system(f"ffmpeg -i '{video_path}' -c:v libx264 '{video_path_h264}'")
         with open(video_path_h264, "rb") as f:
             video_bytes = f.read()
+        os.remove(video_path_h264)
         st.video(video_bytes)
 
         base_count += 1

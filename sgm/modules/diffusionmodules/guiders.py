@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import torch
 from einops import rearrange, repeat
@@ -97,3 +97,35 @@ class LinearPredictionGuider(Guider):
                 assert c[k] == uc[k]
                 c_out[k] = c[k]
         return torch.cat([x] * 2), torch.cat([s] * 2), c_out
+
+
+class TrianglePredictionGuider(LinearPredictionGuider):
+    def __init__(
+        self,
+        max_scale: float,
+        num_frames: int,
+        min_scale: float = 1.0,
+        period: float | List[float] = 1.0,
+        period_fusing: Literal["mean", "multiply", "max"] = "max",
+        additional_cond_keys: Optional[Union[List[str], str]] = None,
+    ):
+        super().__init__(max_scale, num_frames, min_scale, additional_cond_keys)
+        values = torch.linspace(0, 1, num_frames)
+        # Constructs a triangle wave
+        if isinstance(period, float):
+            period = [period]
+
+        scales = []
+        for p in period:
+            scales.append(self.triangle_wave(values, p))
+
+        if period_fusing == "mean":
+            scale = sum(scales) / len(period)
+        elif period_fusing == "multiply":
+            scale = torch.prod(torch.stack(scales), dim=0)
+        elif period_fusing == "max":
+            scale = torch.max(torch.stack(scales), dim=0).values
+        self.scale = (scale * (max_scale - min_scale) + min_scale).unsqueeze(0)
+
+    def triangle_wave(self, values: torch.Tensor, period) -> torch.Tensor:
+        return 2 * (values / period - torch.floor(values / period + 0.5)).abs()

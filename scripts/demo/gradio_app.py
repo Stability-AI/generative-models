@@ -23,9 +23,11 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 
 from scripts.sampling.simple_video_sample import (
-    get_batch, get_unique_embedder_keys_from_conditioner, load_model)
-from scripts.util.detection.nsfw_and_watermark_dectection import \
-    DeepFloydDataFiltering
+    get_batch,
+    get_unique_embedder_keys_from_conditioner,
+    load_model,
+)
+from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
 
