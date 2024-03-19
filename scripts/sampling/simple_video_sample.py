@@ -100,7 +100,7 @@ def sample(
         device,
         num_frames,
         num_steps,
-        verbose,
+        verbose=verbose,
     )
     torch.manual_seed(seed)
 
