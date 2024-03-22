@@ -15,10 +15,11 @@ from fire import Fire
 from omegaconf import OmegaConf
 from PIL import Image
 from rembg import remove
+from torchvision.transforms import ToTensor
+
 from scripts.util.detection.nsfw_and_watermark_dectection import DeepFloydDataFiltering
 from sgm.inference.helpers import embed_watermark
 from sgm.util import default, instantiate_from_config
-from torchvision.transforms import ToTensor
 
 
 def sample(
@@ -271,7 +272,16 @@ def sample(
                     .astype(np.uint8)
                 )
                 video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
-                imageio.mimwrite(video_path, vid)
+                frame0 = vid[0, :, :, :].squeeze()
+                out = cv2.VideoWriter(
+                    video_path,
+                    cv2.VideoWriter_fourcc(*"MP4V"),
+                    20.0,
+                    (frame0.shape[1], frame0.shape[0]),
+                )
+                for frame in vid:
+                    out.write(frame[:, :, ::-1])
+                out.release()
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
