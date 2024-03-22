@@ -97,7 +97,7 @@ def benchmark_attn():
         with profile(
             activities=activities, record_shapes=False, profile_memory=True
         ) as prof:
-            with record_function("Math implmentation stats"):
+            with record_function("Math implementation stats"):
                 for _ in range(25):
                     o = F.scaled_dot_product_attention(query, key, value)
         print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
