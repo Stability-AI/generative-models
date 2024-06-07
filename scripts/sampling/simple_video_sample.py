@@ -136,7 +136,7 @@ def sample(
 
             # resize object in frame
             image_arr = np.array(image)
-            in_w, in_h = image_arr.shape[:2]
+            in_h, in_w = image_arr.shape[:2]
             ret, mask = cv2.threshold(
                 np.array(image.split()[-1]), 0, 255, cv2.THRESH_BINARY
             )
@@ -145,13 +145,19 @@ def sample(
             side_len = (
                 int(max_size / image_frame_ratio)
                 if image_frame_ratio is not None
-                else in_w
+                else max(in_w, in_h)
             )
             padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
             center = side_len // 2
+
+            y_start = center - h // 2
+            y_start = 0 if y_start < 0 else y_start
+            x_start = center - w // 2
+            x_start = 0 if x_start < 0 else x_start
+
             padded_image[
-                center - h // 2 : center - h // 2 + h,
-                center - w // 2 : center - w // 2 + w,
+                y_start : y_start + h,
+                x_start : x_start + w,
             ] = image_arr[y : y + h, x : x + w]
             # resize frame to 576x576
             rgba = Image.fromarray(padded_image).resize((576, 576), Image.LANCZOS)
