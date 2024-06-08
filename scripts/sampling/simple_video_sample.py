@@ -107,7 +107,7 @@ def sample(
     path = Path(input_path)
     all_img_paths = []
     if path.is_file():
-        if any([input_path.endswith(x) for x in ["jpg", "jpeg", "png"]]):
+        if any([input_path.lower().endswith(x) for x in ["jpg", "jpeg", "png"]]):
             all_img_paths = [input_path]
         else:
             raise ValueError("Path is not valid image file.")
