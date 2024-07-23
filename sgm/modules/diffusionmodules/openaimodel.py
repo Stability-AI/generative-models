@@ -75,20 +75,43 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
         emb: th.Tensor,
         context: Optional[th.Tensor] = None,
         image_only_indicator: Optional[th.Tensor] = None,
+        cond_view: Optional[th.Tensor] = None,
+        cond_motion: Optional[th.Tensor] = None,
         time_context: Optional[int] = None,
         num_video_frames: Optional[int] = None,
+        time_step: Optional[int] = None,
+        name: Optional[str] = None,
     ):
-        from ...modules.diffusionmodules.video_model import VideoResBlock
+        from ...modules.diffusionmodules.video_model import VideoResBlock, PostHocResBlockWithTime
+        from ...modules.spacetime_attention import (
+            BasicTransformerTimeMixBlock,
+            PostHocSpatialTransformerWithTimeMixing,
+            PostHocSpatialTransformerWithTimeMixingAndMotion
+        )
 
         for layer in self:
             module = layer
 
-            if isinstance(module, TimestepBlock) and not isinstance(
-                module, VideoResBlock
+            if isinstance(
+                module,
+                (
+                    BasicTransformerTimeMixBlock,
+                    PostHocSpatialTransformerWithTimeMixing,
+                    PostHocSpatialTransformerWithTimeMixingAndMotion
+                ),
             ):
-                x = layer(x, emb)
-            elif isinstance(module, VideoResBlock):
-                x = layer(x, emb, num_video_frames, image_only_indicator)
+                x = layer(
+                    x,
+                    context,
+                    # cam,
+                    time_context,
+                    num_video_frames,
+                    image_only_indicator,
+                    cond_view,
+                    cond_motion,
+                    time_step,
+                    name,
+                )
             elif isinstance(module, SpatialVideoTransformer):
                 x = layer(
                     x,
@@ -96,7 +119,16 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
                     time_context,
                     num_video_frames,
                     image_only_indicator,
+                    # time_step,
                 )
+            elif isinstance(module, PostHocResBlockWithTime):
+                x = layer(x, emb, num_video_frames, image_only_indicator)
+            elif isinstance(module, VideoResBlock):
+                x = layer(x, emb, num_video_frames, image_only_indicator)
+            elif isinstance(module, TimestepBlock) and not isinstance(
+                module, VideoResBlock
+            ):
+                x = layer(x, emb)
             elif isinstance(module, SpatialTransformer):
                 x = layer(x, context)
             else:
