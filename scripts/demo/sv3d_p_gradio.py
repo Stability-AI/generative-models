@@ -57,10 +57,11 @@ model, filter = load_model(
     num_steps,
 )
 
+polars_rad = np.array([np.deg2rad(90 - 10.0)] * num_frames)
+azimuths_rad = np.linspace(0, 2 * np.pi, num_frames + 1)[1:]
+
 
 def gen_orbit(orbit, elev_deg):
-    global polars_rad
-    global azimuths_rad
     if orbit == "dynamic":
         azim_rad, elev_rad = gen_dynamic_loop(length=num_frames, elev_deg=elev_deg)
         polars_rad = np.deg2rad(90) - elev_rad
@@ -82,8 +83,6 @@ def sample(
     input_path: str = "assets/test_image.png",  # Can either be image file or folder with image files
     seed: Optional[int] = None,
     randomize_seed: bool = True,
-    orbit: str = "same elevation",
-    elev_deg: float = 10.0,
     decoding_t: int = 7,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     output_folder: str = None,
@@ -292,17 +291,17 @@ Generation takes ~40s (for 50 steps) in an A100.
         video = gr.Video()
     with gr.Row():
         with gr.Column():
+            orbit = gr.Dropdown(
+                ["same elevation", "dynamic"],
+                label="Orbit",
+                info="Choose with orbit to generate",
+            )
             elev_deg = gr.Slider(
                 label="Elevation (in degrees)",
                 info="Elevation of the camera in the conditioning image, in degrees.",
                 value=10.0,
                 minimum=-10,
                 maximum=30,
-            )
-            orbit = gr.Dropdown(
-                ["same elevation", "dynamic"],
-                label="Orbit",
-                info="Choose with orbit to generate",
             )
         plot_image = gr.Image()
     with gr.Accordion("Advanced options", open=False):
@@ -325,8 +324,8 @@ Generation takes ~40s (for 50 steps) in an A100.
 
     image.upload(fn=resize_image, inputs=image, outputs=image, queue=False)
 
-    elev_deg.change(gen_orbit, [orbit, elev_deg], plot_image)
     orbit.change(gen_orbit, [orbit, elev_deg], plot_image)
+    elev_deg.change(gen_orbit, [orbit, elev_deg], plot_image)
     # seed.change(gen_orbit, [orbit, elev_deg], plot_image)
 
     generate_btn.click(
