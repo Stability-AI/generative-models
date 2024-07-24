@@ -69,8 +69,8 @@ class AbstractEmbModel(nn.Module):
 
 
 class GeneralConditioner(nn.Module):
-    OUTPUT_DIM2KEYS = {2: "vector", 3: "crossattn", 4: "concat", 5: "concat"}
-    KEY2CATDIM = {"vector": 1, "crossattn": 2, "concat": 1}
+    OUTPUT_DIM2KEYS = {2: "vector", 3: "crossattn", 4: "concat"} # , 5: "concat"}
+    KEY2CATDIM = {"vector": 1, "crossattn": 2, "concat": 1, "cond_view": 1, "cond_motion": 1}
 
     def __init__(self, emb_models: Union[List, ListConfig]):
         super().__init__()
@@ -138,7 +138,11 @@ class GeneralConditioner(nn.Module):
             if not isinstance(emb_out, (list, tuple)):
                 emb_out = [emb_out]
             for emb in emb_out:
-                out_key = self.OUTPUT_DIM2KEYS[emb.dim()]
+                if embedder.input_key in ["cond_view", "cond_motion"]:
+                    out_key = embedder.input_key
+                else:
+                    out_key = self.OUTPUT_DIM2KEYS[emb.dim()]
+
                 if embedder.ucg_rate > 0.0 and embedder.legacy_ucg_val is None:
                     emb = (
                         expand_dims_like(
@@ -994,7 +998,10 @@ class VideoPredictionEmbedderWithEncoder(AbstractEmbModel):
             sigmas = self.sigma_sampler(b).to(vid.device)
             if self.sigma_cond is not None:
                 sigma_cond = self.sigma_cond(sigmas)
-                sigma_cond = repeat(sigma_cond, "b d -> (b t) d", t=self.n_copies)
+                if self.n_cond_frames == 1:
+                    sigma_cond = repeat(sigma_cond, "b d -> (b t) d", t=self.n_copies)
+                else:
+                    sigma_cond = repeat(sigma_cond, "b d -> (b t) d", t=self.n_cond_frames) # For SV4D
             sigmas = repeat(sigmas, "b -> (b t)", t=self.n_cond_frames)
             noise = torch.randn_like(vid)
             vid = vid + noise * append_dims(sigmas, vid.ndim)
@@ -1017,8 +1024,9 @@ class VideoPredictionEmbedderWithEncoder(AbstractEmbModel):
         vid = torch.cat(all_out, dim=0)
         vid *= self.scale_factor
 
-        vid = rearrange(vid, "(b t) c h w -> b () (t c) h w", t=self.n_cond_frames)
-        vid = repeat(vid, "b 1 c h w -> (b t) c h w", t=self.n_copies)
+        if self.n_cond_frames == 1:
+            vid = rearrange(vid, "(b t) c h w -> b () (t c) h w", t=self.n_cond_frames)
+            vid = repeat(vid, "b 1 c h w -> (b t) c h w", t=self.n_copies)
 
         return_val = (vid, sigma_cond) if self.sigma_cond is not None else vid
 
