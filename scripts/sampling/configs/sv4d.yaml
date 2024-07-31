@@ -93,12 +93,6 @@ model:
             sigma_sampler_config:
               target: sgm.modules.diffusionmodules.sigma_sampling.ZeroSampler
 
-        # - input_key: cond_aug
-        #   is_trainable: False
-        #   target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
-        #   params:
-        #     outdim: 256
-
         - input_key: polar_rad
           is_trainable: False
           target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
