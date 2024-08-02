@@ -264,7 +264,7 @@ def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, out
         
         images_v0.append(image)
     
-    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 10
+    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 12
     processed_file = os.path.join(output_folder, f"{base_count:06d}_process_input.mp4")
     imageio.mimwrite(processed_file, images_v0, fps=10)
     return processed_file
@@ -892,7 +892,6 @@ def do_sample(
                 unload_module_gpu(model.model)
                 unload_module_gpu(model.denoiser)
                 load_module_gpu(model.first_stage_model)
-                model.en_and_decode_n_samples_a_time = decoding_t
                 if isinstance(model.first_stage_model.decoder, VideoDecoder):
                     samples_x = model.decode_first_stage(
                         samples_z, timesteps=default(decoding_t, T)

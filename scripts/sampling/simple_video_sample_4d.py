@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from fire import Fire
 
+from sgm.modules.encoders.modules import VideoPredictionEmbedderWithEncoder
 from scripts.demo.sv4d_helpers import (
     decode_latents,
     load_model,
@@ -35,6 +36,7 @@ def sample(
     motion_bucket_id: int = 127,
     cond_aug: float = 1e-5,
     seed: int = 23,
+    encoding_t: int = 8,  # Number of frames encoded at a time! This eats most VRAM. Reduce if necessary.
     decoding_t: int = 4,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     elevations_deg: Optional[Union[float, List[float]]] = 10.0,
@@ -45,7 +47,7 @@ def sample(
 ):
     """
     Simple script to generate multiple novel-view videos conditioned on a video `input_path` or multiple frames, one for each
-    image file in folder `input_path`. If you run out of VRAM, try decreasing `decoding_t`.
+    image file in folder `input_path`. If you run out of VRAM, try decreasing `decoding_t` and `encoding_t`.
     """
     # Set model config
     T = 5  # number of frames per sample
@@ -162,6 +164,10 @@ def sample(
         verbose,
     )
     model = initial_model_load(model)
+    for emb in model.conditioner.embedders:
+        if isinstance(emb, VideoPredictionEmbedderWithEncoder):
+            emb.en_and_decode_n_samples_a_time = encoding_t
+    model.en_and_decode_n_samples_a_time = decoding_t
 
     # Interleaved sampling for anchor frames
     t0, v0 = 0, 0

@@ -14,6 +14,7 @@ from huggingface_hub import hf_hub_download
 from typing import List, Optional, Union
 import torchvision
 
+from sgm.modules.encoders.modules import VideoPredictionEmbedderWithEncoder
 from scripts.demo.sv4d_helpers import (
     decode_latents,
     load_model,
@@ -138,6 +139,7 @@ sv3d_model = initial_model_load(sv3d_model)
 def sample_anchor(
     input_path: str = "assets/test_image.png",  # Can either be image file or folder with image files
     seed: Optional[int] = None,
+    encoding_t: int = 8,  # Number of frames encoded at a time! This eats most VRAM. Reduce if necessary.
     decoding_t: int = 4,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     num_steps: int = 20,
     sv3d_version: str = "sv3d_u",  # sv3d_u or sv3d_p
@@ -205,6 +207,10 @@ def sample_anchor(
     sv3d_file = os.path.join(output_folder, "t000.mp4")
     save_video(sv3d_file, images_t0.unsqueeze(1))
     
+    for emb in model.conditioner.embedders:
+        if isinstance(emb, VideoPredictionEmbedderWithEncoder):
+            emb.en_and_decode_n_samples_a_time = encoding_t
+    model.en_and_decode_n_samples_a_time = decoding_t
     # Initialize image matrix
     img_matrix = [[None] * n_views for _ in range(n_frames)]
     for i, v in enumerate(subsampled_views):
@@ -413,6 +419,13 @@ with gr.Blocks() as demo:
             maximum=100,
             step=1,
         )
+        encoding_t = gr.Slider(
+            label="Encode n frames at a time",
+            info="Number of frames encoded at a time! This eats most VRAM. Reduce if necessary.",
+            value=8,
+            minimum=1,
+            maximum=40,
+        )
         decoding_t = gr.Slider(
             label="Decode n frames at a time",
             info="Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.",
@@ -440,7 +453,7 @@ with gr.Blocks() as demo:
 
     generate_btn.click(
         fn=sample_anchor,
-        inputs=[input_video, seed, decoding_t, denoising_steps],
+        inputs=[input_video, seed, encoding_t, decoding_t, denoising_steps],
         outputs=[sv3d_video, anchor_video, anchor_frames],
         api_name="SV4D output (5 frames)",
     )
@@ -455,22 +468,22 @@ with gr.Blocks() as demo:
     examples = gr.Examples(
         fn=preprocess_video,
         examples=[
-            "./assets/sv4d_example_video/test_video1.mp4",
-            "./assets/sv4d_example_video/test_video2.mp4",
-            "./assets/sv4d_example_video/green_robot.mp4",
-            "./assets/sv4d_example_video/dolphin.mp4",
-            "./assets/sv4d_example_video/lucia_v000.mp4",
-            "./assets/sv4d_example_video/snowboard_v000.mp4",
-            "./assets/sv4d_example_video/stroller_v000.mp4",
-            "./assets/sv4d_example_video/human5.mp4",
-            "./assets/sv4d_example_video/bunnyman.mp4",
-            "./assets/sv4d_example_video/hiphop_parrot.mp4",
-            "./assets/sv4d_example_video/guppie_v0.mp4",
-            "./assets/sv4d_example_video/wave_hello.mp4",
-            "./assets/sv4d_example_video/pistol_v0.mp4",
-            "./assets/sv4d_example_video/human7.mp4",
-            "./assets/sv4d_example_video/monkey.mp4",
-            "./assets/sv4d_example_video/train_v0.mp4",
+            "./assets/sv4d_videos/test_video1.mp4",
+            "./assets/sv4d_videos/test_video2.mp4",
+            "./assets/sv4d_videos/green_robot.mp4",
+            "./assets/sv4d_videos/dolphin.mp4",
+            "./assets/sv4d_videos/lucia_v000.mp4",
+            "./assets/sv4d_videos/snowboard_v000.mp4",
+            "./assets/sv4d_videos/stroller_v000.mp4",
+            "./assets/sv4d_videos/human5.mp4",
+            "./assets/sv4d_videos/bunnyman.mp4",
+            "./assets/sv4d_videos/hiphop_parrot.mp4",
+            "./assets/sv4d_videos/guppie_v0.mp4",
+            "./assets/sv4d_videos/wave_hello.mp4",
+            "./assets/sv4d_videos/pistol_v0.mp4",
+            "./assets/sv4d_videos/human7.mp4",
+            "./assets/sv4d_videos/monkey.mp4",
+            "./assets/sv4d_videos/train_v0.mp4",
         ],
         inputs=[input_video],
         run_on_click=True,
