@@ -121,10 +121,6 @@ def save_video(file_name, imgs, fps=10):
 def read_video(
     input_path: str,
     n_frames: int,
-    W: int,
-    H: int,
-    remove_bg: bool = False,
-    image_frame_ratio: Optional[float] = None,
     device: str = "cuda",
 ):
     path = Path(input_path)
@@ -158,46 +154,120 @@ def read_video(
 
     if len(images) < n_frames:
         images = (images + images[::-1])[:n_frames]
-        
     if len(images) != n_frames:
         raise ValueError(f"Input video contains fewer than {n_frames} frames.")
 
-    # Remove background and crop video frames
     images_v0 = []
-    for t, image in enumerate(images):
-        if remove_bg:
-            if image.mode != "RGBA":
-                image.thumbnail([W, H], Image.Resampling.LANCZOS)
-                image = remove(image.convert("RGBA"), alpha_matting=True)
-            image_arr = np.array(image)
-            in_w, in_h = image_arr.shape[:2]
-            ret, mask = cv2.threshold(
-                np.array(image.split()[-1]), 0, 255, cv2.THRESH_BINARY
-            )
-            x, y, w, h = cv2.boundingRect(mask)
-            max_size = max(w, h)
-            if t == 0:
-                side_len = (
-                    int(max_size / image_frame_ratio)
-                    if image_frame_ratio is not None
-                    else in_w
-                )
-            padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
-            center = side_len // 2
-            padded_image[
-                center - h // 2 : center - h // 2 + h,
-                center - w // 2 : center - w // 2 + w,
-            ] = image_arr[y : y + h, x : x + w]
-            rgba = Image.fromarray(padded_image).resize((W, H), Image.LANCZOS)
-            rgba_arr = np.array(rgba) / 255.0
-            rgb = rgba_arr[..., :3] * rgba_arr[..., -1:] + (1 - rgba_arr[..., -1:])
-            image = Image.fromarray((rgb * 255).astype(np.uint8))
-        else:
-            image = image.convert("RGB").resize((W, H), Image.LANCZOS)
+
+    for image in images:
         image = ToTensor()(image).unsqueeze(0).to(device)
         images_v0.append(image * 2.0 - 1.0)
     return images_v0
 
+
+def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, output_folder=None, image_frame_ratio = 0.917):
+    print(f"preprocess {input_path}")
+    if output_folder is None:
+        output_folder = os.path.dirname(input_path)
+    path = Path(input_path)
+    is_video_file = False
+    all_img_paths = []
+    if path.is_file():
+        if any([input_path.endswith(x) for x in [".gif", ".mp4"]]):
+            is_video_file = True
+        else:
+            raise ValueError("Path is not a valid video file.")
+    elif path.is_dir():
+        all_img_paths = sorted(
+            [
+                f
+                for f in path.iterdir()
+                if f.is_file() and f.suffix.lower() in [".jpg", ".jpeg", ".png"]
+            ]
+        )[:n_frames]
+    elif "*" in input_path:
+        all_img_paths = sorted(glob(input_path))[:n_frames]
+    else:
+        raise ValueError
+
+    if is_video_file and input_path.endswith(".gif"):
+        images = read_gif(input_path, n_frames)[:n_frames]
+    elif is_video_file and input_path.endswith(".mp4"):
+        images = read_mp4(input_path, n_frames)[:n_frames]
+    else:
+        print(f"Loading {len(all_img_paths)} video frames...")
+        images = [Image.open(img_path) for img_path in all_img_paths]
+
+    if len(images) != n_frames:
+        raise ValueError(f"Input video contains {len(images)} frames, fewer than {n_frames} frames.")
+
+    # Remove background
+    for i, image in enumerate(images):
+        if remove_bg:
+            if image.mode == "RGBA":
+                pass
+            else:
+                # image.thumbnail([W, H], Image.Resampling.LANCZOS)
+                image = remove(image.convert("RGBA"), alpha_matting=True)
+            images[i] = image
+
+    # Crop video frames, assume the object is already in the center of the image
+    white_thresh = 250
+    images_v0 = []
+    box_coord = [np.inf, np.inf, 0, 0]
+    for image in images:
+        image_arr = np.array(image)
+        in_w, in_h = image_arr.shape[:2]
+        original_center = (in_w // 2, in_h // 2)
+        if image.mode == "RGBA":
+            ret, mask = cv2.threshold(
+                np.array(image.split()[-1]), 0, 255, cv2.THRESH_BINARY
+            )
+        else:
+            # assume the input image has white background
+            ret, mask = cv2.threshold(
+                (np.array(image).mean(-1) <= white_thresh).astype(np.uint8) * 255, 0, 255, cv2.THRESH_BINARY
+            )
+            
+        x, y, w, h = cv2.boundingRect(mask)
+        box_coord[0] = min(box_coord[0], x)
+        box_coord[1] = min(box_coord[1], y)
+        box_coord[2] = max(box_coord[2], x + w)
+        box_coord[3] = max(box_coord[3], y + h)
+    box_square = max(original_center[0] - box_coord[0], original_center[1] - box_coord[1])
+    box_square = max(box_square, box_coord[2] - original_center[0])
+    box_square = max(box_square, box_coord[3] - original_center[1])
+    x, y, w, h = original_center[0] - box_square, original_center[1] - box_square, 2 * box_square, 2 * box_square
+    box_size = box_square * 2
+
+    for image in images:
+        if image.mode == "RGB":
+            image = image.convert("RGBA")
+        image_arr = np.array(image)
+        side_len = (
+            int(box_size / image_frame_ratio)
+            if image_frame_ratio is not None
+            else in_w
+        )
+        padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
+        center = side_len // 2
+        padded_image[
+            center - box_size // 2 : center - box_size // 2 + box_size,
+            center - box_size // 2 : center - box_size // 2 + box_size,
+        ] = image_arr[x : x + w, y : y + h]
+
+        rgba = Image.fromarray(padded_image).resize((W, H), Image.LANCZOS)
+        # rgba = image.resize((W, H), Image.LANCZOS)
+        rgba_arr = np.array(rgba) / 255.0
+        rgb = rgba_arr[..., :3] * rgba_arr[..., -1:] + (1 - rgba_arr[..., -1:])
+        image = (rgb * 255).astype(np.uint8)
+        
+        images_v0.append(image)
+    
+    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 10
+    processed_file = os.path.join(output_folder, f"{base_count:06d}_process_input.mp4")
+    imageio.mimwrite(processed_file, images_v0, fps=10)
+    return processed_file
 
 def sample_sv3d(
     image,
@@ -212,26 +282,32 @@ def sample_sv3d(
     polar_rad: Optional[Union[float, List[float]]] = None,
     azim_rad: Optional[List[float]] = None,
     verbose: Optional[bool] = False,
+    sv3d_model=None,
 ):
     """
     Simple script to generate a single sample conditioned on an image `input_path` or multiple images, one for each
     image file in folder `input_path`. If you run out of VRAM, try decreasing `decoding_t`.
     """
 
-    if version == "sv3d_u":
-        model_config = "scripts/sampling/configs/sv3d_u.yaml"
-    elif version == "sv3d_p":
-        model_config = "scripts/sampling/configs/sv3d_p.yaml"
-    else:
-        raise ValueError(f"Version {version} does not exist.")
+    if sv3d_model is None:
+        if version == "sv3d_u":
+            model_config = "scripts/sampling/configs/sv3d_u.yaml"
+        elif version == "sv3d_p":
+            model_config = "scripts/sampling/configs/sv3d_p.yaml"
+        else:
+            raise ValueError(f"Version {version} does not exist.")
 
-    model, filter = load_model(
-        model_config,
-        device,
-        num_frames,
-        num_steps,
-        verbose,
-    )
+        model, filter = load_model(
+            model_config,
+            device,
+            num_frames,
+            num_steps,
+            verbose,
+        )
+    else:
+        model = sv3d_model
+
+    load_module_gpu(model)
 
     H, W = image.shape[2:]
     F = 8
@@ -286,23 +362,30 @@ def sample_sv3d(
                 )
 
             samples_z = model.sampler(denoiser, randn, cond=c, uc=uc)
+            unload_module_gpu(model.model)
+            unload_module_gpu(model.denoiser)
             model.en_and_decode_n_samples_a_time = decoding_t
             samples_x = model.decode_first_stage(samples_z)
             samples_x[-1:] = value_dict["cond_frames_without_noise"]
             samples = torch.clamp(samples_x, min=-1.0, max=1.0)
 
-            return samples
-
-
-def decode_latents(model, samples_z, timesteps):
-    load_module_gpu(model.first_stage_model)
-    if isinstance(model.first_stage_model.decoder, VideoDecoder):
-        samples_x = model.decode_first_stage(samples_z, timesteps=timesteps)
-    else:
-        samples_x = model.decode_first_stage(samples_z)
-    samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
-    unload_module_gpu(model.first_stage_model)
+    unload_module_gpu(model)
     return samples
+
+
+def decode_latents(model, samples_z, img_matrix, frame_indices, view_indices, timesteps):
+    load_module_gpu(model.first_stage_model)
+    for t in frame_indices:
+        for v in view_indices:
+            if t != 0 and v != 0:
+                if isinstance(model.first_stage_model.decoder, VideoDecoder):
+                    samples_x = model.decode_first_stage(samples_z[t, v][None], timesteps=timesteps)
+                else:
+                    samples_x = model.decode_first_stage(samples_z[t, v][None])
+                samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
+                img_matrix[t][v] = samples * 2 - 1
+    unload_module_gpu(model.first_stage_model)
+    return img_matrix
 
 
 def init_embedder_options_no_st(keys, init_dict, prompt=None, negative_prompt=None):
@@ -604,6 +687,7 @@ def run_img2vid(
     azim_rad=np.linspace(0, 360, 21 + 1)[1:],
     cond_motion=None,
     cond_view=None,
+    decoding_t=None,
 ):
     options = version_dict["options"]
     H = version_dict["H"]
@@ -670,11 +754,52 @@ def run_img2vid(
         force_uc_zero_embeddings=options.get("force_uc_zero_embeddings", None),
         force_cond_zero_embeddings=options.get("force_cond_zero_embeddings", None),
         return_latents=False,
-        decoding_t=options.get("decoding_T", T),
+        decoding_t=decoding_t,
     )
 
     return samples
 
+
+def prepare_inputs(frame_indices, img_matrix, v0, view_indices, model, version_dict, seed, polars, azims):
+    load_module_gpu(model.conditioner)
+
+    forward_frame_indices = frame_indices.copy()
+    t0 = forward_frame_indices[0]
+    image = img_matrix[t0][v0]
+    cond_motion = torch.cat([img_matrix[t][v0] for t in forward_frame_indices], 0)
+    cond_view = torch.cat([img_matrix[t0][v] for v in view_indices], 0)
+    forward_inputs = prepare_sampling(
+                version_dict,
+                model,
+                image,
+                seed,
+                polars,
+                azims,
+                cond_motion,
+                cond_view,
+        )
+        
+    # backward sampling
+    backward_frame_indices = frame_indices[
+        ::-1
+    ].copy()
+    t0 = backward_frame_indices[0]
+    image = img_matrix[t0][v0]
+    cond_motion = torch.cat([img_matrix[t][v0] for t in backward_frame_indices], 0)
+    cond_view = torch.cat([img_matrix[t0][v] for v in view_indices], 0)
+    backward_inputs = prepare_sampling(
+            version_dict,
+            model,
+            image,
+            seed,
+            polars,
+            azims,
+            cond_motion,
+            cond_view,
+        )
+
+    unload_module_gpu(model.conditioner)
+    return forward_inputs, forward_frame_indices, backward_inputs, backward_frame_indices
 
 def do_sample(
     model,
@@ -722,6 +847,8 @@ def do_sample(
                     force_cond_zero_embeddings=force_cond_zero_embeddings,
                 )
                 unload_module_gpu(model.conditioner)
+                print("anchor_after_condition {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
+                # torch.cuda.empty_cache()
 
                 for k in c:
                     if not k == "crossattn":
@@ -761,14 +888,15 @@ def do_sample(
                     return model.denoiser(
                         model.model, input, sigma, c, **additional_model_inputs
                     )
-
                 load_module_gpu(model.model)
                 load_module_gpu(model.denoiser)
                 samples_z = sampler(denoiser, randn, cond=c, uc=uc)
                 unload_module_gpu(model.model)
                 unload_module_gpu(model.denoiser)
-
+                print("anchor_after_denoiser {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
+                # torch.cuda.empty_cache()
                 load_module_gpu(model.first_stage_model)
+                model.en_and_decode_n_samples_a_time = decoding_t
                 if isinstance(model.first_stage_model.decoder, VideoDecoder):
                     samples_x = model.decode_first_stage(
                         samples_z, timesteps=default(decoding_t, T)
@@ -777,17 +905,16 @@ def do_sample(
                     samples_x = model.decode_first_stage(samples_z)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
                 unload_module_gpu(model.first_stage_model)
-
                 if filter is not None:
                     samples = filter(samples)
 
                 if return_latents:
                     return samples, samples_z
-
+                # torch.cuda.empty_cache()
                 return samples
 
 
-def do_sample_per_step(
+def prepare_sampling_(
     model,
     sampler,
     value_dict,
@@ -797,8 +924,6 @@ def do_sample_per_step(
     batch2model_input: List = None,
     T=None,
     additional_batch_uc_fields=None,
-    step=None,
-    noisy_latents=None,
 ):
     force_uc_zero_embeddings = default(force_uc_zero_embeddings, [])
     batch2model_input = default(batch2model_input, [])
@@ -812,8 +937,6 @@ def do_sample_per_step(
                     num_samples = [num_samples, T]
                 else:
                     num_samples = [num_samples]
-
-                load_module_gpu(model.conditioner)
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
@@ -827,8 +950,7 @@ def do_sample_per_step(
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                     force_cond_zero_embeddings=force_cond_zero_embeddings,
                 )
-                unload_module_gpu(model.conditioner)
-
+                print("dense_after_condition {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
@@ -859,7 +981,14 @@ def do_sample_per_step(
                             )
                     else:
                         additional_model_inputs[k] = batch[k]
+    return c, uc, additional_model_inputs
 
+
+def do_sample_per_step(model, sampler, noisy_latents, c, uc, step, additional_model_inputs):
+    precision_scope = autocast
+    with torch.no_grad():
+        with precision_scope("cuda"):
+            with model.ema_scope():
                 noisy_latents_scaled, s_in, sigmas, num_sigmas, _, _ = (
                     sampler.prepare_sampling_loop(
                         noisy_latents.clone(), c, uc, sampler.num_steps
@@ -893,13 +1022,11 @@ def do_sample_per_step(
                     uc,
                     gamma,
                 )
-                unload_module_gpu(model.model)
-                unload_module_gpu(model.denoiser)
-
+                print("dense_after_sampling {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
     return samples_z
 
 
-def run_img2vid_per_step(
+def prepare_sampling(
     version_dict,
     model,
     image,
@@ -908,8 +1035,6 @@ def run_img2vid_per_step(
     azim_rad=np.linspace(0, 360, 21 + 1)[1:],
     cond_motion=None,
     cond_view=None,
-    step=None,
-    noisy_latents=None,
 ):
     options = version_dict["options"]
     H = version_dict["H"]
@@ -962,7 +1087,7 @@ def run_img2vid_per_step(
     sampler, num_rows, num_cols = init_sampling_no_st(options=options)
     num_samples = num_rows * num_cols
 
-    samples = do_sample_per_step(
+    c, uc, additional_model_inputs = prepare_sampling_(
         model,
         sampler,
         value_dict,
@@ -971,11 +1096,9 @@ def run_img2vid_per_step(
         force_cond_zero_embeddings=options.get("force_cond_zero_embeddings", None),
         batch2model_input=["num_video_frames", "image_only_indicator"],
         T=T,
-        step=step,
-        noisy_latents=noisy_latents,
     )
 
-    return samples
+    return c, uc, additional_model_inputs, sampler
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):

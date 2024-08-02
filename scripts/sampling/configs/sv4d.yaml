@@ -1,6 +1,7 @@
 N_TIME: 5
 N_VIEW: 8
 N_FRAMES: 40
+ENCODE_N_A_TIME: 8
 
 model:
   target: sgm.models.diffusion.DiffusionEngine
@@ -67,6 +68,7 @@ model:
             is_ae: True
             n_cond_frames: ${N_FRAMES}
             n_copies: 1
+            en_and_decode_n_samples_a_time: ${ENCODE_N_A_TIME}
             encoder_config:
               target: sgm.models.autoencoder.AutoencoderKLModeOnly
               params:
@@ -131,6 +133,7 @@ model:
             is_ae: True
             n_cond_frames: ${N_VIEW}
             n_copies: 1
+            en_and_decode_n_samples_a_time: ${ENCODE_N_A_TIME}
             sigma_sampler_config:
               target: sgm.modules.diffusionmodules.sigma_sampling.ZeroSampler
 
@@ -141,6 +144,7 @@ model:
             is_ae: True
             n_cond_frames: ${N_TIME}
             n_copies: 1
+            en_and_decode_n_samples_a_time: ${ENCODE_N_A_TIME}
             encoder_config:
               target: sgm.models.autoencoder.AutoencoderKLModeOnly
               params:
