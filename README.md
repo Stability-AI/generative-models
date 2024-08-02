@@ -12,13 +12,13 @@
     - You can run the community-build gradio demo locally by running `python -m scripts.demo.gradio_app_sv4d`.
     - Please check our [project page](https://sv4d.github.io), [tech report](https://sv4d.github.io/static/sv4d_technical_report.pdf) and [video summary](https://www.youtube.com/watch?v=RBP8vdAWTgk) for more details.
 
-**QUICKSTART** : `python scripts/sampling/simple_video_sample_4d.py --input_path assets/test_video1.mp4 --output_folder outputs/sv4d` (after downloading [sv4d.safetensors](https://huggingface.co/stabilityai/sv4d) and [sv3d_u.safetensors](https://huggingface.co/stabilityai/sv3d) from HuggingFace into `checkpoints/`)
+**QUICKSTART** : `python scripts/sampling/simple_video_sample_4d.py --input_path assets/sv4d_example_video/test_video1.mp4 --output_folder outputs/sv4d` (after downloading [sv4d.safetensors](https://huggingface.co/stabilityai/sv4d) and [sv3d_u.safetensors](https://huggingface.co/stabilityai/sv3d) from HuggingFace into `checkpoints/`)
 
 To run **SV4D** on a single input video of 21 frames:
 - Download SV3D models (`sv3d_u.safetensors` and `sv3d_p.safetensors`) from [here](https://huggingface.co/stabilityai/sv3d) and SV4D model (`sv4d.safetensors`) from [here](https://huggingface.co/stabilityai/sv4d) to `checkpoints/`
 - Run `python scripts/sampling/simple_video_sample_4d.py --input_path <path/to/video>`
     - `input_path` : The input video `<path/to/video>` can be
-      - a single video file in `gif` or `mp4` format, such as `assets/test_video1.mp4`, or
+      - a single video file in `gif` or `mp4` format, such as `assets/sv4d_example_video/test_video1.mp4`, or
       - a folder containing images of video frames in `.jpg`, `.jpeg`, or `.png` format, or
       - a file name pattern matching images of video frames.
     - `num_steps` : default is 20, can increase to 50 for better quality but longer sampling time.
