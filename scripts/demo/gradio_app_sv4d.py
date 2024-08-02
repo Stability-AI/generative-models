@@ -386,7 +386,7 @@ with gr.Blocks() as demo:
     gr.Markdown(
         """# Demo for SV4D from Stability AI ([model](https://huggingface.co/stabilityai/sv4d), [news](https://stability.ai/news/stable-video-4d))
 #### Research release ([_non-commercial_](https://huggingface.co/stabilityai/sv4d/blob/main/LICENSE.md)): generate 8 novel view videos from a single-view video (with white background).
-#### It takes ~40s to generate anchor frames and another ~260s to generate full results (21 frames).  
+#### It takes ~45s to generate anchor frames and another ~160s to generate full results (21 frames).  
 #### Hints for improving performance:  
 - Use a white background; 
 - Make the object in the center of the image; 
