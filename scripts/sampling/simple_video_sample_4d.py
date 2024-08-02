@@ -13,6 +13,7 @@ from fire import Fire
 from scripts.demo.sv4d_helpers import (
     decode_latents,
     load_model,
+    initial_model_load,
     read_video,
     run_img2vid,
     run_img2vid_per_step,
@@ -26,6 +27,7 @@ def sample(
     output_folder: Optional[str] = "outputs/sv4d",
     num_steps: Optional[int] = 20,
     sv3d_version: str = "sv3d_u",  # sv3d_u or sv3d_p
+    img_size: int = 576, # image resolution
     fps_id: int = 6,
     motion_bucket_id: int = 127,
     cond_aug: float = 1e-5,
@@ -47,7 +49,7 @@ def sample(
     V = 8  # number of views per sample
     F = 8  # vae factor to downsize image->latent
     C = 4
-    H, W = 576, 576
+    H, W = img_size, img_size
     n_frames = 21  # number of input and output video frames
     n_views = V + 1  # number of output video views (1 input view + 8 novel views)
     n_views_sv3d = 21
@@ -64,7 +66,7 @@ def sample(
         "f": F,
         "options": {
             "discretization": 1,
-            "cfg": 2.5,
+            "cfg": 3.0,
             "sigma_min": 0.002,
             "sigma_max": 700.0,
             "rho": 7.0,
@@ -137,7 +139,7 @@ def sample(
     for t in range(n_frames):
         img_matrix[t][0] = images_v0[t]
 
-    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 10
+    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 11
     save_video(
         os.path.join(output_folder, f"{base_count:06d}_t000.mp4"),
         img_matrix[0],
@@ -155,6 +157,7 @@ def sample(
         num_steps,
         verbose,
     )
+    model = initial_model_load(model)
 
     # Interleaved sampling for anchor frames
     t0, v0 = 0, 0
