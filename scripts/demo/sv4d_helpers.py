@@ -847,8 +847,6 @@ def do_sample(
                     force_cond_zero_embeddings=force_cond_zero_embeddings,
                 )
                 unload_module_gpu(model.conditioner)
-                print("anchor_after_condition {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
-                # torch.cuda.empty_cache()
 
                 for k in c:
                     if not k == "crossattn":
@@ -893,8 +891,6 @@ def do_sample(
                 samples_z = sampler(denoiser, randn, cond=c, uc=uc)
                 unload_module_gpu(model.model)
                 unload_module_gpu(model.denoiser)
-                print("anchor_after_denoiser {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
-                # torch.cuda.empty_cache()
                 load_module_gpu(model.first_stage_model)
                 model.en_and_decode_n_samples_a_time = decoding_t
                 if isinstance(model.first_stage_model.decoder, VideoDecoder):
@@ -910,7 +906,6 @@ def do_sample(
 
                 if return_latents:
                     return samples, samples_z
-                # torch.cuda.empty_cache()
                 return samples
 
 
@@ -950,7 +945,6 @@ def prepare_sampling_(
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                     force_cond_zero_embeddings=force_cond_zero_embeddings,
                 )
-                print("dense_after_condition {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
@@ -1022,7 +1016,6 @@ def do_sample_per_step(model, sampler, noisy_latents, c, uc, step, additional_mo
                     uc,
                     gamma,
                 )
-                print("dense_after_sampling {}".format(torch.cuda.memory_reserved() / (1024 ** 3)))
     return samples_z
 
 
