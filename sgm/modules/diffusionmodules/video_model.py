@@ -1,3 +1,4 @@
+import logging
 from functools import partial
 from typing import List, Optional, Union
 
@@ -12,6 +13,9 @@ from ...modules.spacetime_attention import (
 )
 from ...util import default
 from .util import AlphaBlender # , LegacyAlphaBlenderWithBug, get_alpha
+
+
+logpy = logging.getLogger(__name__)
 
 
 class VideoResBlock(ResBlock):
@@ -164,7 +168,7 @@ class VideoUNet(nn.Module):
             if isinstance(self.num_classes, int):
                 self.label_emb = nn.Embedding(num_classes, time_embed_dim)
             elif self.num_classes == "continuous":
-                print("setting up linear c_adm embedding layer")
+                logpy.info("setting up linear c_adm embedding layer")
                 self.label_emb = nn.Linear(1, time_embed_dim)
             elif self.num_classes == "timestep":
                 self.label_emb = nn.Sequential(

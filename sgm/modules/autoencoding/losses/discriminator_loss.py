@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -12,6 +13,8 @@ from ....util import default, instantiate_from_config
 from ..lpips.loss.lpips import LPIPS
 from ..lpips.model.model import weights_init
 from ..lpips.vqperceptual import hinge_d_loss, vanilla_d_loss
+
+logpy = logging.getLogger(__name__)
 
 
 class GeneralLPIPSWithDiscriminator(nn.Module):
@@ -35,7 +38,7 @@ class GeneralLPIPSWithDiscriminator(nn.Module):
         super().__init__()
         self.dims = dims
         if self.dims > 2:
-            print(
+            logpy.info(
                 f"running with dims={dims}. This means that for perceptual loss "
                 f"calculation, the LPIPS loss will be applied to each frame "
                 f"independently."
