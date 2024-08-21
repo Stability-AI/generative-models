@@ -161,10 +161,10 @@ def sample(
             input_image = Image.fromarray((rgb * 255).astype(np.uint8))
 
         else:
-            with Image.open(input_img_path) as image:
-                if image.mode == "RGBA":
-                    input_image = image.convert("RGB")
-                w, h = image.size
+            with Image.open(input_img_path) as input_image:
+                if input_image.mode == "RGBA":
+                    input_image = input_image.convert("RGB")
+                w, h = input_image.size
 
                 if h % 64 != 0 or w % 64 != 0:
                     width, height = map(lambda x: x - x % 64, (w, h))
