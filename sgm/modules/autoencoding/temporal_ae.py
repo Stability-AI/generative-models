@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, Iterable, Union
 
 import torch
@@ -260,10 +261,7 @@ def make_time_attn(
         f"making spatial and temporal attention of type '{attn_type}' with {in_channels} in_channels"
     )
     if not XFORMERS_IS_AVAILABLE and attn_type == "vanilla-xformers":
-        print(
-            f"Attention mode '{attn_type}' is not available. Falling back to vanilla attention. "
-            f"This is not a problem in Pytorch >= 2.0. FYI, you are running with PyTorch version {torch.__version__}"
-        )
+        warnings.warn(f"Attention mode '{attn_type}' is not available. Falling back to vanilla attention.")
         attn_type = "vanilla"
 
     if attn_type == "vanilla":
