@@ -180,6 +180,12 @@ if __name__ == "__main__":
 
         if mode == "img2vid":
             img = load_img_for_prediction(W, H)
+
+            # Check if the image is None and use a dummy image if necessary
+            if img is None:
+                st.warning("No image provided. Using a dummy tensor for initialization.")
+                img = torch.zeros([1, 3, H, W]).to(device)  # Dummy tensor
+
             if "sv3d" in version:
                 cond_aug = 1e-5
             else:
