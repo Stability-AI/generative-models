@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import cv2
 import imageio
 import numpy as np
+import shutil
 import streamlit as st
 import torch
 import torch.nn as nn
@@ -902,14 +903,15 @@ def load_img_for_prediction(
 def save_video_as_grid_and_mp4(
     video_batch: torch.Tensor, save_path: str, T: int, fps: int = 5
 ):
-    # Check if ffmpeg is available at the system level
+    # Check if FFmpeg is available
+    try:
+        import imageio_ffmpeg
+    except ImportError:
+        raise RuntimeError("FFmpeg support is not installed. Use 'pip install imageio[ffmpeg]' to install it.")
+
     if not shutil.which("ffmpeg"):
         raise RuntimeError("System-level FFmpeg not found. Please install it and ensure it's in your PATH.")
     
-    # Check if the imageio-ffmpeg package is installed and functioning
-    if imageio.plugins.ffmpeg.get_ffmpeg_version() is None:
-        raise RuntimeError("The imageio-ffmpeg package is not correctly installed. Use 'pip install imageio[ffmpeg]' to install it.")
-
     os.makedirs(save_path, exist_ok=True)
     base_count = len(glob(os.path.join(save_path, "*.mp4")))
 
