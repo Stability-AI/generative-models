@@ -899,29 +899,38 @@ def load_img_for_prediction(
         st.image(pil_image)
     return image.to(device) * 2.0 - 1.0
 
-
 def save_video_as_grid_and_mp4(
     video_batch: torch.Tensor, save_path: str, T: int, fps: int = 5
 ):
+    # Check if ffmpeg is available at the system level
+    if not shutil.which("ffmpeg"):
+        raise RuntimeError("System-level FFmpeg not found. Please install it and ensure it's in your PATH.")
+    
+    # Check if the imageio-ffmpeg package is installed and functioning
+    if imageio.plugins.ffmpeg.get_ffmpeg_version() is None:
+        raise RuntimeError("The imageio-ffmpeg package is not correctly installed. Use 'pip install imageio[ffmpeg]' to install it.")
+
     os.makedirs(save_path, exist_ok=True)
     base_count = len(glob(os.path.join(save_path, "*.mp4")))
 
     video_batch = rearrange(video_batch, "(b t) c h w -> b t c h w", t=T)
     video_batch = embed_watermark(video_batch)
+    
     for vid in video_batch:
         save_image(vid, fp=os.path.join(save_path, f"{base_count:06d}.png"), nrow=4)
 
         video_path = os.path.join(save_path, f"{base_count:06d}.mp4")
-        vid = (
-            (rearrange(vid, "t c h w -> t h w c") * 255).cpu().numpy().astype(np.uint8)
-        )
-        imageio.mimwrite(video_path, vid, fps=fps)
+        vid = (rearrange(vid, "t c h w -> t h w c") * 255).cpu().numpy().astype(np.uint8)
 
-        video_path_h264 = video_path[:-4] + "_h264.mp4"
-        os.system(f"ffmpeg -i '{video_path}' -c:v libx264 '{video_path_h264}'")
-        with open(video_path_h264, "rb") as f:
-            video_bytes = f.read()
-        os.remove(video_path_h264)
-        st.video(video_bytes)
+        # Use the correct writer for MP4 format
+        writer = imageio.get_writer(video_path, fps=fps, format='ffmpeg', codec='libx264')
+        for frame in vid:
+            writer.append_data(frame)
+        writer.close()
 
+        # Confirm that the file was created
+        if os.path.exists(video_path):
+            print(f"Video saved successfully at: {video_path}")
+        
         base_count += 1
+        
