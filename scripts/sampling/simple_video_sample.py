@@ -165,7 +165,7 @@ def sample(
                 if image.mode == "RGBA":
                     input_image = image.convert("RGB")
                 else:
-                    input_image = image
+                    input_image = image.copy()
                 w, h = image.size
 
                 if h % 64 != 0 or w % 64 != 0:
@@ -277,11 +277,11 @@ def sample(
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Specify the codec for MP4
 
                 # Step 3: Create a VideoWriter object
-                video_writer = cv2.VideoWriter(video_path, fourcc, fps_id, (width, height))
+                video_writer = cv2.VideoWriter(video_path, fourcc, fps_id, (w,h))
 
                 # Step 4: Write frames to the video
                 for frame in frames:
-                    video_writer.write(frame)  # Write each frame to the video
+                    video_writer.write(frame[..., ::-1])  # Write each frame to the video and convert to BGR 
 
                 # Step 5: Release the VideoWriter
                 video_writer.release()
