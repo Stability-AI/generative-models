@@ -168,10 +168,7 @@ def sample(
 
                 if h % 64 != 0 or w % 64 != 0:
                     width, height = map(lambda x: x - x % 64, (w, h))
-                    if image.mode == "RGBA":
-                        input_image = input_image.resize((width, height))
-                    else:
-                        input_image = image.resize((width, height))
+                    input_image = input_image.resize((width, height))
                     print(
                         f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
                     )
@@ -273,8 +270,20 @@ def sample(
                     .numpy()
                     .astype(np.uint8)
                 )
+                frames = [frame for frame in vid]
                 video_path = os.path.join(output_folder, f"{base_count:06d}.mp4")
-                imageio.mimwrite(video_path, vid)
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Specify the codec for MP4
+
+                # Step 3: Create a VideoWriter object
+                video_writer = cv2.VideoWriter(video_path, fourcc, fps_id, (width, height))
+
+                # Step 4: Write frames to the video
+                for frame in frames:
+                    video_writer.write(frame)  # Write each frame to the video
+
+                # Step 5: Release the VideoWriter
+                video_writer.release()
+
 
 
 def get_unique_embedder_keys_from_conditioner(conditioner):
