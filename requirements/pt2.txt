@@ -40,3 +40,4 @@ wheel>=0.41.0
 xformers>=0.0.20
 gradio
 streamlit-keyup==0.2.0
+imageio[ffmpeg]==2.26.1
