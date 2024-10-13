@@ -67,7 +67,7 @@ def init_st(version_dict, load_ckpt=True, load_filter=True):
     return state
 
 def load_model(model):
-    device = torch.device("cuda" if USE_CUDA and torch.cuda.is_available() else "cpu")
+    global device  # Use the global device variable
     model.to(device)
 
 def set_lowvram_mode(mode):
@@ -75,7 +75,7 @@ def set_lowvram_mode(mode):
     lowvram_mode = mode
 
 def initial_model_load(model):
-    device = torch.device("cuda" if USE_CUDA and torch.cuda.is_available() else "cpu")
+    global device  # Use the global device variable
     global lowvram_mode
     if lowvram_mode:
         model.model.half().to(device)
