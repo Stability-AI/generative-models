@@ -2,6 +2,7 @@ import os
 import sys
 
 sys.path.append(os.path.realpath(os.path.join(os.path.dirname(__file__), "../../")))
+import torch
 from pytorch_lightning import seed_everything
 from scripts.demo.streamlit_helpers import *
 from scripts.demo.sv3d_helpers import *
@@ -251,6 +252,7 @@ if __name__ == "__main__":
             saving_fps = value_dict["fps"]
 
         if st.button("Sample"):
+            torch.cuda.empty_cache()
             out = do_sample(
                 model,
                 sampler,
