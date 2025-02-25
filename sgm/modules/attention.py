@@ -2,6 +2,7 @@ import logging
 import math
 from inspect import isfunction
 from typing import Any, Optional
+from omegaconf import ListConfig
 
 import torch
 import torch.nn.functional as F
@@ -647,6 +648,8 @@ class SpatialTransformer(nn.Module):
             f"{in_channels} channels and {n_heads} heads."
         )
 
+        if exists(context_dim) and isinstance(context_dim, ListConfig):
+            context_dim = list(context_dim)
         if exists(context_dim) and not isinstance(context_dim, list):
             context_dim = [context_dim]
         if exists(context_dim) and isinstance(context_dim, list):
