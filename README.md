@@ -164,6 +164,10 @@ This is assuming you have navigated to the `generative-models` root after clonin
 # install required packages from pypi
 python3 -m venv .pt2
 source .pt2/bin/activate
+
+# Using PowerShell: If above didnt work
+.pt2\Scripts\Activate.ps1
+
 pip3 install -r requirements/pt2.txt
 ```
 
