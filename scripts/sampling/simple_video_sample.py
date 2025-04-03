@@ -33,7 +33,7 @@ def sample(
     decoding_t: int = 14,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     output_folder: Optional[str] = None,
-    elevations_deg: Optional[List[float]] = 10.0,  # For SV3D
+    elevations_deg: Optional[float | List[float]] = 10.0,  # For SV3D
     azimuths_deg: Optional[List[float]] = None,  # For SV3D
     image_frame_ratio: Optional[float] = None,
     verbose: Optional[bool] = False,
