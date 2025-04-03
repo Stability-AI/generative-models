@@ -23,6 +23,7 @@ model:
         attention_resolutions: [4, 2, 1]
         channel_mult: [1, 2, 4, 4]
         context_dim: 1024
+        motion_context_dim: 4
         extra_ff_mix_layer: True
         in_channels: 8
         legacy: False

@@ -165,7 +165,16 @@ def read_video(
     return images_v0
 
 
-def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, output_folder=None, image_frame_ratio = 0.917):
+def preprocess_video(
+    input_path, 
+    remove_bg=False, 
+    n_frames=21, 
+    W=576, 
+    H=576, 
+    output_folder=None, 
+    image_frame_ratio=0.917,
+    base_count=0
+):
     print(f"preprocess {input_path}")
     if output_folder is None:
         output_folder = os.path.dirname(input_path)
@@ -237,7 +246,8 @@ def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, out
     box_square = max(original_center[0] - box_coord[0], original_center[1] - box_coord[1])
     box_square = max(box_square, box_coord[2] - original_center[0])
     box_square = max(box_square, box_coord[3] - original_center[1])
-    x, y, w, h = original_center[0] - box_square, original_center[1] - box_square, 2 * box_square, 2 * box_square
+    x, y = max(0, original_center[0] - box_square), max(0, original_center[1] - box_square)
+    w, h = min(image_arr.shape[0], 2 * box_square), min(image_arr.shape[1], 2 * box_square)
     box_size = box_square * 2
 
     for image in images:
@@ -251,9 +261,11 @@ def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, out
         )
         padded_image = np.zeros((side_len, side_len, 4), dtype=np.uint8)
         center = side_len // 2
+        box_size_w = min(w, box_size)
+        box_size_h = min(h, box_size)
         padded_image[
-            center - box_size // 2 : center - box_size // 2 + box_size,
-            center - box_size // 2 : center - box_size // 2 + box_size,
+            center - box_size_w // 2 : center - box_size_w // 2 + box_size_w,
+            center - box_size_h // 2 : center - box_size_h // 2 + box_size_h,
         ] = image_arr[x : x + w, y : y + h]
 
         rgba = Image.fromarray(padded_image).resize((W, H), Image.LANCZOS)
@@ -264,10 +276,10 @@ def preprocess_video(input_path, remove_bg=False, n_frames=21, W=576, H=576, out
         
         images_v0.append(image)
     
-    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 12
     processed_file = os.path.join(output_folder, f"{base_count:06d}_process_input.mp4")
     imageio.mimwrite(processed_file, images_v0, fps=10)
     return processed_file
+
 
 def sample_sv3d(
     image,
@@ -326,6 +338,7 @@ def sample_sv3d(
 
     with torch.no_grad():
         with torch.autocast(device):
+            load_module_gpu(model.conditioner)
             batch, batch_uc = get_batch_sv3d(
                 get_unique_embedder_keys_from_conditioner(model.conditioner),
                 value_dict,
@@ -341,6 +354,7 @@ def sample_sv3d(
                     "cond_frames_without_noise",
                 ],
             )
+            unload_module_gpu(model.conditioner)
 
             for k in ["crossattn", "concat"]:
                 uc[k] = repeat(uc[k], "b ... -> b t ...", t=num_frames)
@@ -361,11 +375,17 @@ def sample_sv3d(
                     model.model, input, sigma, c, **additional_model_inputs
                 )
 
+            load_module_gpu(model.model)
+            load_module_gpu(model.denoiser)
             samples_z = model.sampler(denoiser, randn, cond=c, uc=uc)
-            unload_module_gpu(model.model)
             unload_module_gpu(model.denoiser)
+            unload_module_gpu(model.model)
+
+            load_module_gpu(model.first_stage_model)
             model.en_and_decode_n_samples_a_time = decoding_t
             samples_x = model.decode_first_stage(samples_z)
+            unload_module_gpu(model.first_stage_model)
+
             samples_x[-1:] = value_dict["cond_frames_without_noise"]
             samples = torch.clamp(samples_x, min=-1.0, max=1.0)
 
@@ -377,7 +397,7 @@ def decode_latents(model, samples_z, img_matrix, frame_indices, view_indices, ti
     load_module_gpu(model.first_stage_model)
     for t in frame_indices:
         for v in view_indices:
-            if t != 0 and v != 0:
+            if True: # t != 0 and v != 0:
                 if isinstance(model.first_stage_model.decoder, VideoDecoder):
                     samples_x = model.decode_first_stage(samples_z[t, v][None], timesteps=timesteps)
                 else:
@@ -555,12 +575,15 @@ def get_guider_no_st(options, key):
         }
     elif guider == "SpatiotemporalPredictionGuider":
         max_scale = options.get("cfg", 1.5)
+        min_scale = options.get("min_cfg", 1.0)
 
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.SpatiotemporalPredictionGuider",
             "params": {
                 "max_scale": max_scale,
+                "min_scale": min_scale,
                 "num_frames": options["num_frames"],
+                "num_views": options["num_views"],
                 **additional_guider_kwargs,
             },
         }
@@ -652,7 +675,7 @@ def init_sampling_no_st(
     options = {} if options is None else options
 
     num_rows, num_cols = 1, 1
-    steps = options.get("num_steps", 40)
+    steps = options.get("num_steps", 50)
     sampler = [
         "EulerEDMSampler",
         "HeunEDMSampler",
@@ -688,6 +711,7 @@ def run_img2vid(
     cond_motion=None,
     cond_view=None,
     decoding_t=None,
+    cond_mv=True,
 ):
     options = version_dict["options"]
     H = version_dict["H"]
@@ -714,7 +738,10 @@ def run_img2vid(
 
     value_dict["is_image"] = 0
     value_dict["is_webvid"] = 0
-    value_dict["image_only_indicator"] = 0
+    if cond_mv:
+        value_dict["image_only_indicator"] = 1.0
+    else:
+        value_dict["image_only_indicator"] = 0.0
 
     cond_aug = 0.00
     if cond_motion is not None:
@@ -722,8 +749,6 @@ def run_img2vid(
         value_dict["cond_frames"] = (
             cond_motion[:, None].repeat(1, cond_view.shape[0], 1, 1, 1).flatten(0, 1)
         )
-        value_dict["cond_motion"] = cond_motion
-        value_dict["cond_view"] = cond_view
     else:
         value_dict["cond_frames_without_noise"] = image
         value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
@@ -760,9 +785,44 @@ def run_img2vid(
     return samples
 
 
+def prepare_inputs_forward_backward(img_matrix, view_indices, frame_indices, v0, t0, t1, model, version_dict, seed, polars, azims):
+    # forward sampling
+    forward_frame_indices = frame_indices.copy()
+    image = img_matrix[t0][v0]
+    cond_motion = torch.cat([img_matrix[t][v0] for t in forward_frame_indices], 0)
+    cond_view = torch.cat([img_matrix[t0][v] for v in view_indices], 0)
+    forward_inputs = prepare_sampling(
+        version_dict,
+        model,
+        image,
+        seed,
+        polars,
+        azims,
+        cond_motion,
+        cond_view,
+    )
+        
+    # backward sampling
+    backward_frame_indices = frame_indices[::-1].copy()
+    image = img_matrix[t1][v0]
+    cond_motion = torch.cat([img_matrix[t][v0] for t in backward_frame_indices], 0)
+    cond_view = torch.cat([img_matrix[t1][v] for v in view_indices], 0)
+    backward_inputs = prepare_sampling(
+        version_dict,
+        model,
+        image,
+        seed,
+        polars,
+        azims,
+        cond_motion,
+        cond_view,
+    )
+    return forward_inputs, forward_frame_indices, backward_inputs, backward_frame_indices
+
+
 def prepare_inputs(frame_indices, img_matrix, v0, view_indices, model, version_dict, seed, polars, azims):
     load_module_gpu(model.conditioner)
-
+    # forward sampling
     forward_frame_indices = frame_indices.copy()
     t0 = forward_frame_indices[0]
     image = img_matrix[t0][v0]
@@ -780,9 +840,7 @@ def prepare_inputs(frame_indices, img_matrix, v0, view_indices, model, version_d
         )
         
     # backward sampling
-    backward_frame_indices = frame_indices[
-        ::-1
-    ].copy()
+    backward_frame_indices = frame_indices[::-1].copy()
     t0 = backward_frame_indices[0]
     image = img_matrix[t0][v0]
     cond_motion = torch.cat([img_matrix[t][v0] for t in backward_frame_indices], 0)
@@ -800,6 +858,7 @@ def prepare_inputs(frame_indices, img_matrix, v0, view_indices, model, version_d
 
     unload_module_gpu(model.conditioner)
     return forward_inputs, forward_frame_indices, backward_inputs, backward_frame_indices
+
 
 def do_sample(
     model,
@@ -854,6 +913,10 @@ def do_sample(
                             lambda y: y[k][: math.prod(num_samples)].to("cuda"), (c, uc)
                         )
 
+                if value_dict['image_only_indicator'] == 0:
+                    c["cond_view"] *= 0
+                    uc["cond_view"] *= 0
+
                 additional_model_inputs = {}
                 for k in batch2model_input:
                     if k == "image_only_indicator":
@@ -871,7 +934,7 @@ def do_sample(
                         ):
                             additional_model_inputs[k] = torch.zeros(
                                 num_samples[0] * 2, num_samples[1]
-                            ).to("cuda")
+                            ).to("cuda") + value_dict['image_only_indicator']
                         else:
                             additional_model_inputs[k] = torch.zeros(num_samples).to(
                                 "cuda"
@@ -889,8 +952,9 @@ def do_sample(
                 load_module_gpu(model.model)
                 load_module_gpu(model.denoiser)
                 samples_z = sampler(denoiser, randn, cond=c, uc=uc)
-                unload_module_gpu(model.model)
                 unload_module_gpu(model.denoiser)
+                unload_module_gpu(model.model)
+
                 load_module_gpu(model.first_stage_model)
                 if isinstance(model.first_stage_model.decoder, VideoDecoder):
                     samples_x = model.decode_first_stage(
@@ -900,11 +964,13 @@ def do_sample(
                     samples_x = model.decode_first_stage(samples_z)
                 samples = torch.clamp((samples_x + 1.0) / 2.0, min=0.0, max=1.0)
                 unload_module_gpu(model.first_stage_model)
+
                 if filter is not None:
                     samples = filter(samples)
 
                 if return_latents:
                     return samples, samples_z
+
                 return samples
 
 
@@ -931,6 +997,7 @@ def prepare_sampling_(
                     num_samples = [num_samples, T]
                 else:
                     num_samples = [num_samples]
+                load_module_gpu(model.conditioner)
                 batch, batch_uc = get_batch(
                     get_unique_embedder_keys_from_conditioner(model.conditioner),
                     value_dict,
@@ -944,6 +1011,8 @@ def prepare_sampling_(
                     force_uc_zero_embeddings=force_uc_zero_embeddings,
                     force_cond_zero_embeddings=force_cond_zero_embeddings,
                 )
+                unload_module_gpu(model.conditioner)
+
                 for k in c:
                     if not k == "crossattn":
                         c[k], uc[k] = map(
@@ -967,13 +1036,14 @@ def prepare_sampling_(
                         ):
                             additional_model_inputs[k] = torch.zeros(
                                 num_samples[0] * 2, num_samples[1]
-                            ).to("cuda")
+                            ).to("cuda") + value_dict['image_only_indicator']
                         else:
                             additional_model_inputs[k] = torch.zeros(num_samples).to(
                                 "cuda"
                             )
                     else:
                         additional_model_inputs[k] = batch[k]
+
     return c, uc, additional_model_inputs
 
 
@@ -1015,6 +1085,8 @@ def do_sample_per_step(model, sampler, noisy_latents, c, uc, step, additional_mo
                     uc,
                     gamma,
                 )
+                unload_module_gpu(model.denoiser)
+                unload_module_gpu(model.model)
     return samples_z
 
 
@@ -1053,7 +1125,7 @@ def prepare_sampling(
 
     value_dict["is_image"] = 0
     value_dict["is_webvid"] = 0
-    value_dict["image_only_indicator"] = 0
+    value_dict["image_only_indicator"] = 1.0
 
     cond_aug = 0.00
     if cond_motion is not None:
@@ -1061,8 +1133,6 @@ def prepare_sampling(
         value_dict["cond_frames"] = (
             cond_motion[:, None].repeat(1, cond_view.shape[0], 1, 1, 1).flatten(0, 1)
         )
-        value_dict["cond_motion"] = cond_motion
-        value_dict["cond_view"] = cond_view
     else:
         value_dict["cond_frames_without_noise"] = image
         value_dict["cond_frames"] = image + cond_aug * torch.randn_like(image)
@@ -1072,8 +1142,6 @@ def prepare_sampling(
     value_dict["rotated"] = False
     value_dict["cond_motion"] = cond_motion
     value_dict["cond_view"] = cond_view
-
-    # seed_everything(seed)
 
     options["num_frames"] = T
     sampler, num_rows, num_cols = init_sampling_no_st(options=options)

@@ -1,0 +1,208 @@
+N_TIME: 12
+N_VIEW: 4
+N_FRAMES: 48
+
+model:
+  target: sgm.models.diffusion.DiffusionEngine
+  params:
+    scale_factor: 0.18215
+    en_and_decode_n_samples_a_time: 8
+    disable_first_stage_autocast: True
+    ckpt_path: checkpoints/sv4d2.safetensors
+    denoiser_config:
+      target: sgm.modules.diffusionmodules.denoiser.Denoiser
+      params:
+        scaling_config:
+          target: sgm.modules.diffusionmodules.denoiser_scaling.VScalingWithEDMcNoise
+
+    network_config:
+      target: sgm.modules.diffusionmodules.video_model.SpatialUNetModelWithTime
+      params:
+        adm_in_channels: 1280
+        attention_resolutions: [4, 2, 1]
+        channel_mult: [1, 2, 4, 4]
+        context_dim: 1024
+        motion_context_dim: 4
+        extra_ff_mix_layer: True
+        in_channels: 8
+        legacy: False
+        model_channels: 320
+        num_classes: sequential
+        num_head_channels: 64
+        num_res_blocks: 2
+        out_channels: 4
+        replicate_time_mix_bug: True
+        spatial_transformer_attn_type: softmax-xformers
+        time_block_merge_factor: 0.0
+        time_block_merge_strategy: learned_with_images
+        time_kernel_size: [3, 1, 1]
+        time_mix_legacy: False
+        transformer_depth: 1
+        use_checkpoint: False
+        use_linear_in_transformer: True
+        use_spatial_context: True
+        use_spatial_transformer: True
+        separate_motion_merge_factor: True
+        use_motion_attention: True
+        use_3d_attention: True
+        use_camera_emb: True
+
+    conditioner_config:
+      target: sgm.modules.GeneralConditioner
+      params:
+        emb_models:
+
+        - input_key: cond_frames_without_noise
+          target: sgm.modules.encoders.modules.FrozenOpenCLIPImagePredictionEmbedder
+          is_trainable: False
+          params:
+            n_cond_frames: ${N_TIME}
+            n_copies: 1
+            open_clip_embedding_config:
+              target: sgm.modules.encoders.modules.FrozenOpenCLIPImageEmbedder
+              params:
+                freeze: True
+
+        - input_key: cond_frames
+          target: sgm.modules.encoders.modules.VideoPredictionEmbedderWithEncoder
+          is_trainable: False
+          params:
+            is_ae: True
+            n_cond_frames: ${N_FRAMES}
+            n_copies: 1
+            encoder_config:
+              target: sgm.models.autoencoder.AutoencoderKLModeOnly
+              params:
+                ddconfig:
+                  attn_resolutions: []
+                  attn_type: vanilla-xformers
+                  ch: 128
+                  ch_mult: [1, 2, 4, 4]
+                  double_z: True
+                  dropout: 0.0
+                  in_channels: 3
+                  num_res_blocks: 2
+                  out_ch: 3
+                  resolution: 256
+                  z_channels: 4
+                embed_dim: 4
+                lossconfig:
+                  target: torch.nn.Identity
+                monitor: val/rec_loss
+            sigma_cond_config:
+              target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+              params:
+                outdim: 256
+            sigma_sampler_config:
+              target: sgm.modules.diffusionmodules.sigma_sampling.ZeroSampler
+
+        - input_key: polar_rad
+          is_trainable: False
+          target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+          params:
+            outdim: 512
+
+        - input_key: azimuth_rad
+          is_trainable: False
+          target: sgm.modules.encoders.modules.ConcatTimestepEmbedderND
+          params:
+            outdim: 512
+
+        - input_key: cond_view
+          is_trainable: False
+          target: sgm.modules.encoders.modules.VideoPredictionEmbedderWithEncoder
+          params:
+            is_ae: True
+            n_cond_frames: ${N_VIEW}
+            n_copies: 1
+            encoder_config:
+              target: sgm.models.autoencoder.AutoencoderKLModeOnly
+              params:
+                embed_dim: 4
+                monitor: val/rec_loss
+                ddconfig:
+                  attn_resolutions: []
+                  attn_type: vanilla-xformers
+                  ch: 128
+                  ch_mult: [1, 2, 4, 4]
+                  double_z: True
+                  dropout: 0.0
+                  in_channels: 3
+                  num_res_blocks: 2
+                  out_ch: 3
+                  resolution: 256
+                  z_channels: 4
+                lossconfig:
+                  target: torch.nn.Identity
+            sigma_sampler_config:
+              target: sgm.modules.diffusionmodules.sigma_sampling.ZeroSampler
+
+        - input_key: cond_motion
+          is_trainable: False
+          target: sgm.modules.encoders.modules.VideoPredictionEmbedderWithEncoder
+          params:
+            is_ae: True
+            n_cond_frames: ${N_TIME}
+            n_copies: 1
+            encoder_config:
+              target: sgm.models.autoencoder.AutoencoderKLModeOnly
+              params:
+                embed_dim: 4
+                monitor: val/rec_loss
+                ddconfig:
+                  attn_resolutions: []
+                  attn_type: vanilla-xformers
+                  ch: 128
+                  ch_mult: [1, 2, 4, 4]
+                  double_z: True
+                  dropout: 0.0
+                  in_channels: 3
+                  num_res_blocks: 2
+                  out_ch: 3
+                  resolution: 256
+                  z_channels: 4
+                lossconfig:
+                  target: torch.nn.Identity
+            sigma_sampler_config:
+              target: sgm.modules.diffusionmodules.sigma_sampling.ZeroSampler
+
+    first_stage_config:
+      target: sgm.models.autoencoder.AutoencodingEngine
+      params:
+        loss_config:
+          target: torch.nn.Identity
+        regularizer_config:
+          target: sgm.modules.autoencoding.regularizers.DiagonalGaussianRegularizer
+        encoder_config:
+          target: torch.nn.Identity
+        decoder_config:
+          target: sgm.modules.diffusionmodules.model.Decoder
+          params:
+            attn_resolutions: []
+            attn_type: vanilla-xformers
+            ch: 128
+            ch_mult: [1, 2, 4, 4]
+            double_z: True
+            dropout: 0.0
+            in_channels: 3
+            num_res_blocks: 2
+            out_ch: 3
+            resolution: 256
+            z_channels: 4
+
+    sampler_config:
+      target: sgm.modules.diffusionmodules.sampling.EulerEDMSampler
+      params:
+        num_steps: 50
+        discretization_config:
+          target: sgm.modules.diffusionmodules.discretizer.EDMDiscretization
+          params:
+            sigma_max: 500.0
+        guider_config:
+          target: sgm.modules.diffusionmodules.guiders.SpatiotemporalPredictionGuider
+          params:
+            max_scale: 1.5
+            min_scale: 1.5
+            num_frames: ${N_FRAMES}
+            num_views: ${N_VIEW}
+            additional_cond_keys: [ cond_view, cond_motion ]

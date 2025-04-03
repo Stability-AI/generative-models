@@ -33,7 +33,7 @@ def sample(
     decoding_t: int = 14,  # Number of frames decoded at a time! This eats most VRAM. Reduce if necessary.
     device: str = "cuda",
     output_folder: Optional[str] = None,
-    elevations_deg: Optional[float | List[float]] = 10.0,  # For SV3D
+    elevations_deg: Optional[List[float]] = 10.0,  # For SV3D
     azimuths_deg: Optional[List[float]] = None,  # For SV3D
     image_frame_ratio: Optional[float] = None,
     verbose: Optional[bool] = False,
@@ -163,7 +163,7 @@ def sample(
         else:
             with Image.open(input_img_path) as image:
                 if image.mode == "RGBA":
-                    input_image = image.convert("RGB")
+                    image = image.convert("RGB")
                 w, h = image.size
 
                 if h % 64 != 0 or w % 64 != 0:
@@ -172,7 +172,8 @@ def sample(
                     print(
                         f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
                     )
-
+                input_image = np.array(image)
+                
         image = ToTensor()(input_image)
         image = image * 2.0 - 1.0
 
