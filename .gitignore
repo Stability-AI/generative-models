@@ -13,3 +13,4 @@
 /build
 /src
 /.vscode
+**/__pycache__/

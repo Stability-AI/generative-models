@@ -5,13 +5,16 @@ einops>=0.6.1
 fairscale>=0.4.13
 fire>=0.5.0
 fsspec>=2023.6.0
+imageio[ffmpeg]
+imageio[pyav]
 invisible-watermark>=0.2.0
 kornia==0.6.9
 matplotlib>=3.7.2
 natsort>=8.4.0
 ninja>=1.11.1
-numpy>=1.24.4
+numpy==2.1
 omegaconf>=2.3.0
+onnxruntime
 open-clip-torch>=2.20.0
 opencv-python==4.6.0.66
 pandas>=2.0.3

@@ -74,6 +74,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
         x: th.Tensor,
         emb: th.Tensor,
         context: Optional[th.Tensor] = None,
+        cam: Optional[th.Tensor] = None,
         image_only_indicator: Optional[th.Tensor] = None,
         cond_view: Optional[th.Tensor] = None,
         cond_motion: Optional[th.Tensor] = None,
@@ -86,7 +87,7 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
         from ...modules.spacetime_attention import (
             BasicTransformerTimeMixBlock,
             PostHocSpatialTransformerWithTimeMixing,
-            PostHocSpatialTransformerWithTimeMixingAndMotion
+            PostHocSpatialTransformerWithTimeMixingAndMotion,
         )
 
         for layer in self:
@@ -97,13 +98,30 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
                 (
                     BasicTransformerTimeMixBlock,
                     PostHocSpatialTransformerWithTimeMixing,
-                    PostHocSpatialTransformerWithTimeMixingAndMotion
                 ),
             ):
                 x = layer(
                     x,
                     context,
-                    # cam,
+                    emb,
+                    time_context,
+                    num_video_frames,
+                    image_only_indicator,
+                    cond_view,
+                    cond_motion,
+                    time_step,
+                    name,
+                )
+            elif isinstance(
+                module, 
+                (
+                    PostHocSpatialTransformerWithTimeMixingAndMotion,
+                ),
+            ):
+                x = layer(
+                    x,
+                    context,
+                    emb,
                     time_context,
                     num_video_frames,
                     image_only_indicator,

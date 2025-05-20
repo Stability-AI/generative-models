@@ -27,7 +27,7 @@ from scripts.demo.sv4d_helpers import (
 
 
 def sample(
-    input_path: str = "assets/test_video.mp4",  # Can either be image file or folder with image files
+    input_path: str = "assets/sv4d_videos/test_video1.mp4",  # Can either be image file or folder with image files
     output_folder: Optional[str] = "outputs/sv4d",
     num_steps: Optional[int] = 20,
     sv3d_version: str = "sv3d_u",  # sv3d_u or sv3d_p
@@ -71,7 +71,8 @@ def sample(
         "f": F,
         "options": {
             "discretization": 1,
-            "cfg": 3.0,
+            "cfg": 2.0,
+            "num_views": V,
             "sigma_min": 0.002,
             "sigma_max": 700.0,
             "rho": 7.0,
@@ -94,6 +95,7 @@ def sample(
 
     # Read input video frames i.e. images at view 0
     print(f"Reading {input_path}")
+    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 11
     processed_input_path = preprocess_video(
         input_path,
         remove_bg=remove_bg,
@@ -102,6 +104,7 @@ def sample(
         H=H,
         output_folder=output_folder,
         image_frame_ratio=image_frame_ratio,
+        base_count=base_count,
     )
     images_v0 = read_video(processed_input_path, n_frames=n_frames, device=device)
 
@@ -145,15 +148,14 @@ def sample(
     for t in range(n_frames):
         img_matrix[t][0] = images_v0[t]
 
-    base_count = len(glob(os.path.join(output_folder, "*.mp4"))) // 12
     save_video(
         os.path.join(output_folder, f"{base_count:06d}_t000.mp4"),
         img_matrix[0],
     )
-    save_video(
-        os.path.join(output_folder, f"{base_count:06d}_v000.mp4"),
-        [img_matrix[t][0] for t in range(n_frames)],
-    )
+    # save_video(
+    #     os.path.join(output_folder, f"{base_count:06d}_v000.mp4"),
+    #     [img_matrix[t][0] for t in range(n_frames)],
+    # )
 
     # Load SV4D model
     model, filter = load_model(

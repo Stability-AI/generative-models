@@ -163,7 +163,7 @@ def sample(
         else:
             with Image.open(input_img_path) as image:
                 if image.mode == "RGBA":
-                    input_image = image.convert("RGB")
+                    image = image.convert("RGB")
                 w, h = image.size
 
                 if h % 64 != 0 or w % 64 != 0:
@@ -172,7 +172,8 @@ def sample(
                     print(
                         f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
                     )
-
+                input_image = np.array(image)
+                
         image = ToTensor()(input_image)
         image = image * 2.0 - 1.0
 
