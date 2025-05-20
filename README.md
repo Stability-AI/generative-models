@@ -346,7 +346,7 @@ only `pytorch1.13` is supported.
 
 **NOTE 3:** Training latent generative models (as e.g. in `configs/example_training/imagenet-f8_cond.yaml`) requires
 retrieving the checkpoint from [Hugging Face](https://huggingface.co/stabilityai/sdxl-vae/tree/main) and replacing
-the `CKPT_PATH` placeholder in [this line](configs/example_training/imagenet-f8_cond.yaml#81). The same is to be done
+the `CKPT_PATH` placeholder in [this line](configs/example_training/imagenet-f8_cond.yaml#76). The same is to be done
 for the provided text-to-image configs.
 
 ### Building New Diffusion Models
