@@ -87,7 +87,7 @@ To run **SV3D_p** on a single image:
 1. Generate static orbit at a specified elevation eg. 10.0 : `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg 10.0`
 2. Generate dynamic orbit at a specified elevations and azimuths: specify sequences of 21 elevations (in degrees) to `elevations_deg` ([-90, 90]), and 21 azimuths (in degrees) to `azimuths_deg` [0, 360] in sorted order from 0 to 360. For example: `python scripts/sampling/simple_video_sample.py --input_path <path/to/image.png> --version sv3d_p --elevations_deg [<list of 21 elevations in degrees>] --azimuths_deg [<list of 21 azimuths in degrees>]`
 
-To run SVD or SV3D on a streamlit server:
+To run SVD or SV3D on a streamlit server [update your Python path](#modify-python-path-for-streamlit-demos) and run
 `streamlit run scripts/demo/video_sampling.py`
 
   ![tile](assets/sv3d.gif)
@@ -102,7 +102,7 @@ To run SVD or SV3D on a streamlit server:
     - Usage:
         - Follow the installation instructions or update the existing environment with `pip install streamlit-keyup`.
         - Download the [weights](https://huggingface.co/stabilityai/sdxl-turbo) and place them in the `checkpoints/` directory.
-        - Run `streamlit run scripts/demo/turbo.py`.
+        - [Update your Python path](#modify-python-path-for-streamlit-demos) and run `streamlit run scripts/demo/turbo.py`.
 
   ![tile](assets/turbo_tile.png)
 
@@ -278,11 +278,18 @@ This means that you can apply for any of the two links - and if you are granted 
 Please log in to your Hugging Face Account with your organization email to request access.
 
 After obtaining the weights, place them into `checkpoints/`.
-Next, start the demo using
+Next, [update your Python path](#modify-python-path-for-streamlit-demos) and start the demo using
 
 ```
 streamlit run scripts/demo/sampling.py --server.port <your_port>
 ```
+
+### Modify Python path for streamlit demos
+Before running demos with streamlit, navigate to the `generative-models` directory and temporarily add the 
+current directory to your Python path:
+- macOS/Linux: `export PYTHONPATH=$PYTHONPATH:.`
+- Windows Command Prompt: `set PYTHONPATH=%PYTHONPATH%;.`
+- Windows PowerShell: `$env:PYTHONPATH="$env:PYTHONPATH;."`
 
 ### Invisible Watermark Detection
 
