@@ -123,7 +123,7 @@ class DiffusionEngine(pl.LightningModule):
         all_out = []
         with torch.autocast("cuda", enabled=not self.disable_first_stage_autocast):
             for n in range(n_rounds):
-                if isinstance(self.first_stage_model.decoder, VideoDecoder):
+                if isinstance(self.first_stage_model.decode, VideoDecoder):
                     kwargs = {"timesteps": len(z[n * n_samples : (n + 1) * n_samples])}
                 else:
                     kwargs = {}
