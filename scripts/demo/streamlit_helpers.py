@@ -817,6 +817,7 @@ def do_img2img(
                 if filter is not None:
                     samples = filter(samples)
 
+                grid = torch.stack([samples])
                 grid = rearrange(grid, "n b c h w -> (n h) (b w) c")
                 outputs.image(grid.cpu().numpy())
                 if return_latents:
