@@ -2,6 +2,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 
 def generate_dynamic_cycle_xy_values(
@@ -74,8 +75,9 @@ def gen_dynamic_loop(length=21, elev_deg=0):
     return np.roll(azim_rad, -1), np.roll(elev_rad, -1)
 
 
-def plot_3D(azim, polar, save_path, dynamic=True):
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+def plot_3D(azim, polar, save_path=None, dynamic=True):
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
     elev = np.deg2rad(90) - polar
     fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot(projection="3d")
@@ -98,7 +100,20 @@ def plot_3D(azim, polar, save_path, dynamic=True):
         ax.scatter(xs[i + 1], ys[i + 1], zs[i + 1], s=100, color=col[i + 1])
     ax.scatter(xs[:1], ys[:1], zs[:1], s=120, facecolors="none", edgecolors="k")
     ax.scatter(xs[-1:], ys[-1:], zs[-1:], s=120, facecolors="none", edgecolors="k")
-    ax.view_init(elev=30, azim=-20, roll=0)
-    plt.savefig(save_path, bbox_inches="tight")
+    ax.view_init(elev=40, azim=-20, roll=0)
+    ax.xaxis.set_ticklabels([])
+    ax.yaxis.set_ticklabels([])
+    ax.zaxis.set_ticklabels([])
+    if save_path is None:
+        fig.canvas.draw()
+        lst = list(fig.canvas.get_width_height())
+        lst.append(3)
+        image = Image.fromarray(
+            np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(lst)
+        )
+    else:
+        plt.savefig(save_path, bbox_inches="tight")
     plt.clf()
     plt.close()
+    if save_path is None:
+        return image
