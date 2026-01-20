@@ -282,12 +282,9 @@ def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None):
         "linear",
         "none",
     ], f"attn_type {attn_type} unknown"
-    if (
-        version.parse(torch.__version__) < version.parse("2.0.0")
-        and attn_type != "none"
-    ):
+    if attn_type != "none":
         assert XFORMERS_IS_AVAILABLE, (
-            f"We do not support vanilla attention in {torch.__version__} anymore, "
+            f"We do not support vanilla attention anymore, "
             f"as it is too expensive. Please install xformers via e.g. 'pip install xformers==0.0.16'"
         )
         attn_type = "vanilla-xformers"
