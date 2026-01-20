@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Iterable, Union
 
 import torch
@@ -11,6 +12,8 @@ from sgm.modules.diffusionmodules.openaimodel import (ResBlock,
                                                       timestep_embedding)
 from sgm.modules.video_attention import VideoTransformerBlock
 from sgm.util import partialclass
+
+logpy = logging.getLogger(__name__)
 
 
 class VideoResBlock(ResnetBlock):
@@ -256,13 +259,12 @@ def make_time_attn(
         "vanilla",
         "vanilla-xformers",
     ], f"attn_type {attn_type} not supported for spatio-temporal attention"
-    print(
-        f"making spatial and temporal attention of type '{attn_type}' with {in_channels} in_channels"
-    )
+    logpy.info(f"making spatial and temporal attention of type '{attn_type}' with {in_channels} in_channels")
     if not XFORMERS_IS_AVAILABLE and attn_type == "vanilla-xformers":
-        print(
+        logpy.warning(
             f"Attention mode '{attn_type}' is not available. Falling back to vanilla attention. "
-            f"This is not a problem in Pytorch >= 2.0. FYI, you are running with PyTorch version {torch.__version__}"
+            f"This is not a problem in Pytorch >= 2.0. "
+            f"FYI, you are running with PyTorch version {torch.__version__}"
         )
         attn_type = "vanilla"
 
@@ -272,7 +274,7 @@ def make_time_attn(
             VideoBlock, in_channels, alpha=alpha, merge_strategy=merge_strategy
         )
     elif attn_type == "vanilla-xformers":
-        print(f"building MemoryEfficientAttnBlock with {in_channels} in_channels...")
+        logpy.info(f"building MemoryEfficientAttnBlock with {in_channels} in_channels...")
         return partialclass(
             MemoryEfficientVideoBlock,
             in_channels,

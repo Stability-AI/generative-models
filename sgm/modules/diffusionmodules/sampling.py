@@ -1,8 +1,7 @@
 """
     Partially ported from https://github.com/crowsonkb/k-diffusion/blob/master/k_diffusion/sampling.py
 """
-
-
+import logging
 from typing import Dict, Union
 
 import torch
@@ -16,6 +15,8 @@ from ...modules.diffusionmodules.sampling_utils import (get_ancestral_step,
 from ...util import append_dims, default, instantiate_from_config
 
 DEFAULT_GUIDER = {"target": "sgm.modules.diffusionmodules.guiders.IdentityGuider"}
+
+logpy = logging.getLogger(__name__)
 
 
 class BaseDiffusionSampler:
@@ -60,9 +61,9 @@ class BaseDiffusionSampler:
         sigma_generator = range(num_sigmas - 1)
         if self.verbose:
             print("#" * 30, " Sampling setting ", "#" * 30)
-            print(f"Sampler: {self.__class__.__name__}")
-            print(f"Discretization: {self.discretization.__class__.__name__}")
-            print(f"Guider: {self.guider.__class__.__name__}")
+            logpy.info(f"Sampler: {self.__class__.__name__}")
+            logpy.info(f"Discretization: {self.discretization.__class__.__name__}")
+            logpy.info(f"Guider: {self.guider.__class__.__name__}")
             sigma_generator = tqdm(
                 sigma_generator,
                 total=num_sigmas,

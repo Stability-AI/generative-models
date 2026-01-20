@@ -1,8 +1,11 @@
 import torch
+import logging
 
 from ..modules.attention import *
 from ..modules.diffusionmodules.util import (AlphaBlender, linear,
                                              timestep_embedding)
+
+logpy = logging.getLogger(__name__)
 
 
 class TimeMixSequential(nn.Sequential):
@@ -97,7 +100,7 @@ class VideoTransformerBlock(nn.Module):
 
         self.checkpoint = checkpoint
         if self.checkpoint:
-            print(f"{self.__class__.__name__} is using checkpointing")
+            logpy.info(f"{self.__class__.__name__} is using checkpointing")
 
     def forward(
         self, x: torch.Tensor, context: torch.Tensor = None, timesteps: int = None
