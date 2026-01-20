@@ -40,7 +40,7 @@ else:
     SDP_IS_AVAILABLE = False
     sdp_kernel = nullcontext
     BACKEND_MAP = {}
-    logpy.warn(
+    logpy.warning(
         f"No SDP backend available, likely because you are running in pytorch "
         f"versions < 2.0. In fact, you are using PyTorch {torch.__version__}. "
         f"You might want to consider upgrading."
@@ -53,7 +53,7 @@ try:
     XFORMERS_IS_AVAILABLE = True
 except:
     XFORMERS_IS_AVAILABLE = False
-    logpy.warn("no module 'xformers'. Processing without...")
+    logpy.warning("no module 'xformers'. Processing without...")
 
 # from .diffusionmodules.util import mixed_checkpoint as checkpoint
 
@@ -475,7 +475,7 @@ class BasicTransformerBlock(nn.Module):
         super().__init__()
         assert attn_mode in self.ATTENTION_MODES
         if attn_mode != "softmax" and not XFORMERS_IS_AVAILABLE:
-            logpy.warn(
+            logpy.warning(
                 f"Attention mode '{attn_mode}' is not available. Falling "
                 f"back to native attention. This is not a problem in "
                 f"Pytorch >= 2.0. FYI, you are running with PyTorch "
@@ -483,7 +483,7 @@ class BasicTransformerBlock(nn.Module):
             )
             attn_mode = "softmax"
         elif attn_mode == "softmax" and not SDP_IS_AVAILABLE:
-            logpy.warn(
+            logpy.warning(
                 "We do not support vanilla attention anymore, as it is too "
                 "expensive. Sorry."
             )
@@ -651,7 +651,7 @@ class SpatialTransformer(nn.Module):
             context_dim = [context_dim]
         if exists(context_dim) and isinstance(context_dim, list):
             if depth != len(context_dim):
-                logpy.warn(
+                logpy.warning(
                     f"{self.__class__.__name__}: Found context dims "
                     f"{context_dim} of depth {len(context_dim)}, which does not "
                     f"match the specified 'depth' of {depth}. Setting context_dim "
