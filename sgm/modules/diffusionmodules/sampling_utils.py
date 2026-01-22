@@ -1,10 +1,10 @@
 import torch
-from scipy import integrate
 
 from ...util import append_dims
 
 
 def linear_multistep_coeff(order, t, i, j, epsrel=1e-4):
+    from scipy import integrate  # late import to avoid extra dependency
     if order - 1 > i:
         raise ValueError(f"Order {order} too high for step {i}")
 
