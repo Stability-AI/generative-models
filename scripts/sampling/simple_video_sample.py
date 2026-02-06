@@ -168,7 +168,7 @@ def sample(
 
                 if h % 64 != 0 or w % 64 != 0:
                     width, height = map(lambda x: x - x % 64, (w, h))
-                    input_image = input_image.resize((width, height))
+                    image = image.resize((width, height))
                     print(
                         f"WARNING: Your image is of size {h}x{w} which is not divisible by 64. We are resizing to {height}x{width}!"
                     )
