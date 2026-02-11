@@ -147,7 +147,7 @@ class TrapezoidPredictionGuider(LinearPredictionGuider):
         self.scale = torch.cat(
             [
                 rise_steps,
-                torch.ones(num_frames - 2 * int(num_frames * edge_perc)),
+                torch.full((num_frames - 2 * int(num_frames * edge_perc),), max_scale),
                 fall_steps,
             ]
         ).unsqueeze(0)
