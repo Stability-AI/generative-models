@@ -391,16 +391,16 @@ class MemoryEfficientCrossAttention(nn.Module):
         if n_times_crossframe_attn_in_self:
             # reprogramming cross-frame attention as in https://arxiv.org/abs/2303.13439
             assert x.shape[0] % n_times_crossframe_attn_in_self == 0
-            # n_cp = x.shape[0]//n_times_crossframe_attn_in_self
+            n_cp = x.shape[0] // n_times_crossframe_attn_in_self
             k = repeat(
                 k[::n_times_crossframe_attn_in_self],
                 "b ... -> (b n) ...",
-                n=n_times_crossframe_attn_in_self,
+                n=n_cp,
             )
             v = repeat(
                 v[::n_times_crossframe_attn_in_self],
                 "b ... -> (b n) ...",
-                n=n_times_crossframe_attn_in_self,
+                n=n_cp,
             )
 
         b, _, _ = q.shape
