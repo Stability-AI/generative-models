@@ -17,6 +17,7 @@ class StandardDiffusionLoss(nn.Module):
         loss_type: str = "l2",
         offset_noise_level: float = 0.0,
         batch2model_keys: Optional[Union[str, List[str]]] = None,
+        n_frames: Optional[int] = None,
     ):
         super().__init__()
 
@@ -27,6 +28,7 @@ class StandardDiffusionLoss(nn.Module):
 
         self.loss_type = loss_type
         self.offset_noise_level = offset_noise_level
+        self.n_frames = n_frames
 
         if loss_type == "lpips":
             self.lpips = LPIPS().eval()
