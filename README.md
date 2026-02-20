@@ -219,6 +219,35 @@ pip3 install -e git+https://github.com/Stability-AI/datapipelines.git@main#egg=s
 
 ## Packaging
 
+## Robotics Utility: Geometric Scene + Ground Truth
+
+A lightweight synthetic scene generator is available for robotics/perception
+debugging and dataset bootstrapping:
+
+`scripts/util/generate_robotics_geometric_scene.py`
+
+It produces:
+- Rendered RGB frames (checkerboard + cube wireframe).
+- Per-frame JSON labels with camera intrinsics/extrinsics and exact 3D->2D
+  projections.
+
+Example:
+
+```shell
+python scripts/util/generate_robotics_geometric_scene.py \
+  --output-dir outputs/robotics_geometry \
+  --frames 32 \
+  --seed 42
+```
+
+Evaluate reprojection consistency:
+
+```shell
+python scripts/util/evaluate_robotics_geometry.py \
+  --dataset-dir outputs/robotics_geometry \
+  --max-mean-error-px 0.25
+```
+
 This repository uses PEP 517 compliant packaging using [Hatch](https://hatch.pypa.io/latest/).
 
 To build a distributable wheel, install `hatch` and run `hatch build`
