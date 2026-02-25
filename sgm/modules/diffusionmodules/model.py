@@ -16,7 +16,7 @@ try:
     import xformers.ops
 
     XFORMERS_IS_AVAILABLE = True
-except:
+except Exception:
     XFORMERS_IS_AVAILABLE = False
     logpy.warning("no module 'xformers'. Processing without...")
 
