@@ -1,6 +1,7 @@
 import functools
 import importlib
 import os
+from contextlib import nullcontext
 from functools import partial
 from inspect import isfunction
 
@@ -9,6 +10,10 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw, ImageFont
 from safetensors.torch import load_file as load_safetensors
+
+
+def get_default_device_name() -> str:
+    return os.environ.get("SGM_DEFAULT_DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 
 
 def disabled_train(self, mode=True):
@@ -273,3 +278,10 @@ def get_nested_attribute(obj, attribute_path, depth=None, return_key=False):
             current_attribute = getattr(current_attribute, attribute)
 
     return (current_attribute, current_key) if return_key else current_attribute
+
+
+def safe_autocast(device, **kwargs):
+    """Autocast that doesn't crash on devices unsupported by autocast."""
+    if device not in ("cpu", "cuda"):
+        return nullcontext()
+    return torch.autocast(device, **kwargs)
