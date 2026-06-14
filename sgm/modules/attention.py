@@ -543,7 +543,7 @@ class BasicTransformerBlock(nn.Module):
         # return mixed_checkpoint(self._forward, kwargs, self.parameters(), self.checkpoint)
         if self.checkpoint:
             # inputs = {"x": x, "context": context}
-            return checkpoint(self._forward, x, context)
+            return checkpoint(self._forward, x, context, additional_tokens, n_times_crossframe_attn_in_self)
             # return checkpoint(self._forward, inputs, self.parameters(), self.checkpoint)
         else:
             return self._forward(**kwargs)
