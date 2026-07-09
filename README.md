@@ -389,3 +389,15 @@ example = {"jpg": x,  # this is a tensor -1...1 chw
 ```
 
 where we expect images in -1...1, channel-first format.
+
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on
+how to report bugs, suggest features, and submit pull requests.
+
+By participating, you agree to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+*[Mukller](https://github.com/Mukller)*
