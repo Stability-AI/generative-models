@@ -263,18 +263,12 @@ def get_guider_config(params: SamplingParams):
     elif params.guider == Guider.VANILLA:
         scale = params.scale
 
-        thresholder = params.thresholder
-
-        if thresholder == Thresholder.NONE:
-            dyn_thresh_config = {
-                "target": "sgm.modules.diffusionmodules.sampling_utils.NoDynamicThresholding"
-            }
-        else:
+        if params.thresholder != Thresholder.NONE:
             raise NotImplementedError
 
         guider_config = {
             "target": "sgm.modules.diffusionmodules.guiders.VanillaCFG",
-            "params": {"scale": scale, "dyn_thresh_config": dyn_thresh_config},
+            "params": {"scale": scale},
         }
     else:
         raise NotImplementedError

@@ -15,6 +15,16 @@ from sgm.inference.api import (
 import sgm.inference.helpers as helpers
 
 
+def test_default_sampling_params_build_a_vanilla_cfg_sampler():
+    from sgm.inference.api import get_sampler_config
+    from sgm.modules.diffusionmodules.guiders import VanillaCFG
+
+    sampler = get_sampler_config(SamplingParams())
+
+    assert isinstance(sampler.guider, VanillaCFG)
+    assert sampler.guider.scale == 6.0
+
+
 @pytest.mark.inference
 class TestInference:
     @fixture(scope="class", params=model_specs.keys())
