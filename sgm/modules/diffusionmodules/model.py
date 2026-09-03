@@ -267,11 +267,12 @@ class MemoryEfficientAttnBlock(nn.Module):
 
 class MemoryEfficientCrossAttentionWrapper(MemoryEfficientCrossAttention):
     def forward(self, x, context=None, mask=None, **unused_kwargs):
+        residual = x
         b, c, h, w = x.shape
         x = rearrange(x, "b c h w -> b (h w) c")
         out = super().forward(x, context=context, mask=mask)
         out = rearrange(out, "b (h w) c -> b c h w", h=h, w=w, c=c)
-        return x + out
+        return residual + out
 
 
 def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None):
@@ -300,7 +301,8 @@ def make_attn(in_channels, attn_type="vanilla", attn_kwargs=None):
             f"building MemoryEfficientAttnBlock with {in_channels} in_channels..."
         )
         return MemoryEfficientAttnBlock(in_channels)
-    elif type == "memory-efficient-cross-attn":
+    elif attn_type == "memory-efficient-cross-attn":
+        attn_kwargs = dict(attn_kwargs or {})
         attn_kwargs["query_dim"] = in_channels
         return MemoryEfficientCrossAttentionWrapper(**attn_kwargs)
     elif attn_type == "none":
